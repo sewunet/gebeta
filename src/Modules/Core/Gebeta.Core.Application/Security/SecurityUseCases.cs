@@ -1,6 +1,7 @@
 using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
 using Gebeta.Core.Contracts;
+using Gebeta.Core.Domain.Companies;
 using Gebeta.Core.Domain.Security;
 using Gebeta.SharedKernel;
 
@@ -21,8 +22,10 @@ public sealed class GetMeHandler(UserContext context) : IQueryHandler<GetMeQuery
         }
 
         var permissions = l.Roles.SelectMany(r => r.Permissions).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        var accessible = await context.GetAccessibleCompanyIdsAsync(cancellationToken).ConfigureAwait(false);
         return new MeDto(l.User.Id, l.User.Username, l.User.Email, l.User.FullName, l.User.Language, l.User.Calendar.ToString(),
-            l.User.DefaultCompanyId, l.Roles.Select(r => r.Name).Order(StringComparer.Ordinal).ToList(), permissions);
+            l.User.DefaultCompanyId, l.Roles.Select(r => r.Name).Order(StringComparer.Ordinal).ToList(), permissions,
+            AccessAllCompanies: accessible is null, CompanyIds: l.User.CompanyIds.ToList());
     }
 }
 
@@ -37,6 +40,11 @@ public sealed class UpdateMyPreferencesHandler(UserContext context, ICoreUnitOfW
         if (await context.GetAsync(cancellationToken).ConfigureAwait(false) is not { } l)
         {
             return Error.NotFound("User", "current");
+        }
+
+        if (command.DefaultCompanyId is { } companyId && !await context.CanAccessAsync(companyId, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.Validation("The default company must be one you have access to.");
         }
 
         var result = l.User.SetPreferences(command.Language, command.Calendar, command.DefaultCompanyId);
@@ -63,7 +71,7 @@ public sealed class ListUsersHandler(IUserRepository users, IRoleRepository role
         var allRoles = (await roles.ListAsync(cancellationToken).ConfigureAwait(false)).ToDictionary(r => r.Id, r => r.Name);
         var all = await users.ListAsync(cancellationToken).ConfigureAwait(false);
         return Result.Success<IReadOnlyList<UserDto>>(all.Select(u => new UserDto(u.Id, u.Username, u.Email, u.FullName, u.IsActive,
-            u.RoleIds.Where(allRoles.ContainsKey).Select(id => allRoles[id]).Order(StringComparer.Ordinal).ToList())).ToList());
+            u.RoleIds.Where(allRoles.ContainsKey).Select(id => allRoles[id]).Order(StringComparer.Ordinal).ToList(), u.CompanyIds.ToList())).ToList());
     }
 }
 
@@ -90,7 +98,7 @@ public sealed class UserRoleHandler(IUserRepository users, IRoleRepository roles
         }
 
         user.AssignRole(role);
-        return await SaveAsync(user, cancellationToken).ConfigureAwait(false);
+        return await SaveUserAsync(user, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<UserDto>> Handle(RemoveRoleCommand command, CancellationToken cancellationToken)
@@ -109,16 +117,55 @@ public sealed class UserRoleHandler(IUserRepository users, IRoleRepository roles
         }
 
         user.RemoveRole(command.RoleId);
-        return await SaveAsync(user, cancellationToken).ConfigureAwait(false);
+        return await SaveUserAsync(user, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<Result<UserDto>> SaveAsync(User user, CancellationToken cancellationToken)
+    internal async Task<Result<UserDto>> SaveUserAsync(User user, CancellationToken cancellationToken)
     {
         user.ModifiedAt = clock.GetUtcNow();
         user.ModifiedBy = (await context.GetAsync(cancellationToken).ConfigureAwait(false))?.User.Username;
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         var names = (await roles.GetManyAsync(user.RoleIds.ToList(), cancellationToken).ConfigureAwait(false)).Select(r => r.Name).Order(StringComparer.Ordinal).ToList();
-        return new UserDto(user.Id, user.Username, user.Email, user.FullName, user.IsActive, names);
+        return new UserDto(user.Id, user.Username, user.Email, user.FullName, user.IsActive, names, user.CompanyIds.ToList());
+    }
+}
+
+public sealed record GrantCompanyAccessCommand(Guid UserId, Guid CompanyId) : ICommand<UserDto>;
+
+public sealed record RevokeCompanyAccessCommand(Guid UserId, Guid CompanyId) : ICommand<UserDto>;
+
+public sealed class CompanyAccessHandler(IUserRepository users, ICompanyRepository companies, UserRoleHandler roleHandler)
+    : ICommandHandler<GrantCompanyAccessCommand, UserDto>, ICommandHandler<RevokeCompanyAccessCommand, UserDto>
+{
+    public async Task<Result<UserDto>> Handle(GrantCompanyAccessCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var user = await users.GetAsync(command.UserId, cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return Error.NotFound("User", command.UserId);
+        }
+
+        if (await companies.GetAsync(command.CompanyId, cancellationToken).ConfigureAwait(false) is null)
+        {
+            return Error.NotFound("Company", command.CompanyId);
+        }
+
+        user.GrantCompany(command.CompanyId);
+        return await roleHandler.SaveUserAsync(user, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<UserDto>> Handle(RevokeCompanyAccessCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var user = await users.GetAsync(command.UserId, cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return Error.NotFound("User", command.UserId);
+        }
+
+        user.RevokeCompany(command.CompanyId);
+        return await roleHandler.SaveUserAsync(user, cancellationToken).ConfigureAwait(false);
     }
 }
 

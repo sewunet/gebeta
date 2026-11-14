@@ -21,3 +21,15 @@ public interface IPermissionChecker
 {
     Task<bool> HasPermissionAsync(string permission, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// Which companies the current user may work in. Every module filters its records with it, so a
+/// clerk of one sugar factory never sees another factory's documents. Provided by the Core module.
+/// </summary>
+public interface ICompanyAccess
+{
+    /// <summary>The accessible company ids, or null when the user may access every company.</summary>
+    Task<IReadOnlySet<Guid>?> GetAccessibleCompanyIdsAsync(CancellationToken cancellationToken);
+
+    Task<bool> CanAccessAsync(Guid companyId, CancellationToken cancellationToken);
+}

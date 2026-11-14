@@ -9,6 +9,7 @@ namespace Gebeta.Core.Domain.Security;
 public sealed class User : Entity
 {
     private readonly List<Guid> _roleIds = [];
+    private readonly List<Guid> _companyIds = [];
 
     private User()
     {
@@ -36,6 +37,12 @@ public sealed class User : Entity
     public CalendarPreference Calendar { get; private set; } = CalendarPreference.Both;
     public Guid? DefaultCompanyId { get; private set; }
     public IReadOnlyList<Guid> RoleIds => _roleIds;
+
+    /// <summary>
+    /// Companies this user may work in (record restriction, docs/platform.md). Users whose roles grant
+    /// <c>core.companies.access-all</c> see every company regardless of this list.
+    /// </summary>
+    public IReadOnlyList<Guid> CompanyIds => _companyIds;
 
     public static Result<User> Create(string externalId, string username, string? email, string? fullName)
     {
@@ -72,6 +79,23 @@ public sealed class User : Entity
         Calendar = calendar;
         DefaultCompanyId = defaultCompanyId;
         return Result.Success();
+    }
+
+    public void GrantCompany(Guid companyId)
+    {
+        if (companyId != Guid.Empty && !_companyIds.Contains(companyId))
+        {
+            _companyIds.Add(companyId);
+        }
+    }
+
+    public void RevokeCompany(Guid companyId)
+    {
+        _companyIds.Remove(companyId);
+        if (DefaultCompanyId == companyId)
+        {
+            DefaultCompanyId = null;
+        }
     }
 
     public void AssignRole(Role role)

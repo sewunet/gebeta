@@ -95,6 +95,23 @@ public class UserTests
     }
 
     [Fact]
+    public void Revoking_a_company_also_clears_it_as_default()
+    {
+        var user = User.Create("kc-3", "hirut", null, null).Value;
+        var company = Guid.CreateVersion7();
+        user.GrantCompany(company);
+        user.GrantCompany(company);
+        user.SetPreferences("en", CalendarPreference.Both, company);
+
+        Assert.Single(user.CompanyIds);
+
+        user.RevokeCompany(company);
+
+        Assert.Empty(user.CompanyIds);
+        Assert.Null(user.DefaultCompanyId);
+    }
+
+    [Fact]
     public void Roles_are_assigned_once_and_can_be_removed()
     {
         var user = User.Create("kc-2", "dawit", null, null).Value;

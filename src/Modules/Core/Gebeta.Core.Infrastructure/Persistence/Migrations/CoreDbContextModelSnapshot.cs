@@ -236,6 +236,11 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(140)")
                         .HasColumnName("username");
 
+                    b.PrimitiveCollection<List<Guid>>("_companyIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("company_ids");
+
                     b.PrimitiveCollection<List<Guid>>("_roleIds")
                         .IsRequired()
                         .HasColumnType("uuid[]")

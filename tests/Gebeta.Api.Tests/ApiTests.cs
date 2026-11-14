@@ -194,6 +194,81 @@ public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory
     }
 
     [Fact]
+    public async Task A_user_sees_only_the_companies_assigned_to_them()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        using var accountant = factory.ClientFor("accountant");
+        var accountantMe = await accountant.GetFromJsonAsync<MeDto>(Me, Ct);
+        var viewer = (await admin.GetFromJsonAsync<List<RoleDto>>(Roles, Ct))!.Single(r => r.Name == "Core Viewer");
+        await admin.PutAsync(new Uri($"/api/core/users/{accountantMe!.Id}/roles/{viewer.Id}", UriKind.Relative), null, Ct);
+
+        var wonji = await (await admin.PostAsJsonAsync(Companies, new { name = "Wonji Sugar Factory", abbreviation = "WSF", legalForm = "PublicEnterprise", tin = "0100000001" }, Ct))
+            .Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        var metehara = await (await admin.PostAsJsonAsync(Companies, new { name = "Metehara Sugar Factory", abbreviation = "MSF", legalForm = "PublicEnterprise", tin = "0100000002" }, Ct))
+            .Content.ReadFromJsonAsync<CompanyDto>(Ct);
+
+        // No access yet: the list is empty and a company is reported as not found.
+        Assert.DoesNotContain(await accountant.GetFromJsonAsync<List<CompanyDto>>(Companies, Ct) ?? [], c => c.Id == wonji!.Id);
+        Assert.Equal(HttpStatusCode.NotFound, (await accountant.GetAsync(new Uri($"/api/core/companies/{wonji!.Id}", UriKind.Relative), Ct)).StatusCode);
+
+        var grant = await admin.PutAsync(new Uri($"/api/core/users/{accountantMe.Id}/companies/{wonji.Id}", UriKind.Relative), null, Ct);
+        Assert.Equal(HttpStatusCode.OK, grant.StatusCode);
+
+        var visible = await accountant.GetFromJsonAsync<List<CompanyDto>>(Companies, Ct);
+        Assert.Equal([wonji.Id], visible!.Select(c => c.Id));
+        Assert.Equal(HttpStatusCode.OK, (await accountant.GetAsync(new Uri($"/api/core/companies/{wonji.Id}", UriKind.Relative), Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await accountant.GetAsync(new Uri($"/api/core/companies/{metehara!.Id}", UriKind.Relative), Ct)).StatusCode);
+
+        var me = await accountant.GetFromJsonAsync<MeDto>(Me, Ct);
+        Assert.False(me!.AccessAllCompanies);
+        Assert.Equal([wonji.Id], me.CompanyIds);
+
+        await admin.DeleteAsync(new Uri($"/api/core/users/{accountantMe.Id}/companies/{wonji.Id}", UriKind.Relative), Ct);
+        Assert.Equal(HttpStatusCode.NotFound, (await accountant.GetAsync(new Uri($"/api/core/companies/{wonji.Id}", UriKind.Relative), Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task System_managers_see_every_company()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+
+        var me = await admin.GetFromJsonAsync<MeDto>(Me, Ct);
+
+        Assert.True(me!.AccessAllCompanies);
+    }
+
+    [Fact]
+    public async Task The_creator_of_a_company_gets_access_to_it()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        using var founder = factory.ClientFor("founder");
+        var founderMe = await founder.GetFromJsonAsync<MeDto>(Me, Ct);
+        var role = await (await admin.PostAsJsonAsync(Roles, new { name = "Company Founder", permissions = new[] { "core.companies.read", "core.companies.create" } }, Ct))
+            .Content.ReadFromJsonAsync<RoleDto>(Ct);
+        await admin.PutAsync(new Uri($"/api/core/users/{founderMe!.Id}/roles/{role!.Id}", UriKind.Relative), null, Ct);
+
+        var created = await (await founder.PostAsJsonAsync(Companies, new { name = "Founder Trading PLC", abbreviation = "FTP", legalForm = "PrivateLimitedCompany", tin = "0200000001" }, Ct))
+            .Content.ReadFromJsonAsync<CompanyDto>(Ct);
+
+        var visible = await founder.GetFromJsonAsync<List<CompanyDto>>(Companies, Ct);
+        Assert.Equal([created!.Id], visible!.Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task The_default_company_must_be_accessible()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        using var outsider = factory.ClientFor("outsider");
+        var company = await (await admin.PostAsJsonAsync(Companies, new { name = "Finchaa Sugar Factory", abbreviation = "FSF", legalForm = "PublicEnterprise", tin = "0100000003" }, Ct))
+            .Content.ReadFromJsonAsync<CompanyDto>(Ct);
+
+        var response = await outsider.PutAsJsonAsync(new Uri("/api/me/preferences", UriKind.Relative),
+            new { language = "en", calendar = "Both", defaultCompanyId = company!.Id }, Ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task OpenApi_document_is_published()
     {
         using var client = factory.ClientFor(null);

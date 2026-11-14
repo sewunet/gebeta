@@ -10,8 +10,10 @@ public sealed record MeDto(
     string Calendar,
     Guid? DefaultCompanyId,
     IReadOnlyList<string> Roles,
-    IReadOnlyList<string> Permissions);
+    IReadOnlyList<string> Permissions,
+    bool AccessAllCompanies,
+    IReadOnlyList<Guid> CompanyIds);
 
-public sealed record UserDto(Guid Id, string Username, string? Email, string? FullName, bool IsActive, IReadOnlyList<string> Roles);
+public sealed record UserDto(Guid Id, string Username, string? Email, string? FullName, bool IsActive, IReadOnlyList<string> Roles, IReadOnlyList<Guid> CompanyIds);
 
 public sealed record RoleDto(Guid Id, string Name, string? Description, bool IsSystem, IReadOnlyList<string> Permissions);

@@ -84,6 +84,16 @@ public static class CoreEndpoints
             .WithName("RemoveRole")
             .RequirePermission(CorePermissions.UsersManage);
 
+        users.MapPut("/{userId:guid}/companies/{companyId:guid}", async (Guid userId, Guid companyId, ICommandHandler<GrantCompanyAccessCommand, UserDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new GrantCompanyAccessCommand(userId, companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GrantCompanyAccess")
+            .RequirePermission(CorePermissions.UsersManage);
+
+        users.MapDelete("/{userId:guid}/companies/{companyId:guid}", async (Guid userId, Guid companyId, ICommandHandler<RevokeCompanyAccessCommand, UserDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new RevokeCompanyAccessCommand(userId, companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("RevokeCompanyAccess")
+            .RequirePermission(CorePermissions.UsersManage);
+
         var roles = endpoints.MapGroup("/api/core/roles").WithTags("Core: Roles");
 
         roles.MapGet("/", async (IQueryHandler<ListRolesQuery, IReadOnlyList<RoleDto>> handler, CancellationToken ct) =>

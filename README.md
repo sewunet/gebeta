@@ -118,6 +118,9 @@ curl -s -X POST http://localhost:8180/realms/gebeta/protocol/openid-connect/toke
 
 Permissions look like `core.companies.create`; roles hold permissions or wildcards (`core.*`, `*`).
 System roles (System Manager, Core Administrator, Core Viewer) are created by the migration.
+Users see only the companies assigned to them (`PUT /api/core/users/{id}/companies/{companyId}`),
+unless a role grants `core.companies.access-all`; other modules filter their records the same way
+through `ICompanyAccess`.
 
 In Development the API applies every module's migrations at start-up. Elsewhere run
 `dotnet Gebeta.Api.dll --migrate` (the migrate container) before starting the API.

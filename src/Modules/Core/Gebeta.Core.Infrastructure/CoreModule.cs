@@ -48,6 +48,7 @@ public sealed class CoreModule : IErpModule
         services.AddSingleton(security);
         services.AddScoped<UserContext>();
         services.AddScoped<IPermissionChecker>(sp => sp.GetRequiredService<UserContext>());
+        services.AddScoped<ICompanyAccess>(sp => sp.GetRequiredService<UserContext>());
         services.AddScoped<IModuleMigrator, CoreMigrator>();
         services.AddHealthChecks().AddCheck<CoreDatabaseHealthCheck>("core-database");
 
@@ -62,6 +63,9 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<UserRoleHandler>();
         services.AddScoped<ICommandHandler<AssignRoleCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
         services.AddScoped<ICommandHandler<RemoveRoleCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
+        services.AddScoped<CompanyAccessHandler>();
+        services.AddScoped<ICommandHandler<GrantCompanyAccessCommand, UserDto>>(sp => sp.GetRequiredService<CompanyAccessHandler>());
+        services.AddScoped<ICommandHandler<RevokeCompanyAccessCommand, UserDto>>(sp => sp.GetRequiredService<CompanyAccessHandler>());
         services.AddScoped<IQueryHandler<ListRolesQuery, IReadOnlyList<RoleDto>>, ListRolesHandler>();
         services.AddScoped<ICommandHandler<CreateRoleCommand, RoleDto>, CreateRoleHandler>();
     }

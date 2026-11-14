@@ -1,5 +1,6 @@
 using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
+using Gebeta.Core.Contracts;
 using Gebeta.Core.Domain.Security;
 
 namespace Gebeta.Core.Application.Security;
@@ -26,7 +27,7 @@ public sealed class UserContext(
     IRoleRepository roles,
     ICoreUnitOfWork unitOfWork,
     SecurityOptions options,
-    TimeProvider clock) : IPermissionChecker
+    TimeProvider clock) : IPermissionChecker, ICompanyAccess
 {
     private (User User, IReadOnlyList<Role> Roles)? _loaded;
 
@@ -72,6 +73,23 @@ public sealed class UserContext(
     {
         var loaded = await GetAsync(cancellationToken).ConfigureAwait(false);
         return loaded is { } l && l.Roles.Any(r => r.Allows(permission));
+    }
+
+    public async Task<IReadOnlySet<Guid>?> GetAccessibleCompanyIdsAsync(CancellationToken cancellationToken)
+    {
+        var loaded = await GetAsync(cancellationToken).ConfigureAwait(false);
+        if (loaded is not { } l)
+        {
+            return new HashSet<Guid>();
+        }
+
+        return l.Roles.Any(r => r.Allows(CorePermissions.CompaniesAccessAll)) ? null : l.User.CompanyIds.ToHashSet();
+    }
+
+    public async Task<bool> CanAccessAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var accessible = await GetAccessibleCompanyIdsAsync(cancellationToken).ConfigureAwait(false);
+        return accessible is null || accessible.Contains(companyId);
     }
 
     private async Task<User?> ProvisionAsync(CancellationToken cancellationToken)

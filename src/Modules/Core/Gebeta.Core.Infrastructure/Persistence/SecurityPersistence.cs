@@ -26,6 +26,8 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         // Role assignments as a uuid[] column: small, read with the user on every request.
         builder.Property<List<Guid>>("_roleIds").HasColumnName("role_ids").IsRequired();
         builder.Ignore(u => u.RoleIds);
+        builder.Property<List<Guid>>("_companyIds").HasColumnName("company_ids").IsRequired();
+        builder.Ignore(u => u.CompanyIds);
         builder.Ignore(u => u.DomainEvents);
     }
 }

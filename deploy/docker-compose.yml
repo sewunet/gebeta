@@ -17,6 +17,7 @@ x-server-env: &server-env
   Redis__Configuration: redis:6379
   Authentication__Authority: http://keycloak:8080/realms/gebeta
   Authentication__Audience: gebeta-api
+  Authentication__TokenValidationParameters__ValidIssuer: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8180}/realms/gebeta
   Serilog__WriteTo__0__Name: Seq
   Serilog__WriteTo__0__Args__serverUrl: http://seq:5341
   # Modules running in this container (see docs/plugin-architecture.md)
@@ -85,6 +86,10 @@ services:
     # Production: "start" with KC_DB=postgres and a hostname, see docs/deployment.md.
     command: ["start-dev", "--http-port=8080", "--import-realm"]
     environment:
+      # Public address in tokens (iss). Containers may still call keycloak:8080 (dynamic back-channel),
+      # and the API accepts tokens whose issuer is this public address.
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8180}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
     ports:

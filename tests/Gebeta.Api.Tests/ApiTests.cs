@@ -269,6 +269,59 @@ public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory
     }
 
     [Fact]
+    public async Task A_company_configures_its_naming_series_with_ethiopian_fiscal_years()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var company = await (await admin.PostAsJsonAsync(Companies, new { name = "Tendaho Sugar Factory", abbreviation = "TSF", legalForm = "PublicEnterprise", tin = "0100000004" }, Ct))
+            .Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        var uri = new Uri($"/api/core/companies/{company!.Id}/naming-series", UriKind.Relative);
+
+        var set = await admin.PutAsJsonAsync(uri, new { documentType = "Sales Invoice", pattern = "INV-.ABBR.-.FY.-.#####" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, set.StatusCode);
+        var dto = await set.Content.ReadFromJsonAsync<NamingSeriesDto>(Ct);
+        Assert.StartsWith("INV-TSF-", dto!.Example, StringComparison.Ordinal);
+        Assert.EndsWith("-00001", dto.Example, StringComparison.Ordinal);
+
+        var changed = await admin.PutAsJsonAsync(uri, new { documentType = "Sales Invoice", pattern = "SI-.YYYY.-.####" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        var list = await admin.GetFromJsonAsync<List<NamingSeriesDto>>(uri, Ct);
+        Assert.Equal("SI-.YYYY.-.####", Assert.Single(list!).Pattern);
+
+        var invalid = await admin.PutAsJsonAsync(uri, new { documentType = "Receipt", pattern = "REC-.YYYY." }, Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_holiday_calendar_has_national_holidays_and_announced_ones()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var uri = new Uri("/api/core/holidays/2019", UriKind.Relative);
+
+        var before = await admin.GetFromJsonAsync<List<HolidayDto>>(uri, Ct);
+        Assert.Contains(before!, h => h.Name.StartsWith("Enkutatash", StringComparison.Ordinal) && h.Date == new DateOnly(2026, 9, 11) && h.EthiopianDate == "01/01/2019");
+        Assert.Contains(before!, h => h.Name.StartsWith("Fasika", StringComparison.Ordinal) && h.Kind == "Movable");
+
+        var add = await admin.PostAsJsonAsync(new Uri("/api/core/holidays", UriKind.Relative),
+            new { date = "2027-03-10", name = "Eid al-Fitr", amharicName = "ኢድ አልፈጥር" }, Ct);
+        Assert.Equal(HttpStatusCode.Created, add.StatusCode);
+        var duplicate = await admin.PostAsJsonAsync(new Uri("/api/core/holidays", UriKind.Relative), new { date = "2027-03-10", name = "Eid al-Fitr" }, Ct);
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+
+        var after = await admin.GetFromJsonAsync<List<HolidayDto>>(uri, Ct);
+        var eid = Assert.Single(after!, h => h.Name == "Eid al-Fitr");
+        Assert.Equal("Announced", eid.Kind);
+        Assert.Equal("ኢድ አልፈጥር", eid.AmharicName);
+    }
+
+    [Fact]
+    public async Task Holidays_need_the_read_permission()
+    {
+        using var stranger = factory.ClientFor("stranger");
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await stranger.GetAsync(new Uri("/api/core/holidays/2019", UriKind.Relative), Ct)).StatusCode);
+    }
+
+    [Fact]
     public async Task OpenApi_document_is_published()
     {
         using var client = factory.ClientFor(null);

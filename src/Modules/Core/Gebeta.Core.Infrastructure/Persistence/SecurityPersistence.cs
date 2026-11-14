@@ -91,23 +91,29 @@ internal static class CoreSeed
     [
         (Role.SystemManager, "Full access to every module. Give to very few people.", ["*"]),
         ("Core Administrator", "Manages companies, users and roles.", ["core.*"]),
-        ("Core Viewer", "Reads companies, users and roles.", [CorePermissions.CompaniesRead, CorePermissions.UsersRead, CorePermissions.RolesRead]),
+        ("Core Viewer", "Reads companies, users, roles, naming series and holidays.",
+            [CorePermissions.CompaniesRead, CorePermissions.UsersRead, CorePermissions.RolesRead, CorePermissions.NamingSeriesRead, CorePermissions.HolidaysRead]),
     ];
 
     public static async Task EnsureSystemRolesAsync(CoreDbContext db, TimeProvider clock, CancellationToken cancellationToken)
     {
-        var existing = await db.Roles.Select(r => r.Name).ToListAsync(cancellationToken).ConfigureAwait(false);
-        foreach (var (name, description, permissions) in SystemRoles.Where(r => !existing.Contains(r.Name)))
+        var names = SystemRoles.Select(r => r.Name).ToList();
+        var existing = await db.Roles.Where(r => names.Contains(r.Name)).ToDictionaryAsync(r => r.Name, cancellationToken).ConfigureAwait(false);
+        foreach (var (name, description, permissions) in SystemRoles)
         {
-            var role = Role.Create(name, description, isSystem: true).Value;
+            if (!existing.TryGetValue(name, out var role))
+            {
+                role = Role.Create(name, description, isSystem: true).Value;
+                role.CreatedAt = clock.GetUtcNow();
+                role.CreatedBy = "system";
+                db.Roles.Add(role);
+            }
+
+            // New permissions added in later releases reach existing installations too.
             foreach (var permission in permissions)
             {
                 role.Grant(permission);
             }
-
-            role.CreatedAt = clock.GetUtcNow();
-            role.CreatedBy = "system";
-            db.Roles.Add(role);
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

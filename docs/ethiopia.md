@@ -20,7 +20,7 @@ configuration.
 | Monthly periods | 12 periods Hamle … Sene; Pagume is added to Nehase. | Built |
 | Time zone | `Africa/Addis_Ababa` (UTC+3, no daylight saving). | Built (company default) |
 | Ethiopian time of day | Optional display of local time (hour 1 = 7:00). Display only. | Planned |
-| Public holidays | Enkutatash, Meskel, Genna, Timket, Adwa Victory Day, Labour Day, Patriots' Victory Day, Downfall of the Derg (Ginbot 20), Siklet (Good Friday), Fasika, Eid al-Fitr, Eid al-Adha, Mawlid. Fixed ones computed from the Ethiopian calendar; Fasika computed; Islamic holidays entered each year when officially announced. | Planned (Core) |
+| Public holidays | Enkutatash, Meskel, Genna, Timket, Adwa Victory Day, Labour Day, Patriots' Victory Day, Downfall of the Derg (Ginbot 20), Siklet (Good Friday), Fasika, Eid al-Fitr, Eid al-Adha, Mawlid. Fixed ones computed from the Ethiopian calendar (`EthiopianHolidays`); Siklet and Fasika from Orthodox Easter; Islamic holidays and company holidays entered each year when announced (`/api/core/holidays`). | Built |
 
 ## 2. Company and tax registration
 
@@ -42,6 +42,7 @@ configuration.
 | Turnover tax (TOT) | For businesses not registered for VAT; rates per the TOT law. | Planned; rates **verify** |
 | **Withholding tax** | Withheld on payments to suppliers above thresholds (goods / services), with a numbered withholding receipt to the supplier and a monthly declaration. Rate and thresholds as configuration. | Planned (Accounting); rate and thresholds **verify** |
 | Excise tax | Per item excise rate where applicable (e.g. sugar products, beverages). | Planned (Stock/Selling) |
+| Document numbers | Naming series per company and document type (`PCR-.ABBR.-.FY.-.#####`), with Ethiopian year (`EYYYY`) and fiscal year (`FY`) tokens; numbers are gap-free and never repeat (taken in the saving transaction). | Built |
 | Tax invoices | Required fields: seller and buyer TIN, VAT number, invoice number in sequence, date, VAT shown separately. Machine numbering per MoR rules; integration with the MoR **e-invoicing** system and sales register machines (fiscal printers) through a capability. | Planned |
 | Records retention | Accounting and tax records kept for at least **10 years** (Tax Administration Proclamation 983/2016); ledgers are append-only and never deleted. | Design; period **verify** |
 

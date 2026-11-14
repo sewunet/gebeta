@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Core's schema (with its naming_series_counter table) is used as the test module. -->
+    <ProjectReference Include="..\..\src\Modules\Core\Gebeta.Core.Infrastructure\Gebeta.Core.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

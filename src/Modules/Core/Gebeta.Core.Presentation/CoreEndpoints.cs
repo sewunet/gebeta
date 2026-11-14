@@ -1,6 +1,7 @@
 using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
 using Gebeta.Core.Application.Security;
+using Gebeta.Core.Application.Settings;
 using Gebeta.Core.Contracts;
 using Gebeta.Modularity;
 using Gebeta.SharedKernel;
@@ -24,6 +25,37 @@ public static class CoreEndpoints
         MapMe(endpoints);
         MapCompanies(endpoints);
         MapUsersAndRoles(endpoints);
+        MapSettings(endpoints);
+    }
+
+    private static void MapSettings(IEndpointRouteBuilder endpoints)
+    {
+        var naming = endpoints.MapGroup("/api/core/companies/{companyId:guid}/naming-series").WithTags("Core: Naming series");
+
+        naming.MapGet("/", async (Guid companyId, IQueryHandler<ListNamingSeriesQuery, IReadOnlyList<NamingSeriesDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListNamingSeriesQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListNamingSeries")
+            .RequirePermission(CorePermissions.NamingSeriesRead);
+
+        naming.MapPut("/", async (Guid companyId, SetNamingSeriesBody body, ICommandHandler<SetNamingSeriesCommand, NamingSeriesDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new SetNamingSeriesCommand(companyId, body.DocumentType, body.Pattern), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("SetNamingSeries")
+            .RequirePermission(CorePermissions.NamingSeriesManage);
+
+        var holidays = endpoints.MapGroup("/api/core/holidays").WithTags("Core: Holidays");
+
+        holidays.MapGet("/{ethiopianYear:int}", async (int ethiopianYear, Guid? companyId, IQueryHandler<ListHolidaysQuery, IReadOnlyList<HolidayDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListHolidaysQuery(ethiopianYear, companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListHolidays")
+            .RequirePermission(CorePermissions.HolidaysRead);
+
+        holidays.MapPost("/", async (AddHolidayCommand command, ICommandHandler<AddHolidayCommand, HolidayDto> handler, CancellationToken ct) =>
+            {
+                var result = await handler.Handle(command, ct).ConfigureAwait(false);
+                return result.IsSuccess ? Results.Created($"/api/core/holidays", result.Value) : result.ToHttp();
+            })
+            .WithName("AddHoliday")
+            .RequirePermission(CorePermissions.HolidaysManage);
     }
 
     private static void MapMe(IEndpointRouteBuilder endpoints)
@@ -143,5 +175,8 @@ public sealed record ModulesResponse(IReadOnlyList<ModuleDto> Modules, IReadOnly
             registry.Capabilities);
     }
 }
+
+/// <summary>Body of PUT naming-series: the document type and its pattern.</summary>
+public sealed record SetNamingSeriesBody(string DocumentType, string Pattern);
 
 public sealed record ModuleDto(string Id, string Name, string Version, IReadOnlyList<string> Enhances);

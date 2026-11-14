@@ -12,7 +12,11 @@ public static class CorePermissions
     public const string UsersManage = "core.users.manage";
     public const string RolesRead = "core.roles.read";
     public const string RolesManage = "core.roles.manage";
+    public const string NamingSeriesRead = "core.naming-series.read";
+    public const string NamingSeriesManage = "core.naming-series.manage";
+    public const string HolidaysRead = "core.holidays.read";
+    public const string HolidaysManage = "core.holidays.manage";
 
     public static IReadOnlyList<string> All { get; } =
-        [CompaniesRead, CompaniesCreate, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage];
+        [CompaniesRead, CompaniesCreate, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage];
 }

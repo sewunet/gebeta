@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Persistence</RootNamespace>
+    <Description>Persistence building blocks for module Infrastructure layers: gap-free document numbering (PostgreSQL).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Gebeta.Application\Gebeta.Application.csproj" />
+  </ItemGroup>
+</Project>

@@ -2,6 +2,9 @@ using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
 using Gebeta.Core.Contracts;
 using Gebeta.Core.Application.Security;
+using Gebeta.Core.Application.Settings;
+using Gebeta.Core.Domain.Settings;
+using Gebeta.Persistence;
 using Gebeta.Core.Domain.Companies;
 using Gebeta.Core.Domain.Security;
 using Gebeta.Core.Infrastructure.Persistence;
@@ -49,6 +52,13 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<UserContext>();
         services.AddScoped<IPermissionChecker>(sp => sp.GetRequiredService<UserContext>());
         services.AddScoped<ICompanyAccess>(sp => sp.GetRequiredService<UserContext>());
+
+        // Shared services every module uses: company facts, number patterns, gap-free numbering.
+        services.AddScoped<INamingSeriesRepository, NamingSeriesRepository>();
+        services.AddScoped<IHolidayRepository, HolidayRepository>();
+        services.AddScoped<ICompanyDirectory, CompanyDirectory>();
+        services.AddScoped<INamingSeriesSettings, NamingSeriesSettings>();
+        services.AddScoped<DocumentNumbering>();
         services.AddScoped<IModuleMigrator, CoreMigrator>();
         services.AddHealthChecks().AddCheck<CoreDatabaseHealthCheck>("core-database");
 
@@ -68,6 +78,13 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<ICommandHandler<RevokeCompanyAccessCommand, UserDto>>(sp => sp.GetRequiredService<CompanyAccessHandler>());
         services.AddScoped<IQueryHandler<ListRolesQuery, IReadOnlyList<RoleDto>>, ListRolesHandler>();
         services.AddScoped<ICommandHandler<CreateRoleCommand, RoleDto>, CreateRoleHandler>();
+
+        services.AddScoped<NamingSeriesHandler>();
+        services.AddScoped<IQueryHandler<ListNamingSeriesQuery, IReadOnlyList<NamingSeriesDto>>>(sp => sp.GetRequiredService<NamingSeriesHandler>());
+        services.AddScoped<ICommandHandler<SetNamingSeriesCommand, NamingSeriesDto>>(sp => sp.GetRequiredService<NamingSeriesHandler>());
+        services.AddScoped<HolidayHandler>();
+        services.AddScoped<IQueryHandler<ListHolidaysQuery, IReadOnlyList<HolidayDto>>>(sp => sp.GetRequiredService<HolidayHandler>());
+        services.AddScoped<ICommandHandler<AddHolidayCommand, HolidayDto>>(sp => sp.GetRequiredService<HolidayHandler>());
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints) => CoreEndpoints.Map(endpoints);

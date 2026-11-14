@@ -1,0 +1,114 @@
+# Accounting module
+
+The core of the system. Every other money-moving module posts here.
+
+## Scope
+
+| Area | Contents |
+|---|---|
+| Masters | Chart of accounts (tree), account types, cost centres, accounting dimensions (branch, project, cashier), fiscal years, currencies |
+| Ledger | General ledger, payment ledger (open receivable/payable per invoice) |
+| Documents | Journal Entry, Payment Entry, Sales Invoice, Purchase Invoice, Debit/Credit Notes, Exchange Rate Revaluation, Period Closing Voucher |
+| Tax | Tax templates (VAT 15%, withholding 2%/3%, TOT), inclusive/exclusive, per item or per document; VAT closing (current custom `vat_closing`) |
+| Budget | Per account / cost centre / project, monthly distribution, stop or warn |
+| Banking | Bank accounts, bank statement import, reconciliation, reversal log (current custom `bank_reconciliation_reversal_log`) |
+| LC | Letters of credit linked to purchase orders, receipts, invoices, payments (current `lc_master` and related tables) |
+| Reports | Trial balance, balance sheet, P&L, cash flow, general ledger, AR/AP ageing, VAT reports |
+
+## The ledger
+
+```
+accounting.gl_entry   (append-only)
+  id, company_id, posting_date, account_id, party_type, party_id,
+  debit, credit,                         -- company currency
+  debit_in_account_currency, credit_in_account_currency, account_currency,
+  cost_center_id, branch_id, project_id, cashier_id,   -- dimensions
+  voucher_type, voucher_id, voucher_no, voucher_line_id,
+  is_reversal, reverses_entry_id, created_at, created_by
+```
+
+Rules:
+1. Posting goes through one service: `ILedgerPostingService.Post(IReadOnlyList<GlLine>)`.
+   It checks: debits = credits per voucher (company currency), accounts are leaf and active,
+   the period is open, required dimensions are present, party is given for receivable/payable.
+2. **Lines are not merged when they differ in any dimension.** (ERPNext merges lines with the same
+   account and cost centre; `cash_management` had to work around that so a transfer between two
+   cashiers on one cash account did not become one zero line.)
+3. Cancel writes mirror rows with `is_reversal = true` dated on the original posting date (or the
+   cancel date if the period is closed and the user chooses so).
+4. Other modules never post to the GL directly. They publish `JournalRequested`; Accounting
+   validates and posts it (see below). Rules that need an immediate answer stay in the other
+   module, e.g. the cashier overdraw check runs on Cash Management's own cashier ledger.
+
+## Journals from other modules
+
+```
+Payroll / Cash / Stock / Manufacturing / HR
+   └─ JournalRequested { sourceModule, sourceDocument, company, postingDate, lines[ accountRef,
+                         debit, credit, party, dimensions ], idempotencyKey }
+Accounting
+   ├─ maps accountRef → account (account mapping table per module, see below)
+   ├─ validates (balanced, open period, leaf accounts, dimensions)
+   ├─ posts a Journal Entry of type "Module Posting", linked to the source document
+   └─ publishes JournalPosted { idempotencyKey, journalNo }  or  JournalRejected { reason }
+```
+
+- The same `idempotencyKey` never posts twice. A cancel in the source module sends a
+  `JournalReversalRequested`, which posts the reversal.
+- Rejected journals show in the source module with the reason (for example "period closed"),
+  and can be resent after fixing.
+- **Account mapping**: modules refer to accounts by a code (`accountRef`). When Accounting is
+  installed, the mapping screen links each code to a real account, and the UI turns code fields
+  into account pickers. Unmapped codes are rejected with a clear message.
+- Month-end close is blocked while any journal for that period is Pending.
+
+## Standalone and plugged in
+
+**Alone** (on Core): full accounting. Invoices use Core parties and items; everything else works
+as described above.
+
+**When plugged in with:**
+
+| Module | Adds |
+|---|---|
+| Payroll | Payroll journals arrive automatically; payroll cost by cost centre |
+| HR | Employees as parties for advances, per diem and expense claims; budget checks on per diem |
+| Cash Management | Cashier dimension on cash accounts; cash movements arrive as journals; daily cashier-vs-GL reconciliation |
+| Stock | Perpetual inventory: stock value journals and reposting adjustments; stock accounts per warehouse |
+| Manufacturing | WIP, operating cost absorption and variance journals |
+
+Accounting also **provides** the capabilities `IJournalSink`, `IAccountDirectory` and `IBudgetCheck`
+to the other modules.
+
+## Payment ledger
+
+`accounting.payment_ledger_entry` tracks each invoice's outstanding amount, so allocation,
+partial payments, advances and ageing are fast and do not need to scan the GL.
+
+## Multi-currency
+
+- Each document has `currency` and `exchange_rate`; lines store both currencies.
+- Payments at a different rate than the invoice post the difference to Exchange Gain/Loss.
+- **Exchange Rate Revaluation** (month end): for open foreign-currency receivable, payable and bank
+  balances, compute the new company-currency value and post the unrealised gain/loss; reverse on
+  the first day of the next period.
+
+## Period closing
+
+- Accounting periods can be closed per company and per module (e.g. close stock but not payroll).
+- Period Closing Voucher moves income and expense balances into retained earnings per fiscal year.
+- Posting into a closed period is refused for everyone except a role "Accounts Manager (closed
+  period)", and is logged.
+
+## Budgets
+
+- Checked at Material Request, Purchase Order and on GL posting.
+- Actions per budget: Stop, Warn, Ignore. Monthly distribution optional.
+
+## Tests that must exist before go-live
+
+- Every document type: post, cancel, amend, and the GL nets to zero after cancel.
+- Rounding: invoices with many lines and tax round to the cent and still balance.
+- Revaluation and its reversal.
+- Trial balance equals the sum of GL per account for random data (property-based test).
+- Migration check: trial balance per company per month equals ERPNext's.

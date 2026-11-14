@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Modularity</RootNamespace>
+    <Description>The plugin system: module manifest, loader, capabilities with fallbacks, module registry.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Gebeta.Modularity.Tests" />
+  </ItemGroup>
+</Project>

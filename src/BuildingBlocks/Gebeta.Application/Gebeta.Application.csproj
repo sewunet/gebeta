@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Application</RootNamespace>
+    <Description>Application-layer building blocks: commands, queries, handlers, unit of work.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Gebeta.SharedKernel\Gebeta.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

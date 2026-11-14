@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Core.Contracts</RootNamespace>
+    <Description>Core's public contract for other modules: DTOs, integration events, capability interfaces. No dependencies on Core's internals.</Description>
+  </PropertyGroup>
+</Project>

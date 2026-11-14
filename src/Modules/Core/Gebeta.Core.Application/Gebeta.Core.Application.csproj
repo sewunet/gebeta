@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Core.Application</RootNamespace>
+    <Description>Core use cases (commands and queries). Depends on Core.Domain and Core.Contracts, never on Infrastructure.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Application\Gebeta.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Core.Domain\Gebeta.Core.Domain.csproj" />
+    <ProjectReference Include="..\Gebeta.Core.Contracts\Gebeta.Core.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.SharedKernel</RootNamespace>
+    <Description>Domain building blocks shared by all Gebeta modules: Money, Quantity, documents, results, and the Ethiopian calendar, fiscal year and TIN. No dependencies.</Description>
+  </PropertyGroup>
+</Project>

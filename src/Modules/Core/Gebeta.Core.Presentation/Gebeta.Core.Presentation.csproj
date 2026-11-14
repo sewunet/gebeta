@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Core.Presentation</RootNamespace>
+    <Description>Core HTTP endpoints. Depends on Core.Application, never on Infrastructure or Domain internals.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Modularity\Gebeta.Modularity.csproj" />
+    <ProjectReference Include="..\Gebeta.Core.Application\Gebeta.Core.Application.csproj" />
+  </ItemGroup>
+</Project>

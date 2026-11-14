@@ -50,16 +50,19 @@ the same modules can also run as separate services.
 5. Architecture tests (NetArchTest) fail the build if a module references another module's
    code (only `*.Contracts` packages are allowed).
 
-### Project layout per module
+### Project layout per module (clean architecture, [ADR 0008](adr/0008-clean-architecture.md))
 
 ```
 Modules/Payroll/
-├─ Gebeta.Payroll.Domain/          # entities, value objects, rules. No EF, no HTTP.
-├─ Gebeta.Payroll.Application/     # commands, queries, handlers, validators
-├─ Gebeta.Payroll.Infrastructure/  # EF Core DbContext, repositories, job runners
-├─ Gebeta.Payroll.Api/             # endpoints
-└─ Gebeta.Payroll.Contracts/       # public interfaces, DTOs, integration events
+├─ Gebeta.Payroll.Domain/          # entities, value objects, rules, repository interfaces. No EF, no HTTP.
+├─ Gebeta.Payroll.Application/     # commands, queries, handlers, unit-of-work interface
+├─ Gebeta.Payroll.Presentation/    # HTTP endpoints
+├─ Gebeta.Payroll.Infrastructure/  # EF Core, repositories, event handlers, PayrollModule (composition root)
+└─ Gebeta.Payroll.Contracts/       # DTOs, integration events, capability interfaces (no dependencies)
 ```
+
+Dependencies point inwards (Presentation → Application → Domain → SharedKernel) and are checked by
+`tests/Gebeta.ArchitectureTests` on every build.
 
 ## 3. Documents and their lifecycle
 

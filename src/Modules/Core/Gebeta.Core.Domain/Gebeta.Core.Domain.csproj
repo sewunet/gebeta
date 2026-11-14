@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Core.Domain</RootNamespace>
+    <Description>Core domain: entities and business rules. Depends only on the shared kernel.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.SharedKernel\Gebeta.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

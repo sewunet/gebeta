@@ -11,13 +11,19 @@ next to other modules. For example, Payroll alone takes payment days by hand and
 journal; with HR it reads attendance and leave, and with Accounting its journal is posted to the
 GL automatically. See [Plugin architecture](docs/plugin-architecture.md).
 
-> Status: **design phase**. This repository holds the design documents only. No code yet.
+> Status: **building, phase 0**. Building blocks, the plugin system and the first Core feature
+> (companies) are in place; see [Roadmap](docs/roadmap.md).
+
+**Built for Ethiopian businesses and law**: Ethiopian calendar and Hamle–Sene fiscal year, birr,
+TIN, Ethiopian tax, pension and labour rules as dated configuration, English and Amharic. See
+[Ethiopian business and law](docs/ethiopia.md).
 
 ## Documents
 
 | Document | What it covers |
 |---|---|
 | [Architecture](docs/architecture.md) | Module boundaries, document lifecycle, request flow |
+| [Ethiopian business and law](docs/ethiopia.md) | Calendar, fiscal year, tax, pension, labour law, language, data protection |
 | [Plugin architecture](docs/plugin-architecture.md) | Every module runs alone; plugging modules together adds features |
 | [Messaging](docs/messaging.md) | RabbitMQ topology, message envelope, outbox/inbox, retries, event catalogue |
 | [Deployment](docs/deployment.md) | Docker images and containers, set-ups, environments, backups, upgrades |
@@ -52,6 +58,8 @@ GL automatically. See [Plugin architecture](docs/plugin-architecture.md).
 | [0005](docs/adr/0005-incremental-replacement.md) | Replace ERPNext module by module |
 | [0006](docs/adr/0006-independent-pluggable-modules.md) | Independent, pluggable modules |
 | [0007](docs/adr/0007-rabbitmq-and-docker.md) | RabbitMQ for all module events, Docker for every environment |
+| [0008](docs/adr/0008-clean-architecture.md) | Clean architecture inside every module |
+| [0009](docs/adr/0009-ethiopia-first.md) | Ethiopia first: Ethiopian rules are the defaults |
 
 ## Planned repository layout
 
@@ -59,9 +67,13 @@ GL automatically. See [Plugin architecture](docs/plugin-architecture.md).
 gebeta/
 ├─ src/
 │  ├─ Gebeta.Api/                # ASP.NET Core host (one deployable)
-│  ├─ Gebeta.SharedKernel/       # Money, Quantity, DocumentBase, Result, events
+│  ├─ BuildingBlocks/
+│  │  ├─ Gebeta.SharedKernel/    # Money, Quantity, DocumentBase, Result, Ethiopian calendar, TIN
+│  │  ├─ Gebeta.Application/     # command / query / handler interfaces
+│  │  └─ Gebeta.Modularity/      # plugin system: modules, capabilities, fallbacks
 │  ├─ Modules/
-│  │  ├─ Core/                   # Platform: the only required module
+│  │  ├─ Core/                   # Platform: the only required module (Domain, Application,
+│  │  │                          #   Presentation, Infrastructure, Contracts)
 │  │  ├─ Accounting/
 │  │  ├─ Stock/
 │  │  ├─ Manufacturing/
@@ -75,5 +87,15 @@ gebeta/
 └─ docs/
 ```
 
-Each module folder has `Domain`, `Application`, `Infrastructure` and `Api` projects (see
-[Architecture](docs/architecture.md)).
+Each module has `Domain`, `Application`, `Presentation`, `Infrastructure` and `Contracts`
+projects ([ADR 0008](docs/adr/0008-clean-architecture.md)).
+
+## Build and test
+
+Requires the .NET 10 SDK (`global.json` pins the version).
+
+```bash
+dotnet build Gebeta.slnx
+dotnet test --solution Gebeta.slnx
+dotnet run --project src/Gebeta.Api      # http://localhost:5080/api/modules
+```

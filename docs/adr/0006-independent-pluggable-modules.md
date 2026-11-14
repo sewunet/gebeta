@@ -23,6 +23,7 @@ database transaction, which ties modules together.
   check uses Cash Management's own cashier ledger).
 - The default deployment is still one host and one database with the chosen modules
   (ADR 0001 stays valid for that). The same modules can also be deployed as separate services.
+  Events always go through RabbitMQ ([ADR 0007](0007-rabbitmq-and-docker.md)).
 
 ## Consequences
 

@@ -2,21 +2,23 @@
 
 ## 1. Shape: a modular monolith
 
-One ASP.NET Core application, one PostgreSQL database, split into strict modules.
+One ASP.NET Core application (one Docker image), one PostgreSQL database, split into strict
+modules that talk to each other only through RabbitMQ events.
 
 ```
               React app (web/)
                     │  HTTPS, JSON (OpenAPI)
                     ▼
           ┌──────────────────────────┐
-          │      Gebeta.Api        │  auth, routing, OpenAPI, SignalR
+          │       Gebeta.Api         │  auth, routing, OpenAPI, SignalR
           ├──────────────────────────┤
           │ Platform │ Accounting │ Stock │ Manufacturing │ Hr │ Payroll │ CashMgmt │
           ├──────────────────────────┤
           │ SharedKernel (Money, DocumentBase, events)                       │
           └──────────────────────────┘
                     │
-     PostgreSQL (one schema per module)    Redis (cache, locks)    Hangfire (jobs)
+     PostgreSQL (one schema per module)   RabbitMQ (events)   Redis (cache, locks)   Hangfire (jobs)
+                         all running as Docker containers (docs/deployment.md)
 ```
 
 **Every business module runs on its own and adds features when plugged in next to others.**
@@ -100,7 +102,7 @@ HTTP endpoint
       → post to the module's own ledgers (same transaction)
       → save; outbox stores integration events (e.g. JournalRequested)
   → commit
-  → outbox dispatcher publishes events (in-process, or RabbitMQ when modules run as services)
+  → outbox dispatcher publishes events to RabbitMQ (docs/messaging.md)
   → other installed modules handle them through their inbox (idempotent)
 ```
 
@@ -129,7 +131,7 @@ HTTP endpoint
 |---|---|
 | Auth | OIDC (Keycloak), JWT access tokens, refresh in the React app |
 | Realtime | SignalR hubs for notifications and job progress |
-| Files | S3-compatible storage (MinIO on premises) |
+| Files | S3-compatible storage (any S3 service; a local volume in development) |
 | Logging | Serilog → Seq or Grafana Loki; OpenTelemetry traces |
 | Config | appsettings + environment variables; secrets never in git |
 | Localisation | English and Amharic UI strings; Ethiopian calendar display option |

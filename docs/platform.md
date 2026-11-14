@@ -21,7 +21,7 @@ refer to. Each module adds its own details in its own extension tables.
   integration event contracts.
 - The module registry knows which modules are installed and which module provides each
   capability; `/api/modules` gives this to the frontend.
-- Core hosts the outbox/inbox and the event transport (in-process or RabbitMQ).
+- Core provides the outbox/inbox and the RabbitMQ event transport ([messaging.md](messaging.md)).
 
 ## Companies and organisation
 

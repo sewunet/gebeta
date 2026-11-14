@@ -29,8 +29,8 @@ Any installed module may subscribe. If nobody subscribes, nothing happens and no
 
 - Published through the **outbox** in the same transaction as the change; consumed through an
   **inbox** that ignores duplicates (every handler is idempotent).
-- Transport: in-process when modules share one host; RabbitMQ when they run as separate
-  services. Module code is the same in both cases.
+- Transport: **RabbitMQ** in every set-up (one container or many), so a module can move to its
+  own container without any change. Details in [messaging.md](messaging.md).
 - Event contracts live in small `*.Contracts` packages, versioned; adding fields is allowed,
   removing or renaming needs a new event version.
 
@@ -142,13 +142,14 @@ The shell includes all module packages at build time and enables only those retu
 
 ## 3. Deployment options
 
-The same module packages support three set-ups:
+The same Docker image supports three set-ups; only the container configuration differs
+(see [deployment.md](deployment.md)):
 
 | Set-up | When | Notes |
 |---|---|---|
-| **One host, chosen modules** (default) | Most customers | One process, one database; events in-process; simplest to run |
+| **One container, chosen modules** (default) | Most customers | One server container, one database, events over RabbitMQ; simplest to run |
 | **One module alone** | A customer buys only Payroll or only HR | Core + that module |
-| **Separate services** | Large customers, a module needs its own scaling | Each module in its own process (still one Core); events over RabbitMQ; each module may have its own database |
+| **Separate containers** | Large customers, a module needs its own scaling | Each module in its own container (still one Core); same RabbitMQ; each module may have its own database |
 
 ## 4. Consistency between modules
 

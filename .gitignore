@@ -1,0 +1,18 @@
+# Secrets
+.env
+deploy/.env
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Frontend
+node_modules/
+web/dist/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

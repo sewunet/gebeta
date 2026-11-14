@@ -19,6 +19,8 @@ GL automatically. See [Plugin architecture](docs/plugin-architecture.md).
 |---|---|
 | [Architecture](docs/architecture.md) | Module boundaries, document lifecycle, request flow |
 | [Plugin architecture](docs/plugin-architecture.md) | Every module runs alone; plugging modules together adds features |
+| [Messaging](docs/messaging.md) | RabbitMQ topology, message envelope, outbox/inbox, retries, event catalogue |
+| [Deployment](docs/deployment.md) | Docker images and containers, set-ups, environments, backups, upgrades |
 | [Tech stack](docs/tech-stack.md) | Chosen libraries and tools, and why |
 | [Conventions](docs/conventions.md) | Code, naming, money and dates, API and database rules |
 | [Platform](docs/platform.md) | Users, roles, permissions, companies, naming series, workflow, audit |
@@ -49,6 +51,7 @@ GL automatically. See [Plugin architecture](docs/plugin-architecture.md).
 | [0004](docs/adr/0004-append-only-ledgers.md) | Append-only ledgers, reversal on cancel |
 | [0005](docs/adr/0005-incremental-replacement.md) | Replace ERPNext module by module |
 | [0006](docs/adr/0006-independent-pluggable-modules.md) | Independent, pluggable modules |
+| [0007](docs/adr/0007-rabbitmq-and-docker.md) | RabbitMQ for all module events, Docker for every environment |
 
 ## Planned repository layout
 
@@ -68,7 +71,7 @@ gebeta/
 │  └─ Gebeta.Migration/          # ERPNext → Gebeta data migration tool
 ├─ web/                          # React + TypeScript (Vite)
 ├─ tests/
-├─ deploy/                       # docker-compose, CI
+├─ deploy/                       # docker-compose.yml, .env.example, Dockerfiles
 └─ docs/
 ```
 

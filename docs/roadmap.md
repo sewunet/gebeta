@@ -10,10 +10,10 @@ with its partners, and with all modules.
 
 ## Phase 0: foundation
 
-- Repository, CI, docker compose (PostgreSQL, Redis, Keycloak, MinIO, Seq).
+- Repository, CI building Docker images, Docker Compose (PostgreSQL, RabbitMQ, Redis, Keycloak, Seq).
 - SharedKernel: `Money`, `Quantity`, `DocumentBase`, results, outbox, handler interfaces.
 - Plugin system: module manifest and loader, capability registry with fallbacks, integration
-  events (outbox/inbox, in-process transport; RabbitMQ transport later), outbound journal list,
+  events (outbox/inbox over RabbitMQ with Wolverine, dead-letter page), outbound journal list,
   React shell slots and `/api/modules`.
 - Core (Platform): shared employee / party / item directory, companies, branches, departments, cost centres, users and roles, permissions,
   naming series, audit, attachments, workflow engine, branding.

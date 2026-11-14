@@ -1,0 +1,149 @@
+/* Gebeta ERP login theme. Loaded after Keycloak's keycloak.v2 styles. */
+
+:root {
+    --gb-navy: #0F3B5F;          /* Abay blue */
+    --gb-navy-deep: #0A2740;
+    --gb-gold: #D9A441;
+    --gb-gold-dark: #B9862A;
+    --gb-ink: #1C2733;
+    --gb-muted: #5B6B7B;
+    --gb-surface: #FFFFFF;
+
+    /* PatternFly 5 tokens used by buttons, links and focus rings */
+    --pf-v5-global--primary-color--100: var(--gb-navy);
+    --pf-v5-global--primary-color--200: var(--gb-navy-deep);
+    --pf-v5-global--link--Color: var(--gb-navy);
+    --pf-v5-global--link--Color--hover: var(--gb-gold-dark);
+    --pf-v5-global--FontFamily--text: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --pf-v5-global--FontFamily--heading: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+    /* keycloak.v2 variables */
+    --keycloak-card-top-color: var(--gb-gold);
+    --keycloak-logo-url: none;
+    --keycloak-bg-logo-url: none;
+}
+
+/* Full-screen background: deep blue with soft river-like light */
+.login-pf body,
+body#keycloak-bg {
+    background:
+        radial-gradient(1200px 600px at 85% -10%, rgba(217, 164, 65, 0.22), transparent 60%),
+        radial-gradient(900px 500px at -10% 110%, rgba(110, 180, 230, 0.20), transparent 60%),
+        linear-gradient(160deg, var(--gb-navy) 0%, var(--gb-navy-deep) 100%) fixed;
+    min-height: 100%;
+}
+
+.pf-v5-c-login {
+    background: transparent;
+}
+
+.pf-v5-c-login__container {
+    grid-template-columns: minmax(0, 28rem);
+}
+
+/* Brand above the card: mark + "Gebeta ERP" */
+#kc-header-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: none;
+    color: #FFFFFF !important;
+}
+
+#kc-header-wrapper::before {
+    content: "";
+    width: 72px;
+    height: 72px;
+    background: url("../img/gebeta-mark.svg") no-repeat center / contain;
+    filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.35));
+}
+
+#kc-header-wrapper::after {
+    content: "by Abay Systems";
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.65);
+    margin-top: -8px;
+}
+
+/* The card */
+.pf-v5-c-login__main {
+    background: var(--gb-surface);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(4, 18, 32, 0.45);
+}
+
+.pf-v5-c-login__main-header {
+    border-top: 4px solid var(--gb-gold);
+    padding-top: 28px;
+}
+
+#kc-page-title {
+    color: var(--gb-ink);
+    font-weight: 650;
+    font-size: 22px;
+}
+
+.pf-v5-c-form__label-text {
+    color: var(--gb-ink);
+    font-weight: 600;
+}
+
+.pf-v5-c-form-control {
+    border-radius: 8px;
+}
+
+.pf-v5-c-form-control:focus-within {
+    --pf-v5-c-form-control--after--BorderBottomColor: var(--gb-gold);
+}
+
+/* Primary button */
+.pf-v5-c-button.pf-m-primary {
+    --pf-v5-c-button--m-primary--BackgroundColor: var(--gb-navy);
+    --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--gb-navy-deep);
+    --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--gb-navy-deep);
+    --pf-v5-c-button--m-primary--active--BackgroundColor: var(--gb-navy-deep);
+    border-radius: 8px;
+    font-weight: 600;
+    padding-block: 10px;
+}
+
+.pf-v5-c-button.pf-m-link {
+    color: var(--gb-navy);
+}
+
+.pf-v5-c-button.pf-m-link:hover {
+    color: var(--gb-gold-dark);
+}
+
+/* Footer line under the card */
+.pf-v5-c-login__container::after {
+    content: "Gebeta ERP \00B7  Abay Systems";
+    display: block;
+    text-align: center;
+    margin-top: 22px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* Phones: keep a 16px gutter and smaller brand */
+@media (max-width: 600px) {
+    .pf-v5-c-login__container {
+        padding-inline: 16px;
+    }
+    #kc-header-wrapper {
+        font-size: 24px;
+    }
+    #kc-header-wrapper::before {
+        width: 56px;
+        height: 56px;
+    }
+}

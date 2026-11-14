@@ -1,7 +1,9 @@
 using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
 using Gebeta.Core.Contracts;
+using Gebeta.Core.Application.Security;
 using Gebeta.Core.Domain.Companies;
+using Gebeta.Core.Domain.Security;
 using Gebeta.Core.Infrastructure.Persistence;
 using Gebeta.Core.Presentation;
 using Gebeta.Modularity;
@@ -38,12 +40,30 @@ public sealed class CoreModule : IErpModule
         services.AddDbContext<CoreDbContext>(options => ConfigureDbContext(options, connectionString));
         services.AddScoped<ICoreUnitOfWork>(sp => sp.GetRequiredService<CoreDbContext>());
         services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
+
+        var security = new SecurityOptions();
+        context.Configuration.GetSection(SecurityOptions.Section).Bind(security);
+        services.AddSingleton(security);
+        services.AddScoped<UserContext>();
+        services.AddScoped<IPermissionChecker>(sp => sp.GetRequiredService<UserContext>());
         services.AddScoped<IModuleMigrator, CoreMigrator>();
         services.AddHealthChecks().AddCheck<CoreDatabaseHealthCheck>("core-database");
 
         services.AddScoped<ICommandHandler<CreateCompanyCommand, CompanyDto>, CreateCompanyHandler>();
         services.AddScoped<IQueryHandler<ListCompaniesQuery, IReadOnlyList<CompanyDto>>, ListCompaniesHandler>();
         services.AddScoped<IQueryHandler<GetCompanyQuery, CompanyDto>, GetCompanyHandler>();
+
+        services.AddScoped<GetMeHandler>();
+        services.AddScoped<IQueryHandler<GetMeQuery, MeDto>>(sp => sp.GetRequiredService<GetMeHandler>());
+        services.AddScoped<ICommandHandler<UpdateMyPreferencesCommand, MeDto>, UpdateMyPreferencesHandler>();
+        services.AddScoped<IQueryHandler<ListUsersQuery, IReadOnlyList<UserDto>>, ListUsersHandler>();
+        services.AddScoped<UserRoleHandler>();
+        services.AddScoped<ICommandHandler<AssignRoleCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
+        services.AddScoped<ICommandHandler<RemoveRoleCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
+        services.AddScoped<IQueryHandler<ListRolesQuery, IReadOnlyList<RoleDto>>, ListRolesHandler>();
+        services.AddScoped<ICommandHandler<CreateRoleCommand, RoleDto>, CreateRoleHandler>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints) => CoreEndpoints.Map(endpoints);

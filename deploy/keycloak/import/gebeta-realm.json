@@ -24,6 +24,18 @@
       "implicitFlowEnabled": false,
       "redirectUris": ["http://localhost:5173/*", "http://localhost:8080/*"],
       "webOrigins": ["+"],
+      "protocolMappers": [
+        {
+          "name": "gebeta-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "gebeta-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:8080/*"

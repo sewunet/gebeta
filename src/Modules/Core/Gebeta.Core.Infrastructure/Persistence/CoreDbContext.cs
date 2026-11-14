@@ -1,5 +1,6 @@
 using Gebeta.Core.Application.Companies;
 using Gebeta.Core.Domain.Companies;
+using Gebeta.Core.Domain.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gebeta.Core.Infrastructure.Persistence;
@@ -11,6 +12,8 @@ public sealed class CoreDbContext(DbContextOptions<CoreDbContext> options) : DbC
     public const string MigrationsHistoryTable = "__ef_migrations_history";
 
     public DbSet<Company> Companies => Set<Company>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

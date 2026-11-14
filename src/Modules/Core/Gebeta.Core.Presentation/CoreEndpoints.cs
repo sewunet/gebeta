@@ -1,11 +1,11 @@
 using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
+using Gebeta.Core.Application.Security;
 using Gebeta.Core.Contracts;
 using Gebeta.Modularity;
 using Gebeta.SharedKernel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
 namespace Gebeta.Core.Presentation;
@@ -14,20 +14,45 @@ public static class CoreEndpoints
 {
     public static void Map(IEndpointRouteBuilder endpoints)
     {
+        ArgumentNullException.ThrowIfNull(endpoints);
+
         // The frontend uses this to decide which screens, menu items and slots to show.
         endpoints.MapGet("/api/modules", (ModuleRegistry registry) => TypedResults.Ok(ModulesResponse.From(registry)))
             .WithName("GetModules")
             .WithTags("Core");
 
+        MapMe(endpoints);
+        MapCompanies(endpoints);
+        MapUsersAndRoles(endpoints);
+    }
+
+    private static void MapMe(IEndpointRouteBuilder endpoints)
+    {
+        var me = endpoints.MapGroup("/api/me").WithTags("Core: Me");
+
+        // Any signed-in user: profile, roles and permissions (creates the Gebeta user on first sign-in).
+        me.MapGet("/", async (IQueryHandler<GetMeQuery, MeDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new GetMeQuery(), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetMe");
+
+        me.MapPut("/preferences", async (UpdateMyPreferencesCommand command, ICommandHandler<UpdateMyPreferencesCommand, MeDto> handler, CancellationToken ct) =>
+                (await handler.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("UpdateMyPreferences");
+    }
+
+    private static void MapCompanies(IEndpointRouteBuilder endpoints)
+    {
         var companies = endpoints.MapGroup("/api/core/companies").WithTags("Core: Companies");
 
         companies.MapGet("/", async (IQueryHandler<ListCompaniesQuery, IReadOnlyList<CompanyDto>> handler, CancellationToken ct) =>
                 (await handler.Handle(new ListCompaniesQuery(), ct).ConfigureAwait(false)).ToHttp())
-            .WithName("ListCompanies");
+            .WithName("ListCompanies")
+            .RequirePermission(CorePermissions.CompaniesRead);
 
         companies.MapGet("/{id:guid}", async (Guid id, IQueryHandler<GetCompanyQuery, CompanyDto> handler, CancellationToken ct) =>
                 (await handler.Handle(new GetCompanyQuery(id), ct).ConfigureAwait(false)).ToHttp())
-            .WithName("GetCompany");
+            .WithName("GetCompany")
+            .RequirePermission(CorePermissions.CompaniesRead);
 
         companies.MapPost("/", async (CreateCompanyCommand command, ICommandHandler<CreateCompanyCommand, CompanyDto> handler, CancellationToken ct) =>
             {
@@ -36,7 +61,43 @@ public static class CoreEndpoints
                     ? Results.Created($"/api/core/companies/{result.Value.Id}", result.Value)
                     : result.ToHttp();
             })
-            .WithName("CreateCompany");
+            .WithName("CreateCompany")
+            .RequirePermission(CorePermissions.CompaniesCreate);
+    }
+
+    private static void MapUsersAndRoles(IEndpointRouteBuilder endpoints)
+    {
+        var users = endpoints.MapGroup("/api/core/users").WithTags("Core: Users");
+
+        users.MapGet("/", async (IQueryHandler<ListUsersQuery, IReadOnlyList<UserDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListUsersQuery(), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListUsers")
+            .RequirePermission(CorePermissions.UsersRead);
+
+        users.MapPut("/{userId:guid}/roles/{roleId:guid}", async (Guid userId, Guid roleId, ICommandHandler<AssignRoleCommand, UserDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new AssignRoleCommand(userId, roleId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("AssignRole")
+            .RequirePermission(CorePermissions.UsersManage);
+
+        users.MapDelete("/{userId:guid}/roles/{roleId:guid}", async (Guid userId, Guid roleId, ICommandHandler<RemoveRoleCommand, UserDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new RemoveRoleCommand(userId, roleId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("RemoveRole")
+            .RequirePermission(CorePermissions.UsersManage);
+
+        var roles = endpoints.MapGroup("/api/core/roles").WithTags("Core: Roles");
+
+        roles.MapGet("/", async (IQueryHandler<ListRolesQuery, IReadOnlyList<RoleDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListRolesQuery(), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListRoles")
+            .RequirePermission(CorePermissions.RolesRead);
+
+        roles.MapPost("/", async (CreateRoleCommand command, ICommandHandler<CreateRoleCommand, RoleDto> handler, CancellationToken ct) =>
+            {
+                var result = await handler.Handle(command, ct).ConfigureAwait(false);
+                return result.IsSuccess ? Results.Created($"/api/core/roles/{result.Value.Id}", result.Value) : result.ToHttp();
+            })
+            .WithName("CreateRole")
+            .RequirePermission(CorePermissions.RolesManage);
     }
 }
 

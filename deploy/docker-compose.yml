@@ -15,7 +15,8 @@ x-server-env: &server-env
   RabbitMq__Username: ${RABBITMQ_USER:-gebeta}
   RabbitMq__Password: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in .env}
   Redis__Configuration: redis:6379
-  Auth__Authority: http://keycloak:8080/realms/gebeta
+  Authentication__Authority: http://keycloak:8080/realms/gebeta
+  Authentication__Audience: gebeta-api
   Serilog__WriteTo__0__Name: Seq
   Serilog__WriteTo__0__Args__serverUrl: http://seq:5341
   # Modules running in this container (see docs/plugin-architecture.md)

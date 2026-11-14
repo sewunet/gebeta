@@ -5,11 +5,15 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Gebeta.Core.Infrastructure.Persistence;
 
-internal sealed class CoreMigrator(CoreDbContext db) : IModuleMigrator
+internal sealed class CoreMigrator(CoreDbContext db, TimeProvider clock) : IModuleMigrator
 {
     public string ModuleId => CoreModule.Id;
 
-    public Task MigrateAsync(CancellationToken cancellationToken) => db.Database.MigrateAsync(cancellationToken);
+    public async Task MigrateAsync(CancellationToken cancellationToken)
+    {
+        await db.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+        await CoreSeed.EnsureSystemRolesAsync(db, clock, cancellationToken).ConfigureAwait(false);
+    }
 }
 
 /// <summary>Readiness: Core's database answers.</summary>

@@ -1,6 +1,7 @@
 using Gebeta.Api;
 using Gebeta.Core.Infrastructure;
 using Gebeta.Modularity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -12,6 +13,17 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddHealthChecks();
 
+// Sign-in is done by Keycloak (realm "gebeta"); the API only validates its access tokens.
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        builder.Configuration.GetSection("Authentication").Bind(options);
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        options.MapInboundClaims = false; // keep Keycloak's claim names: sub, preferred_username, email, name
+        options.TokenValidationParameters.NameClaimType = "preferred_username";
+    });
+builder.Services.AddGebetaAuthorization();
+
 // Every module the image contains. Which of them run is decided by Modules:Enabled.
 builder.AddGebetaModules(
     new CoreModule());
@@ -19,11 +31,13 @@ builder.AddGebetaModules(
 var app = builder.Build();
 
 app.UseExceptionHandler();
-app.MapOpenApi();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapOpenApi().AllowAnonymous();
 
 // Liveness: the process answers. Readiness: dependencies (database, RabbitMQ) are reachable.
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { ResultStatusCodes = { [HealthStatus.Degraded] = StatusCodes.Status200OK } });
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { ResultStatusCodes = { [HealthStatus.Degraded] = StatusCodes.Status200OK } }).AllowAnonymous();
 
 app.MapGebetaModules();
 

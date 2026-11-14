@@ -7,80 +7,188 @@ namespace Gebeta.Api.Tests;
 
 public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
 {
+    private static readonly Uri Companies = new("/api/core/companies", UriKind.Relative);
+    private static readonly Uri Me = new("/api/me", UriKind.Relative);
+    private static readonly Uri Roles = new("/api/core/roles", UriKind.Relative);
+    private static readonly Uri Users = new("/api/core/users", UriKind.Relative);
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     [Theory]
     [InlineData("/health/live")]
     [InlineData("/health/ready")]
-    public async Task Health_endpoints_answer(string path)
+    public async Task Health_endpoints_answer_without_signing_in(string path)
     {
-        using var client = factory.CreateClient();
+        using var client = factory.ClientFor(null);
 
-        var response = await client.GetAsync(new Uri(path, UriKind.Relative), TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(new Uri(path, UriKind.Relative), Ct);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("/api/modules")]
+    [InlineData("/api/me")]
+    [InlineData("/api/core/companies")]
+    public async Task Everything_else_needs_a_signed_in_user(string path)
+    {
+        using var client = factory.ClientFor(null);
+
+        var response = await client.GetAsync(new Uri(path, UriKind.Relative), Ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
     public async Task Modules_endpoint_lists_the_installed_modules()
     {
-        using var client = factory.CreateClient();
+        using var client = factory.ClientFor("modules-reader");
 
-        var body = await client.GetFromJsonAsync<ModulesResponse>(new Uri("/api/modules", UriKind.Relative), TestContext.Current.CancellationToken);
+        var body = await client.GetFromJsonAsync<ModulesResponse>(new Uri("/api/modules", UriKind.Relative), Ct);
 
-        Assert.NotNull(body);
-        var core = Assert.Single(body.Modules);
-        Assert.Equal("core", core.Id);
+        Assert.Equal("core", Assert.Single(body!.Modules).Id);
+    }
+
+    [Fact]
+    public async Task First_sign_in_creates_the_user_and_bootstrap_admins_get_system_manager()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        using var newcomer = factory.ClientFor("newcomer");
+
+        var adminMe = await admin.GetFromJsonAsync<MeDto>(Me, Ct);
+        var newcomerMe = await newcomer.GetFromJsonAsync<MeDto>(Me, Ct);
+
+        Assert.Contains("System Manager", adminMe!.Roles);
+        Assert.Contains("*", adminMe.Permissions);
+        Assert.Equal("newcomer@example.et", newcomerMe!.Email);
+        Assert.Empty(newcomerMe.Roles);
+        Assert.Empty(newcomerMe.Permissions);
+        Assert.Equal("en", newcomerMe.Language);
+        Assert.Equal("Both", newcomerMe.Calendar);
+    }
+
+    [Fact]
+    public async Task A_user_can_choose_amharic_and_the_ethiopian_calendar()
+    {
+        using var client = factory.ClientFor("almaz");
+
+        var response = await client.PutAsJsonAsync(new Uri("/api/me/preferences", UriKind.Relative),
+            new { language = "am", calendar = "Ethiopian" }, Ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var me = await response.Content.ReadFromJsonAsync<MeDto>(Ct);
+        Assert.Equal("am", me!.Language);
+        Assert.Equal("Ethiopian", me.Calendar);
+
+        var invalid = await client.PutAsJsonAsync(new Uri("/api/me/preferences", UriKind.Relative), new { language = "fr", calendar = "Both" }, Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
+    public async Task System_roles_are_seeded()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+
+        var roles = await admin.GetFromJsonAsync<List<RoleDto>>(Roles, Ct);
+
+        Assert.Contains(roles!, r => r.Name == "System Manager" && r.IsSystem && r.Permissions.SequenceEqual(["*"]));
+        Assert.Contains(roles!, r => r.Name == "Core Administrator" && r.Permissions.SequenceEqual(["core.*"]));
+        Assert.Contains(roles!, r => r.Name == "Core Viewer");
+    }
+
+    [Fact]
+    public async Task A_user_without_permission_is_forbidden_until_a_role_is_assigned()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        using var clerk = factory.ClientFor("clerk");
+        var clerkMe = await clerk.GetFromJsonAsync<MeDto>(Me, Ct);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await clerk.GetAsync(Companies, Ct)).StatusCode);
+
+        var viewer = (await admin.GetFromJsonAsync<List<RoleDto>>(Roles, Ct))!.Single(r => r.Name == "Core Viewer");
+        var assign = await admin.PutAsync(new Uri($"/api/core/users/{clerkMe!.Id}/roles/{viewer.Id}", UriKind.Relative), null, Ct);
+        Assert.Equal(HttpStatusCode.OK, assign.StatusCode);
+
+        Assert.Equal(HttpStatusCode.OK, (await clerk.GetAsync(Companies, Ct)).StatusCode);
+        var create = await clerk.PostAsJsonAsync(Companies, new { name = "Clerk Co", abbreviation = "CLK", legalForm = "ShareCompany", tin = "0011223344" }, Ct);
+        Assert.Equal(HttpStatusCode.Forbidden, create.StatusCode);
+
+        var users = await admin.GetFromJsonAsync<List<UserDto>>(Users, Ct);
+        Assert.Contains(users!, u => u.Username == "clerk" && u.Roles.SequenceEqual(["Core Viewer"]));
+    }
+
+    [Fact]
+    public async Task An_admin_cannot_remove_their_own_system_manager_role()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var me = await admin.GetFromJsonAsync<MeDto>(Me, Ct);
+        var systemManager = (await admin.GetFromJsonAsync<List<RoleDto>>(Roles, Ct))!.Single(r => r.Name == "System Manager");
+
+        var response = await admin.DeleteAsync(new Uri($"/api/core/users/{me!.Id}/roles/{systemManager.Id}", UriKind.Relative), Ct);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_custom_role_needs_valid_permissions()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+
+        var ok = await admin.PostAsJsonAsync(Roles, new { name = "Company Clerk", permissions = new[] { "core.companies.read", "core.companies.create" } }, Ct);
+        var bad = await admin.PostAsJsonAsync(Roles, new { name = "Broken", permissions = new[] { "companies" } }, Ct);
+        var duplicate = await admin.PostAsJsonAsync(Roles, new { name = "Company Clerk", permissions = Array.Empty<string>() }, Ct);
+
+        Assert.Equal(HttpStatusCode.Created, ok.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
     }
 
     [Fact]
     public async Task A_company_can_be_created_read_and_listed()
     {
-        using var client = factory.CreateClient();
-        var ct = TestContext.Current.CancellationToken;
+        using var client = factory.ClientFor(GebetaApiFactory.AdminUser);
 
-        var create = await client.PostAsJsonAsync(new Uri("/api/core/companies", UriKind.Relative), new
+        var create = await client.PostAsJsonAsync(Companies, new
         {
             name = "Ethiopian Sugar Industry Group",
             abbreviation = "ESIG",
             legalForm = "PublicEnterprise",
             tin = "0000123456",
-        }, ct);
+        }, Ct);
 
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
-        var created = await create.Content.ReadFromJsonAsync<CompanyDto>(ct);
-        Assert.NotNull(created);
-        Assert.Equal("ETB", created.DefaultCurrency);
+        var created = await create.Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        Assert.Equal("ETB", created!.DefaultCurrency);
         Assert.Equal("Ethiopian", created.FiscalYearType);
 
-        var read = await client.GetFromJsonAsync<CompanyDto>(create.Headers.Location!, ct);
+        var read = await client.GetFromJsonAsync<CompanyDto>(create.Headers.Location!, Ct);
         Assert.Equal(created, read);
 
-        var list = await client.GetFromJsonAsync<List<CompanyDto>>(new Uri("/api/core/companies", UriKind.Relative), ct);
+        var list = await client.GetFromJsonAsync<List<CompanyDto>>(Companies, Ct);
         Assert.Contains(list!, c => c.Id == created.Id);
     }
 
     [Fact]
     public async Task Invalid_and_duplicate_companies_get_problem_details()
     {
-        using var client = factory.CreateClient();
-        var ct = TestContext.Current.CancellationToken;
-        var uri = new Uri("/api/core/companies", UriKind.Relative);
+        using var client = factory.ClientFor(GebetaApiFactory.AdminUser);
 
-        var invalid = await client.PostAsJsonAsync(uri, new { name = "X", abbreviation = "XY", legalForm = "ShareCompany", tin = "123" }, ct);
+        var invalid = await client.PostAsJsonAsync(Companies, new { name = "X", abbreviation = "XY", legalForm = "ShareCompany", tin = "123" }, Ct);
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
 
         var company = new { name = "Abay Systems", abbreviation = "ABAY", legalForm = "PrivateLimitedCompany", tin = "0099887766" };
-        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync(uri, company, ct)).StatusCode);
-        var duplicate = await client.PostAsJsonAsync(uri, company, ct);
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync(Companies, company, Ct)).StatusCode);
+        var duplicate = await client.PostAsJsonAsync(Companies, company, Ct);
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
-        Assert.Contains("\"code\":\"conflict\"", await duplicate.Content.ReadAsStringAsync(ct), StringComparison.Ordinal);
+        Assert.Contains("\"code\":\"conflict\"", await duplicate.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Unknown_company_is_not_found()
     {
-        using var client = factory.CreateClient();
+        using var client = factory.ClientFor(GebetaApiFactory.AdminUser);
 
-        var response = await client.GetAsync(new Uri($"/api/core/companies/{Guid.NewGuid()}", UriKind.Relative), TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(new Uri($"/api/core/companies/{Guid.NewGuid()}", UriKind.Relative), Ct);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -88,11 +196,11 @@ public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory
     [Fact]
     public async Task OpenApi_document_is_published()
     {
-        using var client = factory.CreateClient();
+        using var client = factory.ClientFor(null);
 
-        var response = await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), Ct);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("/api/modules", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
+        Assert.Contains("/api/core/companies", await response.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
     }
 }

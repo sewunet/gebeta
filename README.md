@@ -107,6 +107,18 @@ and store the connection string once in .NET user-secrets (kept outside the repo
 dotnet user-secrets set "ConnectionStrings:Main" "Host=localhost;Port=5434;Database=gebeta;Username=gebeta;Password=<POSTGRES_PASSWORD from deploy/.env>" --project src/Gebeta.Api
 ```
 
+Every endpoint except `/health/*` and `/openapi` needs a Keycloak access token for realm `gebeta`
+with audience `gebeta-api`. Users are created in Gebeta on their first sign-in; usernames listed in
+`Security:BootstrapAdmins` (user-secrets) get the System Manager role. For local testing, the
+development-only client `gebeta-dev-cli` allows a password sign-in with the user in `deploy/.env`:
+
+```bash
+curl -s -X POST http://localhost:8180/realms/gebeta/protocol/openid-connect/token -d grant_type=password -d client_id=gebeta-dev-cli -d username=gebeta.admin -d "password=<GEBETA_DEV_PASSWORD from deploy/.env>"
+```
+
+Permissions look like `core.companies.create`; roles hold permissions or wildcards (`core.*`, `*`).
+System roles (System Manager, Core Administrator, Core Viewer) are created by the migration.
+
 In Development the API applies every module's migrations at start-up. Elsewhere run
 `dotnet Gebeta.Api.dll --migrate` (the migrate container) before starting the API.
 New migration for a module: `dotnet ef migrations add <Name> --project src/Modules/Core/Gebeta.Core.Infrastructure --startup-project src/Gebeta.Api --context CoreDbContext --output-dir Persistence/Migrations`.

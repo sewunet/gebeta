@@ -1,10 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <RootNamespace>Gebeta.Api</RootNamespace>
     <Description>The Gebeta host. Contains every module; Modules:Enabled decides which ones run.</Description>
+    <UserSecretsId>16853523-6555-456b-9467-7f0f2776cdfe</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!-- Only for "dotnet ef migrations add" (design time); not shipped. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BuildingBlocks\Gebeta.Modularity\Gebeta.Modularity.csproj" />

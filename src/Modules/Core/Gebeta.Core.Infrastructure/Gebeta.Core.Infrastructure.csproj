@@ -1,10 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Gebeta.Core.Infrastructure</RootNamespace>
-    <Description>Core persistence and the module's composition root (CoreModule).</Description>
+    <Description>Core persistence (EF Core, PostgreSQL schema "core") and the module's composition root (CoreModule).</Description>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="EFCore.NamingConventions" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Gebeta.Core.Application\Gebeta.Core.Application.csproj" />

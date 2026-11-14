@@ -96,6 +96,17 @@ Requires the .NET 10 SDK (`global.json` pins the version).
 
 ```bash
 dotnet build Gebeta.slnx
-dotnet test --solution Gebeta.slnx
+dotnet test --solution Gebeta.slnx       # API tests start a throw-away PostgreSQL in Docker
 dotnet run --project src/Gebeta.Api      # http://localhost:5080/api/modules
 ```
+
+The API needs PostgreSQL. Start the infrastructure (`docker compose -f deploy/docker-compose.yml up -d`)
+and store the connection string once in .NET user-secrets (kept outside the repository):
+
+```bash
+dotnet user-secrets set "ConnectionStrings:Main" "Host=localhost;Port=5434;Database=gebeta;Username=gebeta;Password=<POSTGRES_PASSWORD from deploy/.env>" --project src/Gebeta.Api
+```
+
+In Development the API applies every module's migrations at start-up. Elsewhere run
+`dotnet Gebeta.Api.dll --migrate` (the migrate container) before starting the API.
+New migration for a module: `dotnet ef migrations add <Name> --project src/Modules/Core/Gebeta.Core.Infrastructure --startup-project src/Gebeta.Api --context CoreDbContext --output-dir Persistence/Migrations`.

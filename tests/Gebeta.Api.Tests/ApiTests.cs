@@ -2,11 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using Gebeta.Core.Contracts;
 using Gebeta.Core.Presentation;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Gebeta.Api.Tests;
 
-public class ApiTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
 {
     [Theory]
     [InlineData("/health/live")]

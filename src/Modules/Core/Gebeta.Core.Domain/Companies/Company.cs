@@ -12,6 +12,13 @@ public sealed class Company : Entity
     public const string DefaultCurrency = "ETB";
     public const string DefaultTimeZone = "Africa/Addis_Ababa";
 
+    // For the persistence layer only (EF Core materialisation).
+    private Company()
+    {
+        Name = string.Empty;
+        Abbreviation = string.Empty;
+    }
+
     private Company(string name, string abbreviation, LegalForm legalForm, TaxpayerIdentificationNumber tin)
     {
         Name = name;

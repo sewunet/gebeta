@@ -2,6 +2,7 @@ using Gebeta.Api;
 using Gebeta.Core.Infrastructure;
 using Gebeta.Modularity;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,11 +23,18 @@ app.MapOpenApi();
 
 // Liveness: the process answers. Readiness: dependencies (database, RabbitMQ) are reachable.
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
-app.MapHealthChecks("/health/ready");
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { ResultStatusCodes = { [HealthStatus.Degraded] = StatusCodes.Status200OK } });
 
 app.MapGebetaModules();
 
-app.Run();
+// "--migrate": update every module's schema and exit (the migrate container).
+// Database:MigrateOnStartup: update, then keep running (development).
+if (await app.RunMigrationsIfRequestedAsync(args).ConfigureAwait(false))
+{
+    return;
+}
+
+await app.RunAsync().ConfigureAwait(false);
 
 /// <summary>Entry point, visible to integration tests.</summary>
 public partial class Program;

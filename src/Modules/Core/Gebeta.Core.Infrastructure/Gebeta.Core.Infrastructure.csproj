@@ -12,7 +12,7 @@
     <PackageReference Include="EFCore.NamingConventions" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Persistence\Gebeta.Persistence.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
     <ProjectReference Include="..\Gebeta.Core.Application\Gebeta.Core.Application.csproj" />
     <ProjectReference Include="..\Gebeta.Core.Presentation\Gebeta.Core.Presentation.csproj" />
   </ItemGroup>

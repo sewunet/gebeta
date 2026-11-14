@@ -8,8 +8,10 @@ using Microsoft.EntityFrameworkCore;
 namespace Gebeta.Core.Infrastructure.Persistence;
 
 /// <summary>Core's database: PostgreSQL schema <c>core</c>, with its own migration history.</summary>
-public sealed class CoreDbContext(DbContextOptions<CoreDbContext> options) : DbContext(options), ICoreUnitOfWork
+public sealed class CoreDbContext(DbContextOptions<CoreDbContext> options, TimeProvider? clock = null) : DbContext(options), ICoreUnitOfWork
 {
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
+
     public const string Schema = "core";
     public const string MigrationsHistoryTable = "__ef_migrations_history";
 
@@ -25,7 +27,10 @@ public sealed class CoreDbContext(DbContextOptions<CoreDbContext> options) : DbC
         modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CoreDbContext).Assembly);
         modelBuilder.AddNamingSeriesCounters();
+        modelBuilder.AddOutboxAndInbox();
     }
+
+    public void Publish(object integrationEvent) => this.AddIntegrationEvent(integrationEvent, _clock.GetUtcNow());
 
     async Task Gebeta.Application.IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken) =>
         await SaveChangesAsync(cancellationToken).ConfigureAwait(false);

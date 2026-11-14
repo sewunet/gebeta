@@ -13,7 +13,7 @@
 | Validation | FluentValidation | |
 | Command handling | Plain handler interfaces in SharedKernel | Avoids a licensed mediator library; easy to read |
 | Event bus | **RabbitMQ 4** (quorum queues) | All events between modules, see [messaging.md](messaging.md) |
-| Messaging library | **Wolverine** (MIT) | RabbitMQ transport, PostgreSQL outbox/inbox, retries, dead letters |
+| Messaging library | **RabbitMQ.Client** 7 + Gebeta's outbox/inbox (`Gebeta.Messaging`) | Per-module outbox and inbox in PostgreSQL, publisher confirms, retries, dead letters |
 | Background jobs | **Hangfire** (PostgreSQL storage) | Retries, dashboard, recurring jobs |
 | Cache / locks | Redis (StackExchange.Redis) | Distributed locks for reposting and payroll runs |
 | Auth | **Keycloak 26** (OIDC) with the Gebeta login theme | SSO, MFA, LDAP/AD if needed. OpenIddict is the self-hosted alternative. |

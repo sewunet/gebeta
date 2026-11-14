@@ -46,6 +46,7 @@ public sealed class GebetaApiFactory : WebApplicationFactory<Program>, IAsyncLif
         builder.UseSetting("ConnectionStrings:Main", _postgres.GetConnectionString());
         builder.UseSetting("Database:MigrateOnStartup", "true");
         builder.UseSetting("Security:BootstrapAdmins:0", AdminUser);
+        builder.UseSetting("RabbitMq:Enabled", "false"); // events stay in the outbox; delivery is tested in Gebeta.Messaging.Tests
 
         builder.ConfigureTestServices(services =>
         {

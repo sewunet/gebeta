@@ -4,6 +4,7 @@ using Gebeta.Core.Contracts;
 using Gebeta.Core.Application.Security;
 using Gebeta.Core.Application.Settings;
 using Gebeta.Core.Domain.Settings;
+using Gebeta.Messaging;
 using Gebeta.Persistence;
 using Gebeta.Core.Domain.Companies;
 using Gebeta.Core.Domain.Security;
@@ -60,6 +61,7 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<INamingSeriesSettings, NamingSeriesSettings>();
         services.AddScoped<DocumentNumbering>();
         services.AddScoped<IModuleMigrator, CoreMigrator>();
+        services.AddOutboxDispatcher<CoreDbContext>(Id, CoreDbContext.Schema);
         services.AddHealthChecks().AddCheck<CoreDatabaseHealthCheck>("core-database");
 
         services.AddScoped<ICommandHandler<CreateCompanyCommand, CompanyDto>, CreateCompanyHandler>();

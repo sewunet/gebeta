@@ -362,6 +362,27 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("naming_series", "core");
                 });
 
+            modelBuilder.Entity("Gebeta.Persistence.InboxMessage", b =>
+                {
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("message_id");
+
+                    b.Property<string>("Handler")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("handler");
+
+                    b.Property<DateTimeOffset>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.HasKey("MessageId", "Handler")
+                        .HasName("pk_inbox_message");
+
+                    b.ToTable("inbox_message", "core");
+                });
+
             modelBuilder.Entity("Gebeta.Persistence.NamingSeriesCounter", b =>
                 {
                     b.Property<string>("Key")
@@ -377,6 +398,56 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                         .HasName("pk_naming_series_counter");
 
                     b.ToTable("naming_series_counter", "core");
+                });
+
+            modelBuilder.Entity("Gebeta.Persistence.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("ClrType")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("clr_type");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("RoutingKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("routing_key");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outbox_message");
+
+                    b.HasIndex("OccurredAt")
+                        .HasDatabaseName("ix_outbox_message_pending")
+                        .HasFilter("processed_at IS NULL");
+
+                    b.ToTable("outbox_message", "core");
                 });
 #pragma warning restore 612, 618
         }

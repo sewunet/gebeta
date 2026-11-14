@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BuildingBlocks\Gebeta.Modularity\Gebeta.Modularity.csproj" />
+    <ProjectReference Include="..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
     <ProjectReference Include="..\Modules\Core\Gebeta.Core.Infrastructure\Gebeta.Core.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

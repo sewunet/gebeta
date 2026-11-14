@@ -46,6 +46,8 @@ public sealed class CreateCompanyHandler(ICompanyRepository companies, ICoreUnit
             creator.User.GrantCompany(company.Id);
         }
 
+        // Other modules (Accounting, Payroll, ...) set up their defaults for the new company.
+        unitOfWork.Publish(new CompanyCreated(company.Id, company.Name, company.Abbreviation, company.DefaultCurrencyCode, company.CreatedAt));
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return CompanyMapping.ToDto(company);
     }

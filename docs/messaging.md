@@ -4,16 +4,20 @@ All integration events between modules go through **RabbitMQ**, in every set-up:
 with all modules, one module alone, or every module in its own container. Module code never
 knows which set-up it runs in ([ADR 0007](adr/0007-rabbitmq-and-docker.md)).
 
-## Library
+## Implementation
 
-**Wolverine** (MIT licence) on RabbitMQ:
-- transactional **outbox** and **inbox** stored in PostgreSQL through EF Core, in the same
-  transaction as the module's data;
-- RabbitMQ transport with publisher confirms, retries, delayed retry and dead-lettering;
-- handlers are plain classes, which fits the handler style in [conventions](conventions.md).
+Gebeta's own small messaging layer on the official **RabbitMQ.Client** (7.x), in two building blocks:
 
-The RabbitMQ details stay behind Core's `IEventPublisher` / `IEventSubscriptions` interfaces, so
-the library can be swapped later without touching modules.
+| Piece | Where | What it does |
+|---|---|---|
+| Outbox and inbox tables | `Gebeta.Persistence` (`AddOutboxAndInbox`) | `outbox_message` and `inbox_message` in each module's own schema, created by the module's migrations |
+| `IUnitOfWork.Publish(event)` | `Gebeta.Application` | Adds the event to the module's outbox; saved by the same `SaveChangesAsync` as the data |
+| Outbox dispatcher | `Gebeta.Messaging` (`AddOutboxDispatcher<TDbContext>`) | Every second, takes pending rows with `FOR UPDATE SKIP LOCKED`, publishes with publisher confirms, marks them sent |
+| Consumer | `Gebeta.Messaging` (`AddIntegrationEventConsumer<TEvent, TConsumer, TDbContext>`) | One quorum queue per module, inbox check and consumer in one transaction, retries, then dead letter |
+
+Modules only see `IUnitOfWork.Publish` and `IIntegrationEventConsumer<T>` from `Gebeta.Application`,
+so the transport can be changed without touching modules. Wolverine was considered first and
+replaced; see [ADR 0007](adr/0007-rabbitmq-and-docker.md).
 
 ## Topology
 
@@ -65,8 +69,8 @@ Money values in the body are strings ([ADR 0003](adr/0003-exact-decimal-money.md
    change, then sent. A crash after commit never loses it; a rollback never sends it.
 2. **Inbox**: each module stores handled message ids; a repeated message is acknowledged and
    skipped. Every handler is idempotent anyway.
-3. **Retry**: 3 immediate retries, then delayed retries (10 s, 1 min, 10 min, 1 h), then the
-   dead-letter queue.
+3. **Retry**: up to 3 attempts with a short back-off (`RabbitMq:MaxAttempts`), then the dead-letter
+   queue. Delayed retries (10 s, 1 min, 10 min, 1 h) are planned.
 4. **Dead letters** show on an admin page per module, with the error, and can be replayed after a
    fix.
 5. **Versioning**: adding a field keeps the version; removing or renaming one publishes a new

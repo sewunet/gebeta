@@ -13,7 +13,7 @@ with its partners, and with all modules.
 - Repository, CI building Docker images, Docker Compose (PostgreSQL, RabbitMQ, Redis, Keycloak, Seq).
 - SharedKernel: `Money`, `Quantity`, `DocumentBase`, results, outbox, handler interfaces.
 - Plugin system: module manifest and loader, capability registry with fallbacks, integration
-  events (outbox/inbox over RabbitMQ with Wolverine, dead-letter page), outbound journal list,
+  events (outbox/inbox over RabbitMQ, dead-letter page), outbound journal list,
   React shell slots and `/api/modules`.
 - Core (Platform): shared employee / party / item directory, companies, branches, departments, cost centres, users and roles, permissions,
   naming series, audit, attachments, workflow engine, branding.

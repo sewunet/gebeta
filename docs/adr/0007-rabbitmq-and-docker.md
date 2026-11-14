@@ -15,8 +15,14 @@ service would change how its events are delivered.
 1. **RabbitMQ** carries every integration event, in every set-up, including a single container
    with all modules. Topic exchange `gebeta.events`, one quorum queue per module, dead-letter
    exchange `gebeta.dlx` ([messaging.md](../messaging.md)).
-2. **Wolverine** provides the RabbitMQ transport and the PostgreSQL outbox/inbox, behind Core's
-   own interfaces.
+2. A small Gebeta messaging layer on the official **RabbitMQ.Client** provides the outbox
+   dispatcher and the consumer with inbox (`Gebeta.Persistence`, `Gebeta.Messaging`), behind the
+   `IUnitOfWork.Publish` and `IIntegrationEventConsumer<T>` interfaces.
+
+   *Amended 2026-11-15:* the first draft chose Wolverine. It was replaced while building, because each
+   module keeps its outbox and inbox in its own schema and transaction, which is simpler to control
+   directly (about 400 lines, no code generation, one dependency), and the behaviour is covered by
+   end-to-end tests against real RabbitMQ and PostgreSQL.
 3. **Docker** for every environment. One server image (`abay/gebeta-server`) contains all
    modules; each container enables its modules by configuration. Docker Compose for development
    and single-server customers, Kubernetes for large ones ([deployment.md](../deployment.md)).
@@ -28,6 +34,8 @@ service would change how its events are delivered.
 - **Kafka**: strong for very high event volumes and replay, but heavier to run on customer
   premises; ERP event volumes do not need it.
 - **MassTransit**: mature, but new major versions need a commercial licence.
+- **Wolverine**: capable and MIT-licensed, but brings its own hosting model and code generation;
+  more than Gebeta needs for per-module outboxes.
 
 ## Consequences
 

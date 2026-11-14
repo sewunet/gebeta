@@ -1,5 +1,6 @@
 using Gebeta.Api;
 using Gebeta.Core.Infrastructure;
+using Gebeta.Messaging;
 using Gebeta.Modularity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -23,6 +24,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters.NameClaimType = "preferred_username";
     });
 builder.Services.AddGebetaAuthorization();
+
+// Integration events between modules go through RabbitMQ (docs/messaging.md).
+builder.Services.AddGebetaMessaging(builder.Configuration);
 
 // Every module the image contains. Which of them run is decided by Modules:Enabled.
 builder.AddGebetaModules(

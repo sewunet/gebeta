@@ -4,6 +4,7 @@
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/Gebeta.Application/Gebeta.Application.csproj" />
+    <Project Path="src/BuildingBlocks/Gebeta.Messaging/Gebeta.Messaging.csproj" />
     <Project Path="src/BuildingBlocks/Gebeta.Modularity/Gebeta.Modularity.csproj" />
     <Project Path="src/BuildingBlocks/Gebeta.Persistence/Gebeta.Persistence.csproj" />
     <Project Path="src/BuildingBlocks/Gebeta.SharedKernel/Gebeta.SharedKernel.csproj" />
@@ -20,6 +21,7 @@
     <Project Path="tests/Gebeta.Api.Tests/Gebeta.Api.Tests.csproj" />
     <Project Path="tests/Gebeta.ArchitectureTests/Gebeta.ArchitectureTests.csproj" />
     <Project Path="tests/Gebeta.Core.Tests/Gebeta.Core.Tests.csproj" />
+    <Project Path="tests/Gebeta.Messaging.Tests/Gebeta.Messaging.Tests.csproj" />
     <Project Path="tests/Gebeta.Modularity.Tests/Gebeta.Modularity.Tests.csproj" />
     <Project Path="tests/Gebeta.Persistence.Tests/Gebeta.Persistence.Tests.csproj" />
     <Project Path="tests/Gebeta.SharedKernel.Tests/Gebeta.SharedKernel.Tests.csproj" />

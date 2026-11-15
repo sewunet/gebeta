@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Cash.Infrastructure</RootNamespace>
+    <Description>Cash persistence (EF Core, PostgreSQL schema "cash") and the module's composition root (CashModule).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
+    <ProjectReference Include="..\Gebeta.Cash.Application\Gebeta.Cash.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Cash.Presentation\Gebeta.Cash.Presentation.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,5 +1,11 @@
 # Cash Management module
 
+> **Built so far** (`src/Modules/Cash`): cashiers (Sales, Petty, Other) with limits and their own ledger,
+> the overdraw rule checked immediately on the cashier's balance (PostgreSQL row version against concurrent
+> movements), receipts (`CR-`), payments (`CP-`), transfers between cashiers (`CT-`), petty cash requests
+> (`PCR-`) funded from a source account or another cashier, automatic top-ups for petty cashiers, and a
+> `JournalRequested` event per movement that Accounting posts (transfers keep one line per cashier).
+
 Rebuilds the current `cash_management` app: cashiers, their balances, and petty cash funding.
 
 ## Concepts

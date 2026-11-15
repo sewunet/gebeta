@@ -125,6 +125,47 @@ public sealed class SalarySlipSubmittedConsumer(
     }
 }
 
+/// <summary>
+/// A journal requested by Cash Management (receipt, payment, transfer, petty cash top-up). Account codes must
+/// exist in the company's chart; an unknown code fails the message, which is retried and then dead-lettered.
+/// </summary>
+public sealed class CashJournalRequestedConsumer(
+    ChartSetup chart,
+    IAccountRepository accounts,
+    IJournalRepository journals,
+    IAccountingNumbers numbers,
+    IAccountingUnitOfWork unitOfWork,
+    TimeProvider clock) : IIntegrationEventConsumer<Gebeta.Cash.Contracts.JournalRequested>
+{
+    public async Task HandleAsync(Gebeta.Cash.Contracts.JournalRequested request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (await journals.FindBySourceAsync(request.SourceId, cancellationToken).ConfigureAwait(false) is not null)
+        {
+            return;
+        }
+
+        if (await chart.EnsureAsync(request.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var byCode = (await accounts.ListAsync(request.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
+        var lines = request.Lines.Select(l => byCode.TryGetValue(l.AccountCode, out var account) && !account.IsGroup
+                ? new JournalLine(account.Id, l.Debit, l.Credit, l.Description)
+                : throw new DomainException("accounting.unknown_account", $"Account {l.AccountCode} from {request.SourceNumber} is not a postable account."))
+            .ToList();
+        var journal = JournalEntry.Create(request.CompanyId, request.PostingDate, $"{request.SourceType} {request.SourceNumber}: {request.Remark}", lines,
+            JournalSource.Cash, request.SourceId, request.SourceNumber);
+        journal.AssignName(await numbers.NextAsync(request.CompanyId, journal.DocumentType, JournalHandler.DefaultPattern, request.PostingDate, cancellationToken).ConfigureAwait(false));
+        journal.CreatedAt = clock.GetUtcNow();
+        journal.CreatedBy = "cash";
+        journals.Add(journal);
+        journals.Add(journal.Post());
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+}
+
 /// <summary>A cancelled salary slip reverses its payroll journal.</summary>
 public sealed class SalarySlipCancelledConsumer(IJournalRepository journals, IAccountingUnitOfWork unitOfWork) : IIntegrationEventConsumer<SalarySlipCancelled>
 {

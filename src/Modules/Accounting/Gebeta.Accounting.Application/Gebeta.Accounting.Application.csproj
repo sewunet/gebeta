@@ -9,5 +9,6 @@
     <ProjectReference Include="..\Gebeta.Accounting.Contracts\Gebeta.Accounting.Contracts.csproj" />
     <ProjectReference Include="..\..\Core\Gebeta.Core.Contracts\Gebeta.Core.Contracts.csproj" />
     <ProjectReference Include="..\..\Payroll\Gebeta.Payroll.Contracts\Gebeta.Payroll.Contracts.csproj" />
+    <ProjectReference Include="..\..\Cash\Gebeta.Cash.Contracts\Gebeta.Cash.Contracts.csproj" />
   </ItemGroup>
 </Project>

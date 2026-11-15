@@ -104,6 +104,7 @@ public enum JournalSource
 {
     Manual,
     Payroll,
+    Cash,
 }
 
 /// <summary>

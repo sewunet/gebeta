@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Cash.Application</RootNamespace>
+    <Description>Cash Management use cases (cashiers, receipts, payments, transfers, petty cash).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Application\Gebeta.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Cash.Domain\Gebeta.Cash.Domain.csproj" />
+    <ProjectReference Include="..\Gebeta.Cash.Contracts\Gebeta.Cash.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -39,11 +39,11 @@ public class InvoiceCorrectionsTests(GebetaApiFactory factory) : IClassFixture<G
         }, Ct)).Content.ReadFromJsonAsync<InvoiceDto>(Ct);
         Assert.True(note!.IsReturn);
         Assert.Equal(sale.Number, note.ReturnAgainstNumber);
-        Assert.Equal(11_300m, note.PayableAmount);
+        Assert.Equal(11_200m, note.PayableAmount);
         note = await (await admin.PostAsync(U($"/api/accounting/invoices/{note.Id}/submit"), null, Ct)).Content.ReadFromJsonAsync<InvoiceDto>(Ct);
         Assert.Equal("CN-2019-00001", note!.Number);
         sale = await admin.GetFromJsonAsync<InvoiceDto>(U($"/api/accounting/invoices/{sale.Id}"), Ct);
-        Assert.Equal(11_300m, sale!.Outstanding);
+        Assert.Equal(11_200m, sale!.Outstanding);
 
         // A full return is now more than is owed; an account not on the invoice is refused.
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(U($"/api/accounting/invoices/{sale.Id}/return"), new { postingDate = "2026-11-23" }, Ct)).StatusCode);
@@ -53,28 +53,28 @@ public class InvoiceCorrectionsTests(GebetaApiFactory factory) : IClassFixture<G
         }, Ct)).StatusCode);
 
         // Pay the rest, then cancel the payment.
-        var payment = await (await admin.PostAsJsonAsync(U("/api/accounting/payments"), new { invoiceId = sale.Id, amount = 11_300, postingDate = "2026-11-25" }, Ct))
+        var payment = await (await admin.PostAsJsonAsync(U("/api/accounting/payments"), new { invoiceId = sale.Id, amount = 11_200, postingDate = "2026-11-25" }, Ct))
             .Content.ReadFromJsonAsync<PaymentDto>(Ct);
         Assert.Equal(0m, (await admin.GetFromJsonAsync<InvoiceDto>(U($"/api/accounting/invoices/{sale.Id}"), Ct))!.Outstanding);
         var cancelled = await (await admin.PostAsync(U($"/api/accounting/payments/{payment!.Id}/cancel"), null, Ct)).Content.ReadFromJsonAsync<PaymentDto>(Ct);
         Assert.Equal("Cancelled", cancelled!.Status);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsync(U($"/api/accounting/payments/{payment.Id}/cancel"), null, Ct)).StatusCode);
-        Assert.Equal(11_300m, (await admin.GetFromJsonAsync<InvoiceDto>(U($"/api/accounting/invoices/{sale.Id}"), Ct))!.Outstanding);
+        Assert.Equal(11_200m, (await admin.GetFromJsonAsync<InvoiceDto>(U($"/api/accounting/invoices/{sale.Id}"), Ct))!.Outstanding);
         Assert.Equal("Cancelled", Assert.Single((await admin.GetFromJsonAsync<List<PaymentDto>>(U($"/api/accounting/invoices/{sale.Id}/payments"), Ct))!).Status);
 
         // Ledger and tax reports net the credit note.
         var tb = await admin.GetFromJsonAsync<TrialBalanceDto>(U($"/api/accounting/reports/trial-balance?companyId={id}&asOf=2026-11-30"), Ct);
         decimal Balance(string code) => tb!.Rows.Single(r => r.Code == code).Balance;
-        Assert.Equal(11_300m, Balance("1200"));
+        Assert.Equal(11_200m, Balance("1200"));
         Assert.Equal(10_000m, Balance("4100"));
         Assert.Equal(1_500m, Balance("2300"));
-        Assert.Equal(200m, Balance("1260"));
+        Assert.Equal(300m, Balance("1260"));
         Assert.DoesNotContain(tb!.Rows, r => r.Code == "1120"); // payment and its reversal net to zero
         var vat = await admin.GetFromJsonAsync<VatReportDto>(U($"/api/accounting/reports/vat?companyId={id}&from=2026-11-01&to=2026-11-30"), Ct);
         Assert.Equal(1_500m, vat!.OutputVat);
         Assert.Contains(vat.Rows, r => r.Number == note.Number && r.Vat == -1_500m);
         var wht = await admin.GetFromJsonAsync<WithholdingReportDto>(U($"/api/accounting/reports/withholding?companyId={id}&from=2026-11-01&to=2026-11-30"), Ct);
-        Assert.Equal(200m, wht!.TotalWithheldByCustomers);
+        Assert.Equal(300m, wht!.TotalWithheldByCustomers);
 
         // Cut-over: a supplier invoice still open from the old system posts nothing; paying part of it does.
         var opening = await (await admin.PostAsJsonAsync(U("/api/accounting/invoices/opening"), new
@@ -91,14 +91,14 @@ public class InvoiceCorrectionsTests(GebetaApiFactory factory) : IClassFixture<G
         // Ageing on 2026-11-30.
         var receivables = await admin.GetFromJsonAsync<AgeingReportDto>(U($"/api/accounting/reports/ageing?companyId={id}&kind=Sales&asOf=2026-11-30"), Ct);
         var row = Assert.Single(receivables!.Rows);
-        Assert.Equal(11_300m, row.NotDue); // due 2026-12-20
+        Assert.Equal(11_200m, row.NotDue); // due 2026-12-20
         var payables = await admin.GetFromJsonAsync<AgeingReportDto>(U($"/api/accounting/reports/ageing?companyId={id}&kind=Purchase&asOf=2026-11-30"), Ct);
         Assert.Equal(4_000m, Assert.Single(payables!.Rows).Over90); // due 2026-06-30
         Assert.Equal(4_000m, payables.Totals.Total);
 
         // Cancelling the credit note puts the amount back; with no payments or returns left, the invoice itself can be cancelled.
         await admin.PostAsync(U($"/api/accounting/invoices/{note.Id}/cancel"), null, Ct);
-        Assert.Equal(22_600m, (await admin.GetFromJsonAsync<InvoiceDto>(U($"/api/accounting/invoices/{sale.Id}"), Ct))!.Outstanding);
+        Assert.Equal(22_400m, (await admin.GetFromJsonAsync<InvoiceDto>(U($"/api/accounting/invoices/{sale.Id}"), Ct))!.Outstanding);
         Assert.Equal(HttpStatusCode.OK, (await admin.PostAsync(U($"/api/accounting/invoices/{sale.Id}/cancel"), null, Ct)).StatusCode);
     }
 }

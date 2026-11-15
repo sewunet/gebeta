@@ -45,9 +45,9 @@ public class InvoicingTests
 
     [Theory]
     [InlineData(10_000, false, 0)]      // goods at the threshold: none
-    [InlineData(10_001, false, 200.02)] // goods above ETB 10,000: 2%
+    [InlineData(10_001, false, 300.03)] // goods above ETB 10,000: 3%
     [InlineData(3_000, true, 0)]        // services at the threshold: none
-    [InlineData(5_000, true, 100)]      // services above ETB 3,000: 2%
+    [InlineData(5_000, true, 150)]      // services above ETB 3,000: 3%
     public void Withholding_applies_above_the_thresholds(decimal amount, bool isService, decimal expected)
     {
         var invoice = Make(InvoiceKind.Purchase, false, true, new InvoiceLine("Item", 1m, amount, "6900", isService));
@@ -61,13 +61,13 @@ public class InvoicingTests
 
         Assert.Equal(20_000m, invoice.NetTotal);
         Assert.Equal(3_000m, invoice.VatAmount);
-        Assert.Equal(400m, invoice.WithholdingAmount);
-        Assert.Equal(22_600m, invoice.PayableAmount);
-        Assert.Equal(22_600m, invoice.Outstanding);
+        Assert.Equal(600m, invoice.WithholdingAmount);
+        Assert.Equal(22_400m, invoice.PayableAmount);
+        Assert.Equal(22_400m, invoice.Outstanding);
         AssertBalanced(invoice);
         var lines = invoice.JournalLines();
-        Assert.Contains(lines, l => l.AccountCode == Invoice.ReceivableAccount && l.Debit == 22_600m);
-        Assert.Contains(lines, l => l.AccountCode == Invoice.WithholdingReceivableAccount && l.Debit == 400m);
+        Assert.Contains(lines, l => l.AccountCode == Invoice.ReceivableAccount && l.Debit == 22_400m);
+        Assert.Contains(lines, l => l.AccountCode == Invoice.WithholdingReceivableAccount && l.Debit == 600m);
         Assert.Contains(lines, l => l.AccountCode == Invoice.OutputVatAccount && l.Credit == 3_000m);
         Assert.Contains(lines, l => l.AccountCode == "4100" && l.Credit == 20_000m);
     }
@@ -81,8 +81,8 @@ public class InvoicingTests
         var lines = invoice.JournalLines();
         Assert.Contains(lines, l => l.AccountCode == "6900" && l.Debit == 5_000m);
         Assert.Contains(lines, l => l.AccountCode == Invoice.InputVatAccount && l.Debit == 750m);
-        Assert.Contains(lines, l => l.AccountCode == Invoice.PayableAccount && l.Credit == 5_650m);
-        Assert.Contains(lines, l => l.AccountCode == Invoice.WithholdingPayableAccount && l.Credit == 100m);
+        Assert.Contains(lines, l => l.AccountCode == Invoice.PayableAccount && l.Credit == 5_600m);
+        Assert.Contains(lines, l => l.AccountCode == Invoice.WithholdingPayableAccount && l.Credit == 150m);
     }
 
     [Fact]
@@ -122,19 +122,19 @@ public class InvoicingTests
 
         Assert.Equal("Credit Note", note.DocumentType);
         Assert.Equal(1_500m, note.VatAmount);
-        Assert.Equal(200m, note.WithholdingAmount);  // same 2% as the original, no threshold
-        Assert.Equal(11_300m, note.PayableAmount);
+        Assert.Equal(300m, note.WithholdingAmount);  // same 3% as the original, no threshold
+        Assert.Equal(11_200m, note.PayableAmount);
         AssertBalanced(note);
-        Assert.Contains(note.JournalLines(), l => l.AccountCode == Invoice.ReceivableAccount && l.Credit == 11_300m);
+        Assert.Contains(note.JournalLines(), l => l.AccountCode == Invoice.ReceivableAccount && l.Credit == 11_200m);
         Assert.Contains(note.JournalLines(), l => l.AccountCode == Invoice.OutputVatAccount && l.Debit == 1_500m);
 
         note.Submit();
         sale.ApplyReturn(note);
-        Assert.Equal(11_300m, sale.Outstanding);
+        Assert.Equal(11_200m, sale.Outstanding);
         Assert.Equal("accounting.invoice_paid", Assert.Throws<DomainException>(() => sale.Cancel()).Code);
         note.Cancel(); // a submitted note can be cancelled; the original gets the amount back
         sale.ReverseReturn(note);
-        Assert.Equal(22_600m, sale.Outstanding);
+        Assert.Equal(22_400m, sale.Outstanding);
     }
 
     [Fact]
@@ -167,7 +167,35 @@ public class InvoicingTests
         var sale = SubmittedSale();
         sale.ApplyPayment(5_000m);
         sale.ReversePayment(5_000m);
-        Assert.Equal(22_600m, sale.Outstanding);
+        Assert.Equal(22_400m, sale.Outstanding);
         Assert.Equal("accounting.payment_reversal", Assert.Throws<DomainException>(() => sale.ReversePayment(1m)).Code);
+    }
+
+    [Fact]
+    public void The_withholding_base_is_only_the_part_above_its_threshold()
+    {
+        // Goods 8,000 (under ETB 10,000) and services 5,000 (over ETB 3,000): only the services are taxed.
+        var invoice = Make(InvoiceKind.Purchase, false, true,
+            new InvoiceLine("Paper", 1m, 8_000m, "6900", false), new InvoiceLine("Printing", 1m, 5_000m, "6900", true));
+        Assert.Equal(5_000m, invoice.WithholdingBase);
+        Assert.Equal(3m, invoice.WithholdingRatePercent);
+        Assert.Equal(150m, invoice.WithholdingAmount);
+        Assert.Equal("Goods and services", invoice.SupplyType);
+    }
+
+    [Fact]
+    public void Only_a_submitted_purchase_with_withholding_gets_one_receipt()
+    {
+        var purchase = Make(InvoiceKind.Purchase, false, true, new InvoiceLine("Consulting", 1m, 5_000m, "6900", true));
+        Assert.True(purchase.NeedsWithholdingReceipt);
+        Assert.Throws<DomainException>(() => purchase.AssignWithholdingReceipt("WHT-1")); // still a draft
+        purchase.Submit();
+        purchase.AssignWithholdingReceipt("WHT-1");
+        Assert.Equal("WHT-1", purchase.WithholdingReceiptNumber);
+        Assert.Throws<DomainException>(() => purchase.AssignWithholdingReceipt("WHT-2"));
+
+        var sale = SubmittedSale(); // the customer withholds from us; the receipt is theirs to give
+        Assert.False(sale.NeedsWithholdingReceipt);
+        Assert.Throws<DomainException>(() => sale.AssignWithholdingReceipt("WHT-3"));
     }
 }

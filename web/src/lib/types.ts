@@ -67,7 +67,7 @@ export type InvoiceLineDto = { description: string; quantity: number; rate: numb
 export type InvoiceDto = {
   id: string; number?: string; kind: "Sales" | "Purchase"; companyId: string; partyId: string; partyName: string; partyTin?: string; supplierInvoiceNumber?: string;
   postingDate: string; dueDate: string; status: string; lines: InvoiceLineDto[]; netTotal: number; vatAmount: number; grandTotal: number;
-  withholdingAmount: number; payableAmount: number; outstanding: number; isReturn: boolean; returnAgainstNumber?: string; isOpening: boolean;
+  withholdingAmount: number; payableAmount: number; outstanding: number; isReturn: boolean; returnAgainstNumber?: string; isOpening: boolean; withholdingReceiptNumber?: string;
 };
 export type PaymentDto = {
   id: string; number?: string; kind: string; partyName: string; invoiceId: string; invoiceNumber?: string; amount: number; postingDate: string;
@@ -79,7 +79,13 @@ export type VatReportDto = {
   from: string; to: string; outputVat: number; inputVat: number; netPayable: number;
   rows: { kind: string; number?: string; date: string; partyName: string; partyTin?: string; net: number; vat: number }[];
 };
-export type WithholdingRow = { number?: string; date: string; partyName: string; partyTin?: string; taxableAmount: number; withheld: number };
+export type WithholdingRow = {
+  number?: string; date: string; partyName: string; partyTin?: string; taxableAmount: number; withheld: number; receiptNumber?: string; supplyType?: string; ratePercent: number;
+};
+export type WithholdingReceiptDto = {
+  invoiceId: string; receiptNumber: string; date: string; status: string; agentName: string; agentTin: string; supplierName: string; supplierTin?: string;
+  invoiceNumber?: string; supplierInvoiceNumber?: string; supplyType: string; taxableAmount: number; ratePercent: number; withheld: number;
+};
 export type WithholdingReportDto = { from: string; to: string; totalWithheldFromSuppliers: number; totalWithheldByCustomers: number; fromSuppliers: WithholdingRow[]; byCustomers: WithholdingRow[] };
 export type PeriodClosingDto = {
   id: string; label: string; start: string; end: string; status: "Closed" | "Reopened"; totalDebit: number; totalCredit: number; netProfit: number;

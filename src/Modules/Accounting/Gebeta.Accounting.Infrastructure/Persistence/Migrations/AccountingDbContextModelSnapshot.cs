@@ -137,6 +137,21 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(21,2)")
                         .HasColumnName("withholding_amount");
 
+                    b.Property<decimal>("WithholdingBase")
+                        .HasPrecision(21, 2)
+                        .HasColumnType("numeric(21,2)")
+                        .HasColumnName("withholding_base");
+
+                    b.Property<decimal>("WithholdingRatePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("withholding_rate_percent");
+
+                    b.Property<string>("WithholdingReceiptNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("withholding_receipt_number");
+
                     b.Property<string>("_lines")
                         .IsRequired()
                         .HasColumnType("jsonb")

@@ -49,6 +49,8 @@ public sealed record ListInvoicePaymentsQuery(Guid InvoiceId) : IQuery<IReadOnly
 
 public sealed record CancelPaymentCommand(Guid PaymentId) : ICommand<PaymentDto>;
 
+public sealed record GetWithholdingReceiptQuery(Guid InvoiceId) : IQuery<WithholdingReceiptDto>;
+
 public sealed record AgeingReportQuery(Guid CompanyId, InvoiceKind Kind, DateOnly AsOf) : IQuery<AgeingReportDto>;
 
 public sealed record VatReportQuery(Guid CompanyId, DateOnly From, DateOnly To) : IQuery<VatReportDto>;
@@ -80,8 +82,11 @@ public sealed class InvoicingHandler(
       ICommandHandler<CreateOpeningInvoiceCommand, InvoiceDto>,
       IQueryHandler<ListInvoicePaymentsQuery, IReadOnlyList<PaymentDto>>,
       ICommandHandler<CancelPaymentCommand, PaymentDto>,
-      IQueryHandler<AgeingReportQuery, AgeingReportDto>
+      IQueryHandler<AgeingReportQuery, AgeingReportDto>,
+      IQueryHandler<GetWithholdingReceiptQuery, WithholdingReceiptDto>
 {
+    public const string WithholdingReceiptType = "Withholding Receipt";
+
     public async Task<Result<InvoiceDto>> Handle(CreateInvoiceCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -155,6 +160,12 @@ public sealed class InvoicingHandler(
             }
 
             await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            if (invoice.NeedsWithholdingReceipt)
+            {
+                invoice.AssignWithholdingReceipt(await numbers.NextAsync(invoice.CompanyId, WithholdingReceiptType, "WHT-.FY.-.#####", invoice.PostingDate, cancellationToken)
+                    .ConfigureAwait(false));
+            }
+
             if (!invoice.IsOpening)
             {
                 await PostAsync(invoice.CompanyId, invoice.PostingDate, $"{invoice.DocumentType} {invoice.Name} · {invoice.PartyName}", invoice.JournalLines(),
@@ -284,8 +295,8 @@ public sealed class InvoicingHandler(
         var withheld = (await invoices.ListAsync(query.CompanyId, null, query.From, query.To, cancellationToken).ConfigureAwait(false))
             .Where(i => i.DocStatus == DocStatus.Submitted && i.WithholdingAmount != 0m).ToList();
         WithholdingRow Row(Invoice i) => i.IsReturn
-            ? new(i.Name, i.PostingDate, i.PartyName, i.PartyTin, -i.NetTotal, -i.WithholdingAmount)
-            : new(i.Name, i.PostingDate, i.PartyName, i.PartyTin, i.NetTotal, i.WithholdingAmount);
+            ? new(i.Name, i.PostingDate, i.PartyName, i.PartyTin, -i.WithholdingBase, -i.WithholdingAmount, null, i.SupplyType, i.WithholdingRatePercent)
+            : new(i.Name, i.PostingDate, i.PartyName, i.PartyTin, i.WithholdingBase, i.WithholdingAmount, i.WithholdingReceiptNumber, i.SupplyType, i.WithholdingRatePercent);
         var fromSuppliers = withheld.Where(i => i.Kind == InvoiceKind.Purchase).Select(Row).ToList();
         var byCustomers = withheld.Where(i => i.Kind == InvoiceKind.Sales).Select(Row).ToList();
         return new WithholdingReportDto(query.From, query.To, fromSuppliers.Sum(r => r.Withheld), byCustomers.Sum(r => r.Withheld), fromSuppliers, byCustomers);
@@ -313,7 +324,22 @@ public sealed class InvoicingHandler(
     private static InvoiceDto ToDto(Invoice i) => new(i.Id, i.Name, i.Kind.ToString(), i.CompanyId, i.PartyId, i.PartyName, i.PartyTin, i.SupplierInvoiceNumber,
         i.PostingDate, i.DueDate, i.DocStatus.ToString(),
         i.Lines.Select(l => new InvoiceLineDto(l.Description, l.Quantity, l.Rate, l.Amount, l.AccountCode, l.IsService, l.VatApplicable)).ToList(),
-        i.NetTotal, i.VatAmount, i.GrandTotal, i.WithholdingAmount, i.PayableAmount, i.Outstanding, i.IsReturn, i.ReturnAgainstNumber, i.IsOpening);
+        i.NetTotal, i.VatAmount, i.GrandTotal, i.WithholdingAmount, i.PayableAmount, i.Outstanding, i.IsReturn, i.ReturnAgainstNumber, i.IsOpening, i.WithholdingReceiptNumber);
+
+    public async Task<Result<WithholdingReceiptDto>> Handle(GetWithholdingReceiptQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var invoice = await AccessibleAsync(query.InvoiceId, cancellationToken).ConfigureAwait(false);
+        if (invoice?.WithholdingReceiptNumber is null)
+        {
+            return Error.NotFound("Withholding receipt", query.InvoiceId);
+        }
+
+        var company = await companies.GetAsync(invoice.CompanyId, cancellationToken).ConfigureAwait(false);
+        return new WithholdingReceiptDto(invoice.Id, invoice.WithholdingReceiptNumber, invoice.PostingDate, invoice.DocStatus.ToString(), company?.Name ?? string.Empty,
+            company?.Tin ?? string.Empty, invoice.PartyName, invoice.PartyTin, invoice.Name, invoice.SupplierInvoiceNumber, invoice.SupplyType, invoice.WithholdingBase,
+            invoice.WithholdingRatePercent, invoice.WithholdingAmount);
+    }
 
     private static PaymentDto ToDto(Payment p) => new(p.Id, p.Name, p.Kind.ToString(), p.PartyId, p.PartyName, p.InvoiceId, p.InvoiceNumber, p.Amount,
         p.BankAccountCode, p.PostingDate, p.Reference, p.DocStatus.ToString());

@@ -84,11 +84,34 @@ public static class AccountingEndpoints
         acc.MapPost("/payments", async (CreatePaymentCommand command, ICommandHandler<CreatePaymentCommand, PaymentDto> h, CancellationToken ct) =>
                 (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
             .WithName("CreatePayment").RequirePermission(InvoicingPermissions.PaymentsCreate);
-        acc.MapGet("/reports/vat", async (Guid companyId, DateOnly from, DateOnly to, IQueryHandler<VatReportQuery, VatReportDto> h, CancellationToken ct) =>
-                (await h.Handle(new VatReportQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
+        acc.MapGet("/invoices/{id:guid}/withholding-receipt", async (Guid id, IQueryHandler<GetWithholdingReceiptQuery, WithholdingReceiptDto> h, CancellationToken ct) =>
+                (await h.Handle(new GetWithholdingReceiptQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetWithholdingReceipt").RequirePermission(InvoicingPermissions.InvoicesRead);
+        // Declaration files (?format=csv). Column sets follow the MoR forms as far as known; VERIFY against the current VAT return and withholding schedule.
+        acc.MapGet("/reports/vat", async (Guid companyId, DateOnly from, DateOnly to, string? format, IQueryHandler<VatReportQuery, VatReportDto> h, CancellationToken ct) =>
+            {
+                var result = await h.Handle(new VatReportQuery(companyId, from, to), ct).ConfigureAwait(false);
+                return result.IsSuccess && CsvFile.Requested(format)
+                    ? CsvFile.Create($"vat-{from:yyyy-MM-dd}-{to:yyyy-MM-dd}.csv",
+                        ["Type", "Invoice No", "Date", "Party Name", "Party TIN", "Taxable Amount", "VAT"],
+                        result.Value.Rows.Select(r => new object?[] { r.Kind == "Sales" ? "Output (sales)" : "Input (purchases)", r.Number, r.Date, r.PartyName, r.PartyTin, r.Net, r.Vat })
+                            .Append(["Total output VAT", null, null, null, null, null, result.Value.OutputVat])
+                            .Append(["Total input VAT", null, null, null, null, null, result.Value.InputVat])
+                            .Append(["Net VAT payable", null, null, null, null, null, result.Value.NetPayable]))
+                    : result.ToHttp();
+            })
             .WithName("VatReport").RequirePermission(AccountingPermissions.ReportsRead);
-        acc.MapGet("/reports/withholding", async (Guid companyId, DateOnly from, DateOnly to, IQueryHandler<WithholdingReportQuery, WithholdingReportDto> h, CancellationToken ct) =>
-                (await h.Handle(new WithholdingReportQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
+        acc.MapGet("/reports/withholding", async (Guid companyId, DateOnly from, DateOnly to, string? format, IQueryHandler<WithholdingReportQuery, WithholdingReportDto> h,
+                CancellationToken ct) =>
+            {
+                var result = await h.Handle(new WithholdingReportQuery(companyId, from, to), ct).ConfigureAwait(false);
+                return result.IsSuccess && CsvFile.Requested(format)
+                    ? CsvFile.Create($"withholding-{from:yyyy-MM-dd}-{to:yyyy-MM-dd}.csv",
+                        ["Receipt No", "Date", "Supplier Name", "Supplier TIN", "Invoice No", "Goods/Services", "Taxable Amount", "Rate %", "Tax Withheld"],
+                        result.Value.FromSuppliers.Select(r => new object?[] { r.ReceiptNumber, r.Date, r.PartyName, r.PartyTin, r.Number, r.SupplyType, r.TaxableAmount, r.RatePercent, r.Withheld })
+                            .Append(["Total", null, null, null, null, null, result.Value.FromSuppliers.Sum(r => r.TaxableAmount), null, result.Value.TotalWithheldFromSuppliers]))
+                    : result.ToHttp();
+            })
             .WithName("WithholdingReport").RequirePermission(AccountingPermissions.ReportsRead);
 
         acc.MapGet("/periods", async (Guid companyId, IQueryHandler<ListPeriodClosingsQuery, PeriodClosingsDto> h, CancellationToken ct) =>

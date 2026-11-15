@@ -241,6 +241,11 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Gebeta.Acc
         builder.Property(i => i.PartyTin).HasMaxLength(10);
         builder.Property(i => i.SupplierInvoiceNumber).HasMaxLength(60);
         builder.Property(i => i.ReturnAgainstNumber).HasMaxLength(60);
+        builder.Property(i => i.WithholdingReceiptNumber).HasMaxLength(60);
+        builder.Property(i => i.WithholdingBase).HasPrecision(21, 2);
+        builder.Property(i => i.WithholdingRatePercent).HasPrecision(5, 2);
+        builder.Ignore(i => i.SupplyType);
+        builder.Ignore(i => i.NeedsWithholdingReceipt);
         builder.HasIndex(i => i.ReturnAgainstId).HasFilter("return_against_id IS NOT NULL");
         foreach (var money in new[] { "NetTotal", "VatAmount", "WithholdingAmount", "Outstanding" })
         {

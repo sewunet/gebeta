@@ -5,12 +5,12 @@ namespace Gebeta.Accounting.Domain.Invoicing;
 
 /// <summary>
 /// Ethiopian VAT and withholding rules as data (docs/ethiopia.md). Defaults: VAT 15% (VAT Proclamation
-/// 1341/2024); withholding 2% on goods above ETB 10,000 and services above ETB 3,000 per transaction
-/// (Proclamation 979/2016, Art. 53). VERIFY the withholding rate and thresholds against later amendments.
+/// 1341/2024); withholding 3% on goods above ETB 10,000 and services above ETB 3,000 per transaction
+/// (previously 2% under Proclamation 979/2016, Art. 53). VERIFY the thresholds and the date the 3% rate took effect.
 /// </summary>
 public sealed record TaxRules(decimal VatRatePercent, decimal WithholdingRatePercent, decimal WithholdingGoodsThreshold, decimal WithholdingServicesThreshold)
 {
-    public static TaxRules EthiopianDefault { get; } = new(15m, 2m, 10_000m, 3_000m);
+    public static TaxRules EthiopianDefault { get; } = new(15m, 3m, 10_000m, 3_000m);
 }
 
 public enum InvoiceKind
@@ -81,6 +81,22 @@ public sealed class Invoice : DocumentBase
     public decimal NetTotal { get; private set; }
     public decimal VatAmount { get; private set; }
     public decimal WithholdingAmount { get; private set; }
+
+    /// <summary>The amount withholding was taken on (goods and/or services above their thresholds) and the rate used, as on the receipt.</summary>
+    public decimal WithholdingBase { get; private set; }
+
+    public decimal WithholdingRatePercent { get; private set; }
+
+    /// <summary>The numbered withholding receipt given to the supplier (purchases with withholding, assigned on submit).</summary>
+    public string? WithholdingReceiptNumber { get; private set; }
+
+    /// <summary>What was supplied, as the withholding declaration asks: goods, services, or both.</summary>
+    public string SupplyType => (_lines.Any(l => !l.IsService), _lines.Any(l => l.IsService)) switch
+    {
+        (true, true) => "Goods and services",
+        (false, true) => "Services",
+        _ => "Goods",
+    };
 
     /// <summary>Net plus VAT: the invoice total.</summary>
     public decimal GrandTotal => NetTotal + VatAmount;
@@ -171,33 +187,26 @@ public sealed class Invoice : DocumentBase
         var net = lines.Sum(l => l.Amount);
         var vat = vatCharged ? Rounding.ToCurrency(lines.Where(l => l.VatApplicable).Sum(l => l.Amount) * rules.VatRatePercent / 100m) : 0m;
 
-        var withholding = 0m;
+        var withholdingBase = 0m;
         if (withholdingMode == Withholding.FlatRate)
         {
-            withholding = Rounding.ToCurrency(net * rules.WithholdingRatePercent / 100m);
+            withholdingBase = net;
         }
         else if (withholdingMode == Withholding.AboveThresholds)
         {
             var goods = lines.Where(l => !l.IsService).Sum(l => l.Amount);
             var services = lines.Where(l => l.IsService).Sum(l => l.Amount);
-            if (goods > rules.WithholdingGoodsThreshold)
-            {
-                withholding += goods * rules.WithholdingRatePercent / 100m;
-            }
-
-            if (services > rules.WithholdingServicesThreshold)
-            {
-                withholding += services * rules.WithholdingRatePercent / 100m;
-            }
-
-            withholding = Rounding.ToCurrency(withholding);
+            withholdingBase = (goods > rules.WithholdingGoodsThreshold ? goods : 0m) + (services > rules.WithholdingServicesThreshold ? services : 0m);
         }
+
+        var withholding = Rounding.ToCurrency(withholdingBase * rules.WithholdingRatePercent / 100m);
 
         var invoice = new Invoice(companyId, postingDate)
         {
             Kind = kind, PartyId = partyId, PartyName = partyName, PartyTin = partyTin, DueDate = dueDate,
             SupplierInvoiceNumber = string.IsNullOrWhiteSpace(supplierInvoiceNumber) ? null : supplierInvoiceNumber.Trim(),
             _lines = lines.ToList(), NetTotal = net, VatAmount = vat, WithholdingAmount = withholding,
+            WithholdingBase = withholding > 0m ? withholdingBase : 0m, WithholdingRatePercent = withholding > 0m ? rules.WithholdingRatePercent : 0m,
         };
         invoice.Outstanding = invoice.PayableAmount;
         return invoice;
@@ -265,6 +274,24 @@ public sealed class Invoice : DocumentBase
 
         Outstanding -= amount;
     }
+
+    /// <summary>Gives the submitted purchase invoice its withholding receipt number.</summary>
+    public void AssignWithholdingReceipt(string number)
+    {
+        if (Kind != InvoiceKind.Purchase || IsReturn || WithholdingAmount <= 0m || DocStatus != DocStatus.Submitted)
+        {
+            throw new DomainException("accounting.withholding_receipt", "Only a submitted purchase invoice with withholding gets a withholding receipt.");
+        }
+
+        if (WithholdingReceiptNumber is not null)
+        {
+            throw new DomainException("accounting.withholding_receipt", $"{Name} already has withholding receipt {WithholdingReceiptNumber}.");
+        }
+
+        WithholdingReceiptNumber = number;
+    }
+
+    public bool NeedsWithholdingReceipt => Kind == InvoiceKind.Purchase && !IsReturn && WithholdingAmount > 0m;
 
     /// <summary>A cancelled payment puts its amount back on the invoice.</summary>
     public void ReversePayment(decimal amount)

@@ -70,6 +70,7 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<IQueryHandler<ListInvoicePaymentsQuery, IReadOnlyList<PaymentDto>>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<ICommandHandler<CancelPaymentCommand, PaymentDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<IQueryHandler<AgeingReportQuery, AgeingReportDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<IQueryHandler<GetWithholdingReceiptQuery, WithholdingReceiptDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddOutboxDispatcher<AccountingDbContext>(Id, AccountingDbContext.SchemaName);
 
         // Events from other modules (received only when those modules are installed).

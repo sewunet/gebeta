@@ -15,6 +15,7 @@ import { TaxReports } from "../pages/accounting/TaxReports";
 import { Periods } from "../pages/accounting/Periods";
 import { FinancialReports } from "../pages/accounting/FinancialReports";
 import { Ageing } from "../pages/accounting/Ageing";
+import { WithholdingReceipt } from "../pages/accounting/WithholdingReceipt";
 import { Cashiers } from "../pages/cash/Cashiers";
 import { PettyCash } from "../pages/cash/PettyCash";
 import { Attendance } from "../pages/hr/Attendance";
@@ -42,10 +43,11 @@ const invoices = createRoute({ getParentRoute: () => root, path: "/accounting/in
 const taxReports = createRoute({ getParentRoute: () => root, path: "/accounting/tax", component: TaxReports });
 const periods = createRoute({ getParentRoute: () => root, path: "/accounting/periods", component: Periods });
 const financial = createRoute({ getParentRoute: () => root, path: "/accounting/reports", component: FinancialReports });
+const receipt = createRoute({ getParentRoute: () => root, path: "/accounting/invoices/$id/receipt", component: WithholdingReceipt });
 const ageing = createRoute({ getParentRoute: () => root, path: "/accounting/ageing", component: Ageing });
 
 export const router = createRouter({
-  routeTree: root.addChildren([dashboard, companies, employees, slips, slip, run, calculator, leave, attendance, cashiers, pettyCash, accounts, journals, trialBalance, parties, invoices, taxReports, periods, financial, ageing]),
+  routeTree: root.addChildren([dashboard, companies, employees, slips, slip, run, calculator, leave, attendance, cashiers, pettyCash, accounts, journals, trialBalance, parties, invoices, taxReports, periods, financial, ageing, receipt]),
 });
 
 declare module "@tanstack/react-router" {

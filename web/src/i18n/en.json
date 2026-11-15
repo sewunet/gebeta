@@ -225,7 +225,7 @@
     "customer": "Customer",
     "supplier": "Supplier",
     "dueDate": "Due date",
-    "customerWithholds": "Customer withholds tax (2%)",
+    "customerWithholds": "Customer withholds tax",
     "supplierInvoiceNumber": "Supplier's invoice no.",
     "qty": "Qty",
     "rate": "Rate",
@@ -321,5 +321,25 @@
     "over90": "Over 90",
     "nothingOpen": "Nothing is open on this date.",
     "daysHint": "Columns are days past the due date. Payments and returns dated after the date are not counted."
+  },
+  "receipt": {
+    "title": "Withholding Tax Receipt",
+    "short": "Receipt",
+    "print": "Print",
+    "void": "VOID — the invoice was cancelled",
+    "agent": "Withholding agent",
+    "invoice": "Invoice",
+    "supply": "Supply",
+    "supplyType": {
+      "Goods": "Goods",
+      "Services": "Services",
+      "Goods and services": "Goods and services"
+    },
+    "rate": "Rate",
+    "withheld": "Tax withheld",
+    "note": "Withheld under the Federal Income Tax Proclamation (withholding on payments to suppliers). Keep this receipt to claim the tax against your income tax.",
+    "preparedBy": "Prepared by",
+    "signature": "Signature and stamp",
+    "printedFor": "Printed by {{user}}"
   }
 }

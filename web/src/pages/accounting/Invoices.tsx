@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../../app/context";
 import { api, post } from "../../lib/api";
@@ -167,6 +168,8 @@ export function Invoices() {
                 <td className="num">{inv.status === "Submitted" ? formatMoney(inv.outstanding) : ""}</td>
                 <td><span className={`badge ${inv.status}`}>{t(`status.${inv.status}`)}</span></td>
                 <td className="actions" onClick={(e) => e.stopPropagation()}>
+                  {inv.withholdingReceiptNumber &&
+                    <Link to="/accounting/invoices/$id/receipt" params={{ id: inv.id }} className="button secondary" title={inv.withholdingReceiptNumber}>{t("receipt.short")}</Link>}
                   {inv.status === "Draft" && can(me, "accounting.invoices.submit") &&
                     <button onClick={() => act.mutate({ id: inv.id, action: "submit" })} disabled={act.isPending}>{t("slips.submit")}</button>}
                   {inv.status === "Submitted" && !inv.isReturn && inv.outstanding > 0 && can(me, "accounting.payments.create") &&

@@ -225,7 +225,7 @@
     "customer": "ደንበኛ",
     "supplier": "አቅራቢ",
     "dueDate": "የመክፈያ ቀን",
-    "customerWithholds": "ደንበኛው ግብር ይቀንሳል (2%)",
+    "customerWithholds": "ደንበኛው ግብር ይቀንሳል",
     "supplierInvoiceNumber": "የአቅራቢው ደረሰኝ ቁጥር",
     "qty": "ብዛት",
     "rate": "ዋጋ",
@@ -321,5 +321,25 @@
     "over90": "ከ90 በላይ",
     "nothingOpen": "በዚህ ቀን ያልተከፈለ የለም።",
     "daysHint": "ዓምዶቹ ከመክፈያ ቀን በኋላ ያለፉ ቀናት ናቸው። ከቀኑ በኋላ የተደረጉ ክፍያዎችና ተመላሾች አይቆጠሩም።"
+  },
+  "receipt": {
+    "title": "የተቀናሽ ግብር ደረሰኝ",
+    "short": "ደረሰኝ",
+    "print": "አትም",
+    "void": "ዋጋ የለውም — ደረሰኙ ተሰርዟል",
+    "agent": "ግብር ቀናሽ",
+    "invoice": "ደረሰኝ",
+    "supply": "አቅርቦት",
+    "supplyType": {
+      "Goods": "ዕቃ",
+      "Services": "አገልግሎት",
+      "Goods and services": "ዕቃና አገልግሎት"
+    },
+    "rate": "መጣኔ",
+    "withheld": "የተቀነሰ ግብር",
+    "note": "በፌዴራል የገቢ ግብር አዋጅ መሠረት ለአቅራቢዎች በሚደረግ ክፍያ ላይ የተቀነሰ። ግብሩን ከገቢ ግብርዎ ለማቀናነስ ይህን ደረሰኝ ያስቀምጡ።",
+    "preparedBy": "ያዘጋጀው",
+    "signature": "ፊርማና ማኅተም",
+    "printedFor": "ያተመው {{user}}"
   }
 }

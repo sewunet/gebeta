@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../../app/context";
-import { api } from "../../lib/api";
+import { api, download } from "../../lib/api";
 import { formatDate, formatMoney } from "../../lib/ethiopian";
 import type { VatReportDto, WithholdingReportDto, WithholdingRow } from "../../lib/types";
 import { currentMonth, monthRange } from "../payroll/month";
@@ -25,12 +25,12 @@ export function TaxReports() {
       <h3>{title}</h3>
       {rows.length ? (
         <table className="table">
-          <thead><tr><th>{t("fields.number")}</th><th>{t("attendance.date")}</th><th>{t("fields.name")}</th><th>{t("fields.tin")}</th><th className="num">{t("inv.taxable")}</th><th className="num">{t("inv.withholding")}</th></tr></thead>
+          <thead><tr><th>{t("fields.number")}</th><th>{t("receipt.short")}</th><th>{t("attendance.date")}</th><th>{t("fields.name")}</th><th>{t("fields.tin")}</th><th className="num">{t("inv.taxable")}</th><th className="num">{t("inv.withholding")}</th></tr></thead>
           <tbody>{rows.map((r, i) => (
-            <tr key={i}><td className="mono">{r.number}</td><td>{date(r.date)}</td><td>{r.partyName}</td><td className="mono">{r.partyTin}</td>
+            <tr key={i}><td className="mono">{r.number}</td><td className="mono">{r.receiptNumber}</td><td>{date(r.date)}</td><td>{r.partyName}</td><td className="mono">{r.partyTin}</td>
               <td className="num">{formatMoney(r.taxableAmount)}</td><td className="num">{formatMoney(r.withheld)}</td></tr>
           ))}</tbody>
-          <tfoot><tr><td colSpan={5}>{t("common.total")}</td><td className="num">{formatMoney(total)}</td></tr></tfoot>
+          <tfoot><tr><td colSpan={6}>{t("common.total")}</td><td className="num">{formatMoney(total)}</td></tr></tfoot>
         </table>
       ) : <p className="muted">{t("common.empty")}</p>}
     </section>
@@ -40,7 +40,11 @@ export function TaxReports() {
     <>
       <div className="page-head">
         <h1>{t("nav.taxReports")}</h1>
-        <label className="field-inline"><span>{t("common.month")}</span><input type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label>
+        <div className="inline-fields">
+          <label className="field-inline"><span>{t("common.month")}</span><input type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label>
+          <button className="secondary" onClick={() => void download(`/api/accounting/reports/vat?${q}&format=csv`, `vat-${month}.csv`)}>{t("inv.vatReport")} (CSV)</button>
+          <button className="secondary" onClick={() => void download(`/api/accounting/reports/withholding?${q}&format=csv`, `withholding-${month}.csv`)}>{t("inv.withholding")} (CSV)</button>
+        </div>
       </div>
       {vat.data && (
         <section>

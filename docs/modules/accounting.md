@@ -10,15 +10,14 @@
 >
 > **Invoicing** (step 17): customers and suppliers are Core parties (`/api/core/parties`). Sales and purchase
 > invoices (`SINV-` / `PINV-<FY>-#####`, `/api/accounting/invoices`) compute VAT 15% (sales: when the company
-> is VAT-registered; purchases: when the supplier is; lines can be VAT-exempt) and withholding 2% on goods above
+> is VAT-registered; purchases: when the supplier is; lines can be VAT-exempt) and withholding 3% on goods above
 > ETB 10,000 and services above ETB 3,000 (purchases: when the company is a withholding agent, the default;
 > sales: when the customer withholds). Submitting posts Dr 1200 (payable amount) + Dr 1260 (withheld) / Cr income
 > + Cr 2300 for sales, and Dr expense + Dr 1250 / Cr 2100 + Cr 2400 for purchases; cancelling reverses it.
 > Payments (`PAY-<FY>-#####`, `/api/accounting/payments`) settle one invoice up to its outstanding amount
 > (bank 1120 by default); an invoice with payments cannot be cancelled. Reports: `/reports/vat` (output, input,
 > net payable) and `/reports/withholding` (withheld from suppliers, withheld by customers). Rates and thresholds
-> are configuration (`Accounting:*`). Not yet: partial allocation of one payment across invoices, refunds,
-> withholding receipts, TOT.
+> are configuration (`Accounting:*`). Not yet: partial allocation of one payment across invoices, refunds, TOT.
 >
 > **Corrections and cut-over** (step 21): `POST /invoices/{id}/return` makes a credit note (`CN-`, sales) or debit
 > note (`DN-`, purchases) for some or all of a submitted invoice's lines: VAT as on the original, withholding at
@@ -29,6 +28,13 @@
 > be overdue); it posts nothing, since the total is in the opening balances journal, but can be paid as usual.
 > `/reports/ageing?kind=Sales|Purchase&asOf=` buckets open amounts per customer or supplier (not due, 1–30,
 > 31–60, 61–90, over 90 days past due), counting only payments and returns dated by then.
+>
+> **Withholding receipts and declarations** (step 22): a purchase invoice with withholding gets a numbered
+> receipt (`WHT-<FY>-#####`) when submitted; `GET /invoices/{id}/withholding-receipt` returns it (agent and
+> supplier TIN, supply type, base, rate, tax withheld) and the web app prints it. The invoice keeps the base
+> (only goods or services above their thresholds) and rate used. `?format=csv` on `/reports/vat` and
+> `/reports/withholding` downloads the monthly declaration files (UTF-8 with BOM, shared `CsvFile` helper with
+> Payroll). Column sets are a best reading of the MoR forms: **verify** before filing.
 >
 > **Month close and reports** (step 18): `POST /api/accounting/periods/close` closes the month containing a date:
 > one of the 12 Ethiopian fiscal periods for companies on the Ethiopian fiscal year (Nehase takes Pagume), else the
@@ -57,7 +63,7 @@ The core of the system. Every other money-moving module posts here.
 | Masters | Chart of accounts (tree), account types, cost centres, accounting dimensions (branch, project, cashier), fiscal years, currencies |
 | Ledger | General ledger, payment ledger (open receivable/payable per invoice) |
 | Documents | Journal Entry, Payment Entry, Sales Invoice, Purchase Invoice, Debit/Credit Notes, Exchange Rate Revaluation, Period Closing Voucher |
-| Tax | Tax templates (VAT 15%, withholding 2%/3%, TOT), inclusive/exclusive, per item or per document; VAT closing (current custom `vat_closing`) |
+| Tax | Tax templates (VAT 15%, withholding 3% (formerly 2%), TOT), inclusive/exclusive, per item or per document; VAT closing (current custom `vat_closing`) |
 | Budget | Per account / cost centre / project, monthly distribution, stop or warn |
 | Banking | Bank accounts, bank statement import, reconciliation, reversal log (current custom `bank_reconciliation_reversal_log`) |
 | LC | Letters of credit linked to purchase orders, receipts, invoices, payments (current `lc_master` and related tables) |

@@ -103,7 +103,7 @@ export function Journals() {
                 <td className="mono">{j.number}</td><td>{formatDate(j.postingDate, me.calendar, am)}</td><td>{j.remark}</td>
                 <td>{j.source}{j.sourceNumber ? ` · ${j.sourceNumber}` : ""}</td><td className="num">{formatMoney(j.totalDebit)}</td>
                 <td><span className={`badge ${j.status}`}>{t(`status.${j.status}`)}</span></td>
-                <td>{j.status === "Submitted" && j.source === "Manual" && can(me, "accounting.journals.cancel") &&
+                <td>{j.status === "Submitted" && ["Manual", "Opening", "YearEnd"].includes(j.source) && can(me, "accounting.journals.cancel") &&
                   <button className="secondary" onClick={(e) => { e.stopPropagation(); cancel.mutate(j.id); }}>{t("common.cancel")}</button>}</td>
               </tr>,
               open === j.id ? (

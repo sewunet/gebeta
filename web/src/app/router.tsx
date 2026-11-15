@@ -9,6 +9,11 @@ import { Slips } from "../pages/payroll/Slips";
 import { Accounts } from "../pages/accounting/Accounts";
 import { Journals } from "../pages/accounting/Journals";
 import { TrialBalance } from "../pages/accounting/TrialBalance";
+import { Parties } from "../pages/accounting/Parties";
+import { Invoices } from "../pages/accounting/Invoices";
+import { TaxReports } from "../pages/accounting/TaxReports";
+import { Periods } from "../pages/accounting/Periods";
+import { FinancialReports } from "../pages/accounting/FinancialReports";
 import { Cashiers } from "../pages/cash/Cashiers";
 import { PettyCash } from "../pages/cash/PettyCash";
 import { Attendance } from "../pages/hr/Attendance";
@@ -31,9 +36,14 @@ const pettyCash = createRoute({ getParentRoute: () => root, path: "/cash/petty-c
 const accounts = createRoute({ getParentRoute: () => root, path: "/accounting/accounts", component: Accounts });
 const journals = createRoute({ getParentRoute: () => root, path: "/accounting/journals", component: Journals });
 const trialBalance = createRoute({ getParentRoute: () => root, path: "/accounting/trial-balance", component: TrialBalance });
+const parties = createRoute({ getParentRoute: () => root, path: "/accounting/parties", component: Parties });
+const invoices = createRoute({ getParentRoute: () => root, path: "/accounting/invoices", component: Invoices });
+const taxReports = createRoute({ getParentRoute: () => root, path: "/accounting/tax", component: TaxReports });
+const periods = createRoute({ getParentRoute: () => root, path: "/accounting/periods", component: Periods });
+const financial = createRoute({ getParentRoute: () => root, path: "/accounting/reports", component: FinancialReports });
 
 export const router = createRouter({
-  routeTree: root.addChildren([dashboard, companies, employees, slips, slip, run, calculator, leave, attendance, cashiers, pettyCash, accounts, journals, trialBalance]),
+  routeTree: root.addChildren([dashboard, companies, employees, slips, slip, run, calculator, leave, attendance, cashiers, pettyCash, accounts, journals, trialBalance, parties, invoices, taxReports, periods, financial]),
 });
 
 declare module "@tanstack/react-router" {

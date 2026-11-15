@@ -6,7 +6,7 @@
 > companies, employees (list and add), salary slips (list by month, detail, submit/cancel), payroll run
 > with CSV report downloads, the salary calculator; HR leave (apply, approve, cancel, balances, annual
 > allocation) and attendance; Cash cashiers (balances, receipts, payments, transfers, ledger) and petty
-> cash approval; Accounting chart of accounts, journals (list, details, balanced entry form) and trial balance. Styling is plain CSS with the Gebeta palette for
+> cash approval; Accounting chart of accounts, journals (list, details, balanced entry form) and trial balance; customers and suppliers, sales and purchase invoices with VAT and withholding (submit, cancel, receive or pay), VAT and withholding report, profit and loss, balance sheet, general ledger, and closing (month close and reopen, year-end closing, opening balances). Styling is plain CSS with the Gebeta palette for
 > now; shadcn/ui and Tailwind can come later. The OpenAPI client is hand-typed in `src/lib/types.ts`
 > until client generation is set up.
 

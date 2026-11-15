@@ -61,3 +61,33 @@ export type TrialBalanceDto = {
   companyId: string; asOf: string; totalDebit: number; totalCredit: number;
   rows: { code: string; name: string; rootType: string; debit: number; credit: number; balance: number }[];
 };
+
+export type PartyDto = { id: string; companyId: string; name: string; type: "Customer" | "Supplier" | "Both"; tin?: string; vatRegistrationNumber?: string; phone?: string };
+export type InvoiceLineDto = { description: string; quantity: number; rate: number; amount: number; accountCode: string; isService: boolean; vatApplicable: boolean };
+export type InvoiceDto = {
+  id: string; number?: string; kind: "Sales" | "Purchase"; companyId: string; partyId: string; partyName: string; partyTin?: string; supplierInvoiceNumber?: string;
+  postingDate: string; dueDate: string; status: string; lines: InvoiceLineDto[]; netTotal: number; vatAmount: number; grandTotal: number;
+  withholdingAmount: number; payableAmount: number; outstanding: number;
+};
+export type PaymentDto = { id: string; number?: string; kind: string; partyName: string; invoiceId: string; invoiceNumber?: string; amount: number; postingDate: string };
+export type VatReportDto = {
+  from: string; to: string; outputVat: number; inputVat: number; netPayable: number;
+  rows: { kind: string; number?: string; date: string; partyName: string; partyTin?: string; net: number; vat: number }[];
+};
+export type WithholdingRow = { number?: string; date: string; partyName: string; partyTin?: string; taxableAmount: number; withheld: number };
+export type WithholdingReportDto = { from: string; to: string; totalWithheldFromSuppliers: number; totalWithheldByCustomers: number; fromSuppliers: WithholdingRow[]; byCustomers: WithholdingRow[] };
+export type PeriodClosingDto = {
+  id: string; label: string; start: string; end: string; status: "Closed" | "Reopened"; totalDebit: number; totalCredit: number; netProfit: number;
+  closedAt: string; closedBy: string; reopenedAt?: string; reopenedBy?: string; reopenReason?: string;
+};
+export type PeriodClosingsDto = { companyId: string; lockDate?: string; closings: PeriodClosingDto[] };
+export type ReportRow = { code: string; name: string; rootType: string; amount: number };
+export type ProfitAndLossDto = { from: string; to: string; income: ReportRow[]; expenses: ReportRow[]; totalIncome: number; totalExpenses: number; netProfit: number };
+export type BalanceSheetDto = {
+  asOf: string; assets: ReportRow[]; liabilities: ReportRow[]; equity: ReportRow[]; unclosedProfit: number;
+  totalAssets: number; totalLiabilities: number; totalEquity: number; balanced: boolean;
+};
+export type GeneralLedgerDto = {
+  accountCode: string; accountName: string; from: string; to: string; opening: number; totalDebit: number; totalCredit: number; closing: number;
+  rows: { date: string; voucher: string; description: string; debit: number; credit: number; balance: number; isReversal: boolean }[];
+};

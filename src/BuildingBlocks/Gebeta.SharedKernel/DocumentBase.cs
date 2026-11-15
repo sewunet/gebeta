@@ -14,6 +14,11 @@ public enum DocStatus
 /// </summary>
 public abstract class DocumentBase : Entity
 {
+    /// <summary>For the persistence layer only (EF Core materialisation).</summary>
+    protected DocumentBase()
+    {
+    }
+
     protected DocumentBase(Guid companyId, DateOnly postingDate)
     {
         if (companyId == Guid.Empty)

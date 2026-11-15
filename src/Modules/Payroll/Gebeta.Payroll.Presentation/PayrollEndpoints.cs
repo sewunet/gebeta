@@ -24,5 +24,56 @@ public static class PayrollEndpoints
                 (await handler.Handle(new ListTaxTablesQuery(), ct).ConfigureAwait(false)).ToHttp())
             .WithName("ListTaxTables")
             .RequirePermission(PayrollPermissions.TaxTablesRead);
+
+        // Salary structures
+        payroll.MapGet("/structures", async (Guid companyId, IQueryHandler<ListSalaryStructuresQuery, IReadOnlyList<SalaryStructureDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListSalaryStructuresQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListSalaryStructures")
+            .RequirePermission(PayrollPermissions.StructuresRead);
+
+        payroll.MapPost("/structures", async (CreateSalaryStructureCommand command, ICommandHandler<CreateSalaryStructureCommand, SalaryStructureDto> handler, CancellationToken ct) =>
+                Created(await handler.Handle(command, ct).ConfigureAwait(false), r => $"/api/payroll/structures/{r.Id}"))
+            .WithName("CreateSalaryStructure")
+            .RequirePermission(PayrollPermissions.StructuresManage);
+
+        // Assignments
+        payroll.MapGet("/employees/{employeeId:guid}/assignments", async (Guid employeeId, IQueryHandler<ListAssignmentsQuery, IReadOnlyList<SalaryStructureAssignmentDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListAssignmentsQuery(employeeId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListAssignments")
+            .RequirePermission(PayrollPermissions.AssignmentsRead);
+
+        payroll.MapPost("/assignments", async (AssignSalaryStructureCommand command, ICommandHandler<AssignSalaryStructureCommand, SalaryStructureAssignmentDto> handler, CancellationToken ct) =>
+                Created(await handler.Handle(command, ct).ConfigureAwait(false), r => $"/api/payroll/employees/{r.EmployeeId}/assignments"))
+            .WithName("AssignSalaryStructure")
+            .RequirePermission(PayrollPermissions.AssignmentsManage);
+
+        // Salary slips
+        payroll.MapGet("/salary-slips", async (Guid companyId, DateOnly? from, DateOnly? to, IQueryHandler<ListSalarySlipsQuery, IReadOnlyList<SalarySlipDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListSalarySlipsQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListSalarySlips")
+            .RequirePermission(PayrollPermissions.SlipsRead);
+
+        payroll.MapGet("/salary-slips/{id:guid}", async (Guid id, IQueryHandler<GetSalarySlipQuery, SalarySlipDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new GetSalarySlipQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetSalarySlip")
+            .RequirePermission(PayrollPermissions.SlipsRead);
+
+        payroll.MapPost("/salary-slips", async (CreateSalarySlipCommand command, ICommandHandler<CreateSalarySlipCommand, SalarySlipDto> handler, CancellationToken ct) =>
+                Created(await handler.Handle(command, ct).ConfigureAwait(false), r => $"/api/payroll/salary-slips/{r.Id}"))
+            .WithName("CreateSalarySlip")
+            .RequirePermission(PayrollPermissions.SlipsCreate);
+
+        payroll.MapPost("/salary-slips/{id:guid}/submit", async (Guid id, ICommandHandler<SubmitSalarySlipCommand, SalarySlipDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new SubmitSalarySlipCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("SubmitSalarySlip")
+            .RequirePermission(PayrollPermissions.SlipsSubmit);
+
+        payroll.MapPost("/salary-slips/{id:guid}/cancel", async (Guid id, ICommandHandler<CancelSalarySlipCommand, SalarySlipDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new CancelSalarySlipCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CancelSalarySlip")
+            .RequirePermission(PayrollPermissions.SlipsCancel);
     }
+
+    private static IResult Created<T>(Gebeta.SharedKernel.Result<T> result, Func<T, string> location) =>
+        result.IsSuccess ? Results.Created(location(result.Value), result.Value) : result.ToHttp();
 }

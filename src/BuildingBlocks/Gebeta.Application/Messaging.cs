@@ -31,6 +31,28 @@ public interface IUnitOfWork
     void Publish(object integrationEvent);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Starts a database transaction for work that must be atomic beyond one save, such as taking a
+    /// gap-free document number and saving the document.
+    /// </summary>
+    Task<ITransactionScope> BeginTransactionAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>An open transaction; disposing it without <see cref="CommitAsync"/> rolls it back.</summary>
+public interface ITransactionScope : IAsyncDisposable
+{
+    Task CommitAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Gap-free document numbers for one module (each module registers its own, e.g. IPayrollNumbers),
+/// taken inside the transaction that saves the document. The pattern comes from the company's naming
+/// series for <paramref name="documentType"/>, or <paramref name="defaultPattern"/>.
+/// </summary>
+public interface IDocumentNumbers
+{
+    Task<string> NextAsync(Guid companyId, string documentType, string defaultPattern, DateOnly date, CancellationToken cancellationToken);
 }
 
 /// <summary>Handles an integration event from another module (or the same one). Must be idempotent.</summary>

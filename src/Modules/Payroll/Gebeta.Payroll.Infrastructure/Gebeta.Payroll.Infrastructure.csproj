@@ -1,12 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Gebeta.Payroll.Infrastructure</RootNamespace>
-    <Description>Payroll composition root (PayrollModule); persistence follows in the next step.</Description>
+    <Description>Payroll persistence (EF Core, PostgreSQL schema "payroll") and the module's composition root (PayrollModule).</Description>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
     <ProjectReference Include="..\Gebeta.Payroll.Application\Gebeta.Payroll.Application.csproj" />
     <ProjectReference Include="..\Gebeta.Payroll.Presentation\Gebeta.Payroll.Presentation.csproj" />
   </ItemGroup>

@@ -92,7 +92,10 @@ internal static class CoreSeed
         (Role.SystemManager, "Full access to every module. Give to very few people.", ["*"]),
         ("Core Administrator", "Manages companies, users and roles.", ["core.*"]),
         ("Core Viewer", "Reads companies, users, roles, naming series and holidays.",
-            [CorePermissions.CompaniesRead, CorePermissions.UsersRead, CorePermissions.RolesRead, CorePermissions.NamingSeriesRead, CorePermissions.HolidaysRead]),
+            [CorePermissions.CompaniesRead, CorePermissions.UsersRead, CorePermissions.RolesRead, CorePermissions.NamingSeriesRead, CorePermissions.HolidaysRead,
+             CorePermissions.EmployeesRead]),
+        ("Payroll Officer", "Prepares and submits payroll: salary structures, assignments and salary slips.",
+            ["payroll.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.HolidaysRead]),
     ];
 
     public static async Task EnsureSystemRolesAsync(CoreDbContext db, TimeProvider clock, CancellationToken cancellationToken)

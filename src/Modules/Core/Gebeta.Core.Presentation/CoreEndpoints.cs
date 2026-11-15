@@ -1,5 +1,6 @@
 using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
+using Gebeta.Core.Application.Employees;
 using Gebeta.Core.Application.Security;
 using Gebeta.Core.Application.Settings;
 using Gebeta.Core.Contracts;
@@ -26,6 +27,30 @@ public static class CoreEndpoints
         MapCompanies(endpoints);
         MapUsersAndRoles(endpoints);
         MapSettings(endpoints);
+        MapEmployees(endpoints);
+    }
+
+    private static void MapEmployees(IEndpointRouteBuilder endpoints)
+    {
+        var employees = endpoints.MapGroup("/api/core/employees").WithTags("Core: Employees");
+
+        employees.MapGet("/", async (Guid companyId, IQueryHandler<ListEmployeesQuery, IReadOnlyList<EmployeeDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListEmployeesQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListEmployees")
+            .RequirePermission(CorePermissions.EmployeesRead);
+
+        employees.MapGet("/{id:guid}", async (Guid id, IQueryHandler<GetEmployeeQuery, EmployeeDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new GetEmployeeQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetEmployee")
+            .RequirePermission(CorePermissions.EmployeesRead);
+
+        employees.MapPost("/", async (CreateEmployeeCommand command, ICommandHandler<CreateEmployeeCommand, EmployeeDto> handler, CancellationToken ct) =>
+            {
+                var result = await handler.Handle(command, ct).ConfigureAwait(false);
+                return result.IsSuccess ? Results.Created($"/api/core/employees/{result.Value.Id}", result.Value) : result.ToHttp();
+            })
+            .WithName("CreateEmployee")
+            .RequirePermission(CorePermissions.EmployeesManage);
     }
 
     private static void MapSettings(IEndpointRouteBuilder endpoints)

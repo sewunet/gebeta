@@ -116,6 +116,98 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("company", "core");
                 });
 
+            modelBuilder.Entity("Gebeta.Core.Domain.Employees.Employee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("DateOfJoining")
+                        .HasColumnType("date")
+                        .HasColumnName("date_of_joining");
+
+                    b.Property<DateOnly?>("DateOfLeaving")
+                        .HasColumnType("date")
+                        .HasColumnName("date_of_leaving");
+
+                    b.Property<string>("FatherName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("father_name");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("first_name");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("gender");
+
+                    b.Property<string>("GrandfatherName")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("grandfather_name");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("number");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Tin")
+                        .HasMaxLength(10)
+                        .HasColumnType("character(10)")
+                        .HasColumnName("tin")
+                        .IsFixedLength();
+
+                    b.HasKey("Id")
+                        .HasName("pk_employee");
+
+                    b.HasIndex("CompanyId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_employee_company_id_number");
+
+                    b.HasIndex("CompanyId", "Tin")
+                        .IsUnique()
+                        .HasDatabaseName("ix_employee_company_id_tin")
+                        .HasFilter("tin IS NOT NULL");
+
+                    b.ToTable("employee", "core");
+                });
+
             modelBuilder.Entity("Gebeta.Core.Domain.Security.Role", b =>
                 {
                     b.Property<Guid>("Id")

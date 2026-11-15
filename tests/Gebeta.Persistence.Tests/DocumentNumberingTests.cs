@@ -25,7 +25,7 @@ public sealed class DocumentNumberingTests : IAsyncLifetime
     public async ValueTask DisposeAsync() => await _postgres.DisposeAsync();
 
     private CoreDbContext NewContext() => new(new DbContextOptionsBuilder<CoreDbContext>()
-        .UseNpgsql(_postgres.GetConnectionString(), o => o.MigrationsHistoryTable(CoreDbContext.MigrationsHistoryTable, CoreDbContext.Schema))
+        .UseNpgsql(_postgres.GetConnectionString(), o => o.MigrationsHistoryTable(CoreDbContext.MigrationsHistoryTable, CoreDbContext.SchemaName))
         .UseSnakeCaseNamingConvention()
         .Options);
 
@@ -42,7 +42,7 @@ public sealed class DocumentNumberingTests : IAsyncLifetime
         {
             await using var db = NewContext();
             await using var tx = await db.Database.BeginTransactionAsync(token);
-            numbers.Add(await Numbering().NextAsync(db, CoreDbContext.Schema, CompanyId, "Test Invoice", "TINV-.FY.-.#####", Today, token));
+            numbers.Add(await Numbering().NextAsync(db, CoreDbContext.SchemaName, CompanyId, "Test Invoice", "TINV-.FY.-.#####", Today, token));
             await tx.CommitAsync(token);
         });
 
@@ -57,14 +57,14 @@ public sealed class DocumentNumberingTests : IAsyncLifetime
         await using (var db = NewContext())
         await using (var tx = await db.Database.BeginTransactionAsync(ct))
         {
-            Assert.Equal("RB-00001", await Numbering().NextAsync(db, CoreDbContext.Schema, CompanyId, "Rollback", "RB-.#####", Today, ct));
+            Assert.Equal("RB-00001", await Numbering().NextAsync(db, CoreDbContext.SchemaName, CompanyId, "Rollback", "RB-.#####", Today, ct));
             await tx.RollbackAsync(ct);
         }
 
         await using (var db = NewContext())
         await using (var tx = await db.Database.BeginTransactionAsync(ct))
         {
-            Assert.Equal("RB-00001", await Numbering().NextAsync(db, CoreDbContext.Schema, CompanyId, "Rollback", "RB-.#####", Today, ct));
+            Assert.Equal("RB-00001", await Numbering().NextAsync(db, CoreDbContext.SchemaName, CompanyId, "Rollback", "RB-.#####", Today, ct));
             await tx.CommitAsync(ct);
         }
     }
@@ -77,8 +77,8 @@ public sealed class DocumentNumberingTests : IAsyncLifetime
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         var numbering = Numbering("PCR-.ABBR.-.FY.-.####");
 
-        var fy2019 = await numbering.NextAsync(db, CoreDbContext.Schema, CompanyId, "Petty Cash Request", "IGNORED-.#####", Today, ct);
-        var fy2020 = await numbering.NextAsync(db, CoreDbContext.Schema, CompanyId, "Petty Cash Request", "IGNORED-.#####", new DateOnly(2027, 7, 9), ct);
+        var fy2019 = await numbering.NextAsync(db, CoreDbContext.SchemaName, CompanyId, "Petty Cash Request", "IGNORED-.#####", Today, ct);
+        var fy2020 = await numbering.NextAsync(db, CoreDbContext.SchemaName, CompanyId, "Petty Cash Request", "IGNORED-.#####", new DateOnly(2027, 7, 9), ct);
         await tx.CommitAsync(ct);
 
         Assert.Equal("PCR-TST-2019-0001", fy2019);
@@ -91,7 +91,7 @@ public sealed class DocumentNumberingTests : IAsyncLifetime
         await using var db = NewContext();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            Numbering().NextAsync(db, CoreDbContext.Schema, CompanyId, "X", "X-.#####", Today, TestContext.Current.CancellationToken));
+            Numbering().NextAsync(db, CoreDbContext.SchemaName, CompanyId, "X", "X-.#####", Today, TestContext.Current.CancellationToken));
     }
 
     private sealed class FakeDirectory : ICompanyDirectory

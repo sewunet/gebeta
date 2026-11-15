@@ -1,9 +1,13 @@
 using Gebeta.Application;
+using Gebeta.Messaging;
 using Gebeta.Modularity;
 using Gebeta.Payroll.Application;
 using Gebeta.Payroll.Contracts;
+using Gebeta.Payroll.Domain.Salary;
+using Gebeta.Payroll.Infrastructure.Persistence;
 using Gebeta.Payroll.Presentation;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gebeta.Payroll.Infrastructure;
@@ -16,7 +20,7 @@ public sealed class PayrollModule : IErpModule
 {
     public const string Id = "payroll";
 
-    public ModuleInfo Info { get; } = new(Id, "Payroll", new Version(0, 1, 0));
+    public ModuleInfo Info { get; } = new(Id, "Payroll", new Version(0, 2, 0));
     public IReadOnlyList<string> Requires { get; } = [ModuleLoader.CoreModuleId];
     public IReadOnlyList<string> Enhances { get; } = ["hr", "accounting", "cash"];
 
@@ -24,8 +28,39 @@ public sealed class PayrollModule : IErpModule
     {
         ArgumentNullException.ThrowIfNull(context);
         var services = context.Services;
+        var connectionString = context.Configuration.GetConnectionString("Main")
+            ?? throw new ModuleLoadException("Connection string 'Main' is missing.");
+
+        services.AddDbContext<PayrollDbContext>(options => PayrollDbContext.Configure(options, connectionString));
+        services.AddScoped<IPayrollUnitOfWork>(sp => sp.GetRequiredService<PayrollDbContext>());
+        services.AddScoped<IPayrollNumbers, PayrollNumbers>();
+        services.AddScoped<ISalaryStructureRepository, SalaryStructureRepository>();
+        services.AddScoped<ISalaryStructureAssignmentRepository, AssignmentRepository>();
+        services.AddScoped<ISalarySlipRepository, SalarySlipRepository>();
+        services.AddScoped<IModuleMigrator, PayrollMigrator>();
+        services.AddOutboxDispatcher<PayrollDbContext>(Id, PayrollDbContext.SchemaName);
+
+        // Payment days: HR provides them from attendance when installed; otherwise joining/leaving dates.
+        context.Capabilities.UseWithFallback<IPaymentDaysProvider, NoAttendanceData>();
+        services.AddScoped<IPayrollPaymentDays, PayrollPaymentDays>();
+
         services.AddScoped<IQueryHandler<CalculateSalaryQuery, SalaryCalculationDto>, CalculateSalaryHandler>();
         services.AddScoped<IQueryHandler<ListTaxTablesQuery, IReadOnlyList<TaxTableDto>>, ListTaxTablesHandler>();
+
+        services.AddScoped<SalaryStructureHandler>();
+        services.AddScoped<ICommandHandler<CreateSalaryStructureCommand, SalaryStructureDto>>(sp => sp.GetRequiredService<SalaryStructureHandler>());
+        services.AddScoped<IQueryHandler<ListSalaryStructuresQuery, IReadOnlyList<SalaryStructureDto>>>(sp => sp.GetRequiredService<SalaryStructureHandler>());
+
+        services.AddScoped<AssignmentHandler>();
+        services.AddScoped<ICommandHandler<AssignSalaryStructureCommand, SalaryStructureAssignmentDto>>(sp => sp.GetRequiredService<AssignmentHandler>());
+        services.AddScoped<IQueryHandler<ListAssignmentsQuery, IReadOnlyList<SalaryStructureAssignmentDto>>>(sp => sp.GetRequiredService<AssignmentHandler>());
+
+        services.AddScoped<SalarySlipHandler>();
+        services.AddScoped<ICommandHandler<CreateSalarySlipCommand, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());
+        services.AddScoped<ICommandHandler<SubmitSalarySlipCommand, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());
+        services.AddScoped<ICommandHandler<CancelSalarySlipCommand, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());
+        services.AddScoped<IQueryHandler<GetSalarySlipQuery, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());
+        services.AddScoped<IQueryHandler<ListSalarySlipsQuery, IReadOnlyList<SalarySlipDto>>>(sp => sp.GetRequiredService<SalarySlipHandler>());
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints) => PayrollEndpoints.Map(endpoints);

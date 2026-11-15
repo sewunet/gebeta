@@ -1,7 +1,9 @@
 using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
 using Gebeta.Core.Contracts;
+using Gebeta.Core.Application.Employees;
 using Gebeta.Core.Application.Security;
+using Gebeta.Core.Domain.Employees;
 using Gebeta.Core.Application.Settings;
 using Gebeta.Core.Domain.Settings;
 using Gebeta.Messaging;
@@ -60,8 +62,15 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<ICompanyDirectory, CompanyDirectory>();
         services.AddScoped<INamingSeriesSettings, NamingSeriesSettings>();
         services.AddScoped<DocumentNumbering>();
+        services.AddScoped<ICoreNumbers, CoreNumbers>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IEmployeeDirectory, EmployeeDirectory>();
+        services.AddScoped<EmployeeHandler>();
+        services.AddScoped<ICommandHandler<CreateEmployeeCommand, EmployeeDto>>(sp => sp.GetRequiredService<EmployeeHandler>());
+        services.AddScoped<IQueryHandler<ListEmployeesQuery, IReadOnlyList<EmployeeDto>>>(sp => sp.GetRequiredService<EmployeeHandler>());
+        services.AddScoped<IQueryHandler<GetEmployeeQuery, EmployeeDto>>(sp => sp.GetRequiredService<EmployeeHandler>());
         services.AddScoped<IModuleMigrator, CoreMigrator>();
-        services.AddOutboxDispatcher<CoreDbContext>(Id, CoreDbContext.Schema);
+        services.AddOutboxDispatcher<CoreDbContext>(Id, CoreDbContext.SchemaName);
         services.AddHealthChecks().AddCheck<CoreDatabaseHealthCheck>("core-database");
 
         services.AddScoped<ICommandHandler<CreateCompanyCommand, CompanyDto>, CreateCompanyHandler>();
@@ -92,6 +101,6 @@ public sealed class CoreModule : IErpModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints) => CoreEndpoints.Map(endpoints);
 
     internal static void ConfigureDbContext(DbContextOptionsBuilder options, string connectionString) =>
-        options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(CoreDbContext.MigrationsHistoryTable, CoreDbContext.Schema))
+        options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(CoreDbContext.MigrationsHistoryTable, CoreDbContext.SchemaName))
             .UseSnakeCaseNamingConvention();
 }

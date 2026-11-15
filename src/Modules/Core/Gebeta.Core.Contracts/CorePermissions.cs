@@ -16,7 +16,9 @@ public static class CorePermissions
     public const string NamingSeriesManage = "core.naming-series.manage";
     public const string HolidaysRead = "core.holidays.read";
     public const string HolidaysManage = "core.holidays.manage";
+    public const string EmployeesRead = "core.employees.read";
+    public const string EmployeesManage = "core.employees.manage";
 
     public static IReadOnlyList<string> All { get; } =
-        [CompaniesRead, CompaniesCreate, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage];
+        [CompaniesRead, CompaniesCreate, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage];
 }

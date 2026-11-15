@@ -1,5 +1,13 @@
 # Accounting module
 
+> **Built so far** (`src/Modules/Accounting`): Ethiopian chart of accounts template (set up on the
+> `CompanyCreated` event or by `POST /api/accounting/companies/{id}/chart`), manual journal entries
+> (`JV-<FY>-#####`) with submit/cancel, append-only general ledger with reversal rows, trial balance, and the
+> payroll journal: `SalarySlipSubmitted` from Payroll arrives over RabbitMQ and is posted (earnings → 6110,
+> employer pension → 6120 and 2230, income tax → 2220, pension → 2230, other deductions → 2240, net → 2210);
+> `SalarySlipCancelled` reverses it. Account mapping is fixed to the template codes for now; a mapping
+> screen per company is planned.
+
 The core of the system. Every other money-moving module posts here.
 
 ## Scope

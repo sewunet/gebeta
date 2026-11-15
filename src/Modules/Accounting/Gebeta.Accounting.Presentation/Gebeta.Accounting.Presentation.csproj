@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Accounting.Presentation</RootNamespace>
+    <Description>Accounting HTTP endpoints.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Modularity\Gebeta.Modularity.csproj" />
+    <ProjectReference Include="..\Gebeta.Accounting.Application\Gebeta.Accounting.Application.csproj" />
+  </ItemGroup>
+</Project>

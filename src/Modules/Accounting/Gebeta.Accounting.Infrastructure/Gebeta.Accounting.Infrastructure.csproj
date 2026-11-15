@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Accounting.Infrastructure</RootNamespace>
+    <Description>Accounting persistence (EF Core, PostgreSQL schema "accounting") and the module's composition root (AccountingModule).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
+    <ProjectReference Include="..\Gebeta.Accounting.Application\Gebeta.Accounting.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Accounting.Presentation\Gebeta.Accounting.Presentation.csproj" />
+  </ItemGroup>
+</Project>

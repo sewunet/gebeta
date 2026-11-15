@@ -94,6 +94,8 @@ internal static class CoreSeed
         ("Core Viewer", "Reads companies, users, roles, naming series and holidays.",
             [CorePermissions.CompaniesRead, CorePermissions.UsersRead, CorePermissions.RolesRead, CorePermissions.NamingSeriesRead, CorePermissions.HolidaysRead,
              CorePermissions.EmployeesRead]),
+        ("Accountant", "Keeps the books: chart of accounts, journals and financial reports.",
+            ["accounting.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead]),
         ("HR Officer", "Manages leave and attendance.",
             ["hr.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.HolidaysRead]),
         ("Payroll Officer", "Prepares and submits payroll: salary structures, assignments and salary slips.",

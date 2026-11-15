@@ -33,7 +33,8 @@ builder.Services.AddGebetaMessaging(builder.Configuration);
 builder.AddGebetaModules(
     new CoreModule(),
     new Gebeta.Payroll.Infrastructure.PayrollModule(),
-    new Gebeta.Hr.Infrastructure.HrModule());
+    new Gebeta.Hr.Infrastructure.HrModule(),
+    new Gebeta.Accounting.Infrastructure.AccountingModule());
 
 var app = builder.Build();
 

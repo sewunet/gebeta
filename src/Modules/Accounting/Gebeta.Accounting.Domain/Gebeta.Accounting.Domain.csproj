@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Accounting.Domain</RootNamespace>
+    <Description>Accounting rules: chart of accounts, journal entries, append-only general ledger.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.SharedKernel\Gebeta.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,63 @@
+using Gebeta.Accounting.Application;
+using Gebeta.Accounting.Contracts;
+using Gebeta.Accounting.Domain.Ledger;
+using Gebeta.Accounting.Infrastructure.Persistence;
+using Gebeta.Accounting.Presentation;
+using Gebeta.Application;
+using Gebeta.Core.Contracts;
+using Gebeta.Messaging;
+using Gebeta.Modularity;
+using Gebeta.Payroll.Contracts;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Gebeta.Accounting.Infrastructure;
+
+/// <summary>
+/// Accounting (docs/modules/accounting.md): chart of accounts, journal entries, append-only general ledger
+/// and trial balance. Runs on Core alone; with Payroll installed, every submitted salary slip arrives over
+/// RabbitMQ and becomes a payroll journal (and a cancelled slip reverses it).
+/// </summary>
+public sealed class AccountingModule : IErpModule
+{
+    public const string Id = "accounting";
+
+    public ModuleInfo Info { get; } = new(Id, "Accounting", new Version(0, 1, 0));
+    public IReadOnlyList<string> Requires { get; } = [ModuleLoader.CoreModuleId];
+    public IReadOnlyList<string> Enhances { get; } = ["payroll", "hr", "cash", "stock"];
+
+    public void Register(ModuleRegistrationContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var services = context.Services;
+        var connectionString = context.Configuration.GetConnectionString("Main")
+            ?? throw new ModuleLoadException("Connection string 'Main' is missing.");
+
+        services.AddDbContext<AccountingDbContext>(options => AccountingDbContext.Configure(options, connectionString));
+        services.AddScoped<IAccountingUnitOfWork>(sp => sp.GetRequiredService<AccountingDbContext>());
+        services.AddScoped<IAccountingNumbers, AccountingNumbers>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<IJournalRepository, JournalRepository>();
+        services.AddScoped<IModuleMigrator, AccountingMigrator>();
+        services.AddScoped<ChartSetup>();
+        services.AddOutboxDispatcher<AccountingDbContext>(Id, AccountingDbContext.SchemaName);
+
+        // Events from other modules (received only when those modules are installed).
+        services.AddIntegrationEventConsumer<CompanyCreated, CompanyCreatedConsumer, AccountingDbContext>(Id);
+        services.AddIntegrationEventConsumer<SalarySlipSubmitted, SalarySlipSubmittedConsumer, AccountingDbContext>(Id);
+        services.AddIntegrationEventConsumer<SalarySlipCancelled, SalarySlipCancelledConsumer, AccountingDbContext>(Id);
+
+        services.AddScoped<JournalHandler>();
+        services.AddScoped<IQueryHandler<ListAccountsQuery, IReadOnlyList<AccountDto>>>(sp => sp.GetRequiredService<JournalHandler>());
+        services.AddScoped<ICommandHandler<SetUpChartCommand, IReadOnlyList<AccountDto>>>(sp => sp.GetRequiredService<JournalHandler>());
+        services.AddScoped<ICommandHandler<CreateJournalCommand, JournalEntryDto>>(sp => sp.GetRequiredService<JournalHandler>());
+        services.AddScoped<ICommandHandler<SubmitJournalCommand, JournalEntryDto>>(sp => sp.GetRequiredService<JournalHandler>());
+        services.AddScoped<ICommandHandler<CancelJournalCommand, JournalEntryDto>>(sp => sp.GetRequiredService<JournalHandler>());
+        services.AddScoped<IQueryHandler<GetJournalQuery, JournalEntryDto>>(sp => sp.GetRequiredService<JournalHandler>());
+        services.AddScoped<IQueryHandler<ListJournalsQuery, IReadOnlyList<JournalEntryDto>>>(sp => sp.GetRequiredService<JournalHandler>());
+        services.AddScoped<IQueryHandler<TrialBalanceQuery, TrialBalanceDto>>(sp => sp.GetRequiredService<JournalHandler>());
+    }
+
+    public void MapEndpoints(IEndpointRouteBuilder endpoints) => AccountingEndpoints.Map(endpoints);
+}

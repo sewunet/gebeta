@@ -26,6 +26,7 @@ x-server-env: &server-env
   Modules__Enabled__0: core
   Modules__Enabled__1: payroll
   Modules__Enabled__2: hr
+  Modules__Enabled__3: accounting
 
 services:
   postgres:

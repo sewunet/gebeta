@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Accounting.Application</RootNamespace>
+    <Description>Accounting use cases and event consumers (Core company events, Payroll salary slip events, via their contracts).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Application\Gebeta.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Accounting.Domain\Gebeta.Accounting.Domain.csproj" />
+    <ProjectReference Include="..\Gebeta.Accounting.Contracts\Gebeta.Accounting.Contracts.csproj" />
+    <ProjectReference Include="..\..\Core\Gebeta.Core.Contracts\Gebeta.Core.Contracts.csproj" />
+    <ProjectReference Include="..\..\Payroll\Gebeta.Payroll.Contracts\Gebeta.Payroll.Contracts.csproj" />
+  </ItemGroup>
+</Project>

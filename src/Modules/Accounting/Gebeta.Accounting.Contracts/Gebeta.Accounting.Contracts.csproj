@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Accounting.Contracts</RootNamespace>
+    <Description>Accounting's public contract: DTOs, events, permission names. No dependencies.</Description>
+  </PropertyGroup>
+</Project>

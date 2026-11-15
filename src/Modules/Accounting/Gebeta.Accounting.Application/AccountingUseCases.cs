@@ -11,18 +11,23 @@ public interface IAccountingUnitOfWork : IUnitOfWork;
 
 public interface IAccountingNumbers : IDocumentNumbers;
 
-/// <summary>Creates the company's chart of accounts from the Ethiopian template (once).</summary>
+/// <summary>
+/// Creates the company's chart of accounts from the Ethiopian template, and adds template accounts introduced
+/// by later releases (e.g. input VAT) to existing charts. Accounts the company already has are not touched.
+/// </summary>
 public sealed class ChartSetup(IAccountRepository accounts, TimeProvider clock)
 {
     public async Task<bool> EnsureAsync(Guid companyId, CancellationToken cancellationToken)
     {
-        if (await accounts.AnyAsync(companyId, cancellationToken).ConfigureAwait(false))
+        var existing = (await accounts.ListAsync(companyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code, a => a.Id, StringComparer.Ordinal);
+        var missing = EthiopianChartOfAccounts.Accounts.Where(t => !existing.ContainsKey(t.Code)).ToList();
+        if (missing.Count == 0)
         {
             return false;
         }
 
-        var ids = new Dictionary<string, Guid>(StringComparer.Ordinal);
-        foreach (var template in EthiopianChartOfAccounts.Accounts)
+        var ids = new Dictionary<string, Guid>(existing, StringComparer.Ordinal);
+        foreach (var template in missing)
         {
             var account = Account.Create(companyId, template.Code, template.Name, template.RootType, template.IsGroup,
                 template.ParentCode is null ? null : ids[template.ParentCode]).Value;

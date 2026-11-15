@@ -28,6 +28,17 @@ public static class CoreEndpoints
         MapUsersAndRoles(endpoints);
         MapSettings(endpoints);
         MapEmployees(endpoints);
+
+        var parties = endpoints.MapGroup("/api/core/parties").WithTags("Core: Customers and suppliers");
+        parties.MapGet("/", async (Guid companyId, IQueryHandler<Gebeta.Core.Application.Parties.ListPartiesQuery, IReadOnlyList<PartyDto>> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Parties.ListPartiesQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListParties").RequirePermission(CorePermissions.PartiesRead);
+        parties.MapPost("/", async (Gebeta.Core.Application.Parties.CreatePartyCommand command, ICommandHandler<Gebeta.Core.Application.Parties.CreatePartyCommand, PartyDto> h, CancellationToken ct) =>
+            {
+                var result = await h.Handle(command, ct).ConfigureAwait(false);
+                return result.IsSuccess ? Results.Created($"/api/core/parties/{result.Value.Id}", result.Value) : result.ToHttp();
+            })
+            .WithName("CreateParty").RequirePermission(CorePermissions.PartiesManage);
     }
 
     private static void MapEmployees(IEndpointRouteBuilder endpoints)

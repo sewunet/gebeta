@@ -208,6 +208,71 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                     b.ToTable("employee", "core");
                 });
 
+            modelBuilder.Entity("Gebeta.Core.Domain.Parties.Party", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("Tin")
+                        .HasMaxLength(10)
+                        .HasColumnType("character(10)")
+                        .HasColumnName("tin")
+                        .IsFixedLength();
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<string>("VatRegistrationNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("vat_registration_number");
+
+                    b.HasKey("Id")
+                        .HasName("pk_party");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .HasDatabaseName("ix_party_company_id_name");
+
+                    b.ToTable("party", "core");
+                });
+
             modelBuilder.Entity("Gebeta.Core.Domain.Security.Role", b =>
                 {
                     b.Property<Guid>("Id")

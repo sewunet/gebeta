@@ -41,6 +41,19 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<IJournalRepository, JournalRepository>();
         services.AddScoped<IModuleMigrator, AccountingMigrator>();
         services.AddScoped<ChartSetup>();
+        var accountingOptions = new AccountingOptions();
+        context.Configuration.GetSection(AccountingOptions.Section).Bind(accountingOptions);
+        services.AddSingleton(accountingOptions);
+        services.AddScoped<Gebeta.Accounting.Domain.Invoicing.IInvoiceRepository, InvoiceRepository>();
+        services.AddScoped<InvoicingHandler>();
+        services.AddScoped<ICommandHandler<CreateInvoiceCommand, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<ICommandHandler<SubmitInvoiceCommand, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<ICommandHandler<CancelInvoiceCommand, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<IQueryHandler<GetInvoiceQuery, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<IQueryHandler<ListInvoicesQuery, IReadOnlyList<InvoiceDto>>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<ICommandHandler<CreatePaymentCommand, PaymentDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<IQueryHandler<VatReportQuery, VatReportDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<IQueryHandler<WithholdingReportQuery, WithholdingReportDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddOutboxDispatcher<AccountingDbContext>(Id, AccountingDbContext.SchemaName);
 
         // Events from other modules (received only when those modules are installed).

@@ -68,6 +68,8 @@ public static class EthiopianChartOfAccounts
         new(CashOnHand, "Cash on Hand", RootType.Asset, false, "1100"),
         new(Bank, "Bank Accounts", RootType.Asset, false, "1100"),
         new("1200", "Accounts Receivable", RootType.Asset, false, "1000"),
+        new("1250", "VAT Receivable (Input VAT)", RootType.Asset, false, "1000"),
+        new("1260", "Withholding Tax Receivable", RootType.Asset, false, "1000"),
         new("1300", "Inventories", RootType.Asset, false, "1000"),
         new("1400", "Employee Advances", RootType.Asset, false, "1000"),
         new("1500", "Property, Plant and Equipment", RootType.Asset, false, "1000"),
@@ -105,6 +107,9 @@ public enum JournalSource
     Manual,
     Payroll,
     Cash,
+    SalesInvoice,
+    PurchaseInvoice,
+    Payment,
 }
 
 /// <summary>

@@ -1,7 +1,7 @@
 namespace Gebeta.Application;
 
 /// <summary>The few company facts every module needs (provided by Core).</summary>
-public sealed record CompanyInfo(Guid Id, string Name, string Abbreviation, string DefaultCurrency, bool UsesEthiopianFiscalYear, string Tin = "");
+public sealed record CompanyInfo(Guid Id, string Name, string Abbreviation, string DefaultCurrency, bool UsesEthiopianFiscalYear, string Tin = "", bool IsVatRegistered = false);
 
 public interface ICompanyDirectory
 {
@@ -37,4 +37,12 @@ public interface IEmployeeDirectory
 public interface IEmployeeList
 {
     Task<IReadOnlyList<EmployeeInfo>> ListAsync(Guid companyId, CancellationToken cancellationToken);
+}
+
+/// <summary>A customer or supplier as other modules need it (provided by Core).</summary>
+public sealed record PartyInfo(Guid Id, Guid CompanyId, string Name, string Type, string? Tin, bool IsVatRegistered);
+
+public interface IPartyDirectory
+{
+    Task<PartyInfo?> GetAsync(Guid partyId, CancellationToken cancellationToken);
 }

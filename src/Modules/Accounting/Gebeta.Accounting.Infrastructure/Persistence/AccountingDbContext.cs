@@ -147,3 +147,78 @@ internal sealed class AccountingDbContextDesignTimeFactory : IDesignTimeDbContex
         return new AccountingDbContext(options.Options);
     }
 }
+
+internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Gebeta.Accounting.Domain.Invoicing.Invoice>
+{
+    public void Configure(EntityTypeBuilder<Gebeta.Accounting.Domain.Invoicing.Invoice> builder)
+    {
+        builder.ToTable("invoice");
+        builder.HasKey(i => i.Id);
+        builder.Property(i => i.Id).ValueGeneratedNever();
+        builder.Property(i => i.Name).HasMaxLength(60);
+        builder.HasIndex(i => new { i.CompanyId, i.Name }).IsUnique();
+        builder.HasIndex(i => new { i.CompanyId, i.Kind, i.PostingDate });
+        builder.Property(i => i.Kind).HasConversion<string>().HasMaxLength(20);
+        builder.Property(i => i.DocStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(i => i.PartyName).HasMaxLength(140).IsRequired();
+        builder.Property(i => i.PartyTin).HasMaxLength(10);
+        builder.Property(i => i.SupplierInvoiceNumber).HasMaxLength(60);
+        foreach (var money in new[] { "NetTotal", "VatAmount", "WithholdingAmount", "Outstanding" })
+        {
+            builder.Property(money).HasPrecision(21, 2);
+        }
+
+        builder.Property<List<Gebeta.Accounting.Domain.Invoicing.InvoiceLine>>("_lines").HasColumnName("lines").IsJsonList();
+        builder.Ignore(i => i.Lines);
+        builder.Ignore(i => i.GrandTotal);
+        builder.Ignore(i => i.PayableAmount);
+        builder.Ignore(i => i.DocumentType);
+        builder.Property(i => i.CreatedBy).HasMaxLength(140);
+        builder.Property(i => i.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(i => i.DomainEvents);
+    }
+}
+
+internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Gebeta.Accounting.Domain.Invoicing.Payment>
+{
+    public void Configure(EntityTypeBuilder<Gebeta.Accounting.Domain.Invoicing.Payment> builder)
+    {
+        builder.ToTable("payment");
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id).ValueGeneratedNever();
+        builder.Property(p => p.Name).HasMaxLength(60);
+        builder.HasIndex(p => new { p.CompanyId, p.Name }).IsUnique();
+        builder.HasIndex(p => p.InvoiceId);
+        builder.Property(p => p.Kind).HasConversion<string>().HasMaxLength(20);
+        builder.Property(p => p.DocStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(p => p.PartyName).HasMaxLength(140).IsRequired();
+        builder.Property(p => p.InvoiceNumber).HasMaxLength(60);
+        builder.Property(p => p.Amount).HasPrecision(21, 2);
+        builder.Property(p => p.BankAccountCode).HasMaxLength(20).IsRequired();
+        builder.Property(p => p.Reference).HasMaxLength(100);
+        builder.Ignore(p => p.DocumentType);
+        builder.Property(p => p.CreatedBy).HasMaxLength(140);
+        builder.Property(p => p.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(p => p.DomainEvents);
+    }
+}
+
+internal sealed class InvoiceRepository(AccountingDbContext db) : Gebeta.Accounting.Domain.Invoicing.IInvoiceRepository
+{
+    public Task<Gebeta.Accounting.Domain.Invoicing.Invoice?> GetAsync(Guid id, CancellationToken cancellationToken) =>
+        db.Set<Gebeta.Accounting.Domain.Invoicing.Invoice>().FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Invoicing.Invoice>> ListAsync(Guid companyId, Gebeta.Accounting.Domain.Invoicing.InvoiceKind? kind,
+        DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await db.Set<Gebeta.Accounting.Domain.Invoicing.Invoice>().AsNoTracking()
+            .Where(i => i.CompanyId == companyId && (kind == null || i.Kind == kind) && i.PostingDate >= from && i.PostingDate <= to)
+            .OrderBy(i => i.PostingDate).ThenBy(i => i.Name).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Invoicing.Payment>> PaymentsAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().AsNoTracking()
+            .Where(p => p.CompanyId == companyId && p.PostingDate >= from && p.PostingDate <= to).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(Gebeta.Accounting.Domain.Invoicing.Invoice invoice) => db.Set<Gebeta.Accounting.Domain.Invoicing.Invoice>().Add(invoice);
+
+    public void Add(Gebeta.Accounting.Domain.Invoicing.Payment payment) => db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().Add(payment);
+}

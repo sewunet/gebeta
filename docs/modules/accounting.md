@@ -7,6 +7,18 @@
 > employer pension → 6120 and 2230, income tax → 2220, pension → 2230, other deductions → 2240, net → 2210);
 > `SalarySlipCancelled` reverses it. Account mapping is fixed to the template codes for now; a mapping
 > screen per company is planned.
+>
+> **Invoicing** (step 17): customers and suppliers are Core parties (`/api/core/parties`). Sales and purchase
+> invoices (`SINV-` / `PINV-<FY>-#####`, `/api/accounting/invoices`) compute VAT 15% (sales: when the company
+> is VAT-registered; purchases: when the supplier is; lines can be VAT-exempt) and withholding 2% on goods above
+> ETB 10,000 and services above ETB 3,000 (purchases: when the company is a withholding agent, the default;
+> sales: when the customer withholds). Submitting posts Dr 1200 (payable amount) + Dr 1260 (withheld) / Cr income
+> + Cr 2300 for sales, and Dr expense + Dr 1250 / Cr 2100 + Cr 2400 for purchases; cancelling reverses it.
+> Payments (`PAY-<FY>-#####`, `/api/accounting/payments`) settle one invoice up to its outstanding amount
+> (bank 1120 by default); an invoice with payments cannot be cancelled. Reports: `/reports/vat` (output, input,
+> net payable) and `/reports/withholding` (withheld from suppliers, withheld by customers). Rates and thresholds
+> are configuration (`Accounting:*`). Not yet: credit notes, payment cancellation, partial allocation across
+> invoices, withholding receipts, TOT.
 
 The core of the system. Every other money-moving module posts here.
 

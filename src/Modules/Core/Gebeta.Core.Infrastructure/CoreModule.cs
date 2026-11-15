@@ -64,6 +64,11 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<DocumentNumbering>();
         services.AddScoped<ICoreNumbers, CoreNumbers>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<Gebeta.Core.Domain.Parties.IPartyRepository, PartyRepository>();
+        services.AddScoped<Gebeta.Core.Application.Parties.PartyHandler>();
+        services.AddScoped<IPartyDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Parties.CreatePartyCommand, PartyDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Parties.ListPartiesQuery, IReadOnlyList<PartyDto>>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
         services.AddScoped<EmployeeDirectory>();
         services.AddScoped<IEmployeeDirectory>(sp => sp.GetRequiredService<EmployeeDirectory>());
         services.AddScoped<IEmployeeList>(sp => sp.GetRequiredService<EmployeeDirectory>());

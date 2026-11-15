@@ -19,6 +19,17 @@
 > net payable) and `/reports/withholding` (withheld from suppliers, withheld by customers). Rates and thresholds
 > are configuration (`Accounting:*`). Not yet: credit notes, payment cancellation, partial allocation across
 > invoices, withholding receipts, TOT.
+>
+> **Month close and reports** (step 18): `POST /api/accounting/periods/close` closes the month containing a date:
+> one of the 12 Ethiopian fiscal periods for companies on the Ethiopian fiscal year (Nehase takes Pagume), else the
+> calendar month. Months close in order, only with no draft journals or invoices left in them, and the closing
+> keeps the trial balance totals and the month's profit (the sign-off record). The end of the latest closed
+> month is the **lock date**: `AccountingDbContext` refuses any ledger row dated on or before it, whatever
+> wrote it (journals, invoices, payments, payroll and cash journals; a message from another module into a
+> closed month is retried and dead-lettered). `POST /periods/reopen` reopens the latest closed month with a
+> reason. Reports: `/reports/profit-and-loss`, `/reports/balance-sheet` (profit not yet closed to retained
+> earnings shown in equity) and `/reports/general-ledger` (one account, opening and running balance).
+> Not yet: year-end closing to retained earnings, opening balances import, comparative columns.
 
 The core of the system. Every other money-moving module posts here.
 

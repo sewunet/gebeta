@@ -9,8 +9,9 @@ public static class AccountingPermissions
     public const string JournalsSubmit = "accounting.journals.submit";
     public const string JournalsCancel = "accounting.journals.cancel";
     public const string ReportsRead = "accounting.reports.read";
+    public const string PeriodsClose = "accounting.periods.close";
 
-    public static IReadOnlyList<string> All { get; } = [AccountsRead, AccountsManage, JournalsRead, JournalsCreate, JournalsSubmit, JournalsCancel, ReportsRead];
+    public static IReadOnlyList<string> All { get; } = [AccountsRead, AccountsManage, JournalsRead, JournalsCreate, JournalsSubmit, JournalsCancel, ReportsRead, PeriodsClose];
 }
 
 public sealed record AccountDto(Guid Id, string Code, string Name, string RootType, bool IsGroup, Guid? ParentId);
@@ -25,3 +26,25 @@ public sealed record TrialBalanceRow(string Code, string Name, string RootType, 
 public sealed record TrialBalanceDto(Guid CompanyId, DateOnly AsOf, IReadOnlyList<TrialBalanceRow> Rows, decimal TotalDebit, decimal TotalCredit);
 
 public sealed record JournalPosted(Guid JournalId, string Number, Guid CompanyId, string Source, Guid? SourceId, decimal Amount, DateTimeOffset OccurredAt);
+
+public sealed record PeriodClosingDto(Guid Id, string Label, DateOnly Start, DateOnly End, string Status, decimal TotalDebit, decimal TotalCredit, decimal NetProfit,
+    DateTimeOffset ClosedAt, string ClosedBy, DateTimeOffset? ReopenedAt, string? ReopenedBy, string? ReopenReason);
+
+/// <summary>Month closings, newest first. Nothing can be posted on or before <see cref="LockDate"/>.</summary>
+public sealed record PeriodClosingsDto(Guid CompanyId, DateOnly? LockDate, IReadOnlyList<PeriodClosingDto> Closings);
+
+/// <summary>An account's amount on its normal side (income and liabilities positive when credited).</summary>
+public sealed record ReportRow(string Code, string Name, string RootType, decimal Amount);
+
+public sealed record ProfitAndLossDto(Guid CompanyId, DateOnly From, DateOnly To, IReadOnlyList<ReportRow> Income, IReadOnlyList<ReportRow> Expenses,
+    decimal TotalIncome, decimal TotalExpenses, decimal NetProfit);
+
+/// <param name="UnclosedProfit">Income less expenses to date not yet moved to retained earnings by a year-end closing.</param>
+public sealed record BalanceSheetDto(Guid CompanyId, DateOnly AsOf, IReadOnlyList<ReportRow> Assets, IReadOnlyList<ReportRow> Liabilities, IReadOnlyList<ReportRow> Equity,
+    decimal UnclosedProfit, decimal TotalAssets, decimal TotalLiabilities, decimal TotalEquity, bool Balanced);
+
+public sealed record GeneralLedgerRow(DateOnly Date, string Voucher, string Description, decimal Debit, decimal Credit, decimal Balance, bool IsReversal);
+
+/// <summary>One account's ledger; balances are on the account's normal side.</summary>
+public sealed record GeneralLedgerDto(string AccountCode, string AccountName, DateOnly From, DateOnly To, decimal Opening, IReadOnlyList<GeneralLedgerRow> Rows,
+    decimal TotalDebit, decimal TotalCredit, decimal Closing);

@@ -21,6 +21,29 @@ public sealed class AccountingDbContext(DbContextOptions<AccountingDbContext> op
     public DbSet<JournalEntry> Journals => Set<JournalEntry>();
     public DbSet<GlEntry> GlEntries => Set<GlEntry>();
 
+    /// <summary>
+    /// The lock date, enforced where every ledger row is written (manual journals, invoices, payments, and
+    /// journals from Payroll and Cash): no row may be dated on or before the end of the latest closed month.
+    /// A journal from another module into a closed month fails its message, which is retried and dead-lettered.
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        var posting = ChangeTracker.Entries<GlEntry>().Where(e => e.State == EntityState.Added)
+            .GroupBy(e => e.Entity.CompanyId).Select(g => (Company: g.Key, Earliest: g.Min(e => e.Entity.PostingDate))).ToList();
+        foreach (var (company, earliest) in posting)
+        {
+            var closed = await Set<PeriodClosing>().AsNoTracking().Where(p => p.CompanyId == company && p.Status == PeriodClosingStatus.Closed)
+                .OrderByDescending(p => p.End).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+            if (closed is not null && earliest <= closed.End)
+            {
+                throw new Gebeta.SharedKernel.DomainException("accounting.period_closed",
+                    $"The books are closed up to {closed.End:yyyy-MM-dd} ({closed.Label}); nothing can be posted on {earliest:yyyy-MM-dd}. Reopen the month first.");
+            }
+        }
+
+        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
+    }
+
     internal static void Configure(DbContextOptionsBuilder options, string connectionString) =>
         options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(MigrationsHistoryTable, SchemaName))
             .UseSnakeCaseNamingConvention();
@@ -127,6 +150,54 @@ internal sealed class JournalRepository(AccountingDbContext db) : IJournalReposi
             .Select(g => new { AccountId = g.Key, Debit = g.Sum(x => x.Debit), Credit = g.Sum(x => x.Credit) })
             .ToListAsync(cancellationToken).ConfigureAwait(false))
         .Select(x => (x.AccountId, x.Debit, x.Credit)).ToList();
+
+    public async Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsBetweenAsync(Guid companyId, DateOnly from, DateOnly to,
+        CancellationToken cancellationToken) =>
+        (await db.GlEntries.AsNoTracking().Where(g => g.CompanyId == companyId && g.PostingDate >= from && g.PostingDate <= to)
+            .GroupBy(g => g.AccountId)
+            .Select(g => new { AccountId = g.Key, Debit = g.Sum(x => x.Debit), Credit = g.Sum(x => x.Credit) })
+            .ToListAsync(cancellationToken).ConfigureAwait(false))
+        .Select(x => (x.AccountId, x.Debit, x.Credit)).ToList();
+
+    public async Task<IReadOnlyList<GlEntry>> EntriesAsync(Guid companyId, Guid accountId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await db.GlEntries.AsNoTracking().Where(g => g.CompanyId == companyId && g.AccountId == accountId && g.PostingDate >= from && g.PostingDate <= to)
+            .OrderBy(g => g.PostingDate).ThenBy(g => g.CreatedAt).ThenBy(g => g.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+}
+
+internal sealed class PeriodClosingConfiguration : IEntityTypeConfiguration<PeriodClosing>
+{
+    public void Configure(EntityTypeBuilder<PeriodClosing> builder)
+    {
+        builder.ToTable("period_closing");
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id).ValueGeneratedNever();
+        builder.HasIndex(p => new { p.CompanyId, p.End });
+        builder.Property(p => p.Label).HasMaxLength(40).IsRequired();
+        builder.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+        builder.Property(p => p.TotalDebit).HasPrecision(21, 2);
+        builder.Property(p => p.TotalCredit).HasPrecision(21, 2);
+        builder.Property(p => p.NetProfit).HasPrecision(21, 2);
+        builder.Property(p => p.ClosedBy).HasMaxLength(140).IsRequired();
+        builder.Property(p => p.ReopenedBy).HasMaxLength(140);
+        builder.Property(p => p.ReopenReason).HasMaxLength(300);
+        builder.Property(p => p.CreatedBy).HasMaxLength(140);
+        builder.Property(p => p.ModifiedBy).HasMaxLength(140);
+        builder.Property<uint>("Version").IsRowVersion();
+        builder.Ignore(p => p.DomainEvents);
+    }
+}
+
+internal sealed class PeriodClosingRepository(AccountingDbContext db) : IPeriodClosingRepository
+{
+    public Task<PeriodClosing?> LatestClosedAsync(Guid companyId, CancellationToken cancellationToken) =>
+        db.Set<PeriodClosing>().Where(p => p.CompanyId == companyId && p.Status == PeriodClosingStatus.Closed)
+            .OrderByDescending(p => p.End).FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<PeriodClosing>> ListAsync(Guid companyId, CancellationToken cancellationToken) =>
+        await db.Set<PeriodClosing>().AsNoTracking().Where(p => p.CompanyId == companyId)
+            .OrderByDescending(p => p.End).ThenByDescending(p => p.ClosedAt).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(PeriodClosing closing) => db.Set<PeriodClosing>().Add(closing);
 }
 
 internal sealed class AccountingNumbers(AccountingDbContext db, DocumentNumbering numbering) : ModuleDocumentNumbers(db, numbering), IAccountingNumbers;

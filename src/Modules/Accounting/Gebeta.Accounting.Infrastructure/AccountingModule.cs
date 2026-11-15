@@ -46,6 +46,14 @@ public sealed class AccountingModule : IErpModule
         services.AddSingleton(accountingOptions);
         services.AddScoped<Gebeta.Accounting.Domain.Invoicing.IInvoiceRepository, InvoiceRepository>();
         services.AddScoped<InvoicingHandler>();
+        services.AddScoped<IPeriodClosingRepository, PeriodClosingRepository>();
+        services.AddScoped<PeriodsAndReportsHandler>();
+        services.AddScoped<ICommandHandler<ClosePeriodCommand, PeriodClosingDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());
+        services.AddScoped<ICommandHandler<ReopenPeriodCommand, PeriodClosingDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());
+        services.AddScoped<IQueryHandler<ListPeriodClosingsQuery, PeriodClosingsDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());
+        services.AddScoped<IQueryHandler<ProfitAndLossQuery, ProfitAndLossDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());
+        services.AddScoped<IQueryHandler<BalanceSheetQuery, BalanceSheetDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());
+        services.AddScoped<IQueryHandler<GeneralLedgerQuery, GeneralLedgerDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());
         services.AddScoped<ICommandHandler<CreateInvoiceCommand, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<ICommandHandler<SubmitInvoiceCommand, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<ICommandHandler<CancelInvoiceCommand, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());

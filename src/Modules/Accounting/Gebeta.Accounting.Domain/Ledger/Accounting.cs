@@ -246,4 +246,10 @@ public interface IJournalRepository
 
     /// <summary>Debit and credit totals per account up to and including <paramref name="asOf"/>.</summary>
     Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsAsync(Guid companyId, DateOnly asOf, CancellationToken cancellationToken);
+
+    /// <summary>Debit and credit totals per account posted from <paramref name="from"/> to <paramref name="to"/>.</summary>
+    Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsBetweenAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
+
+    /// <summary>Ledger rows of one account in a date range, in posting order.</summary>
+    Task<IReadOnlyList<GlEntry>> EntriesAsync(Guid companyId, Guid accountId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
 }

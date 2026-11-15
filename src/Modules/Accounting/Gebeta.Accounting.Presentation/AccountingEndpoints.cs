@@ -75,6 +75,26 @@ public static class AccountingEndpoints
                 (await h.Handle(new WithholdingReportQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
             .WithName("WithholdingReport").RequirePermission(AccountingPermissions.ReportsRead);
 
+        acc.MapGet("/periods", async (Guid companyId, IQueryHandler<ListPeriodClosingsQuery, PeriodClosingsDto> h, CancellationToken ct) =>
+                (await h.Handle(new ListPeriodClosingsQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListPeriodClosings").RequirePermission(AccountingPermissions.ReportsRead);
+        acc.MapPost("/periods/close", async (ClosePeriodCommand command, ICommandHandler<ClosePeriodCommand, PeriodClosingDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ClosePeriod").RequirePermission(AccountingPermissions.PeriodsClose);
+        acc.MapPost("/periods/reopen", async (ReopenPeriodCommand command, ICommandHandler<ReopenPeriodCommand, PeriodClosingDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ReopenPeriod").RequirePermission(AccountingPermissions.PeriodsClose);
+        acc.MapGet("/reports/profit-and-loss", async (Guid companyId, DateOnly from, DateOnly to, IQueryHandler<ProfitAndLossQuery, ProfitAndLossDto> h, CancellationToken ct) =>
+                (await h.Handle(new ProfitAndLossQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ProfitAndLoss").RequirePermission(AccountingPermissions.ReportsRead);
+        acc.MapGet("/reports/balance-sheet", async (Guid companyId, DateOnly asOf, IQueryHandler<BalanceSheetQuery, BalanceSheetDto> h, CancellationToken ct) =>
+                (await h.Handle(new BalanceSheetQuery(companyId, asOf), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("BalanceSheet").RequirePermission(AccountingPermissions.ReportsRead);
+        acc.MapGet("/reports/general-ledger", async (Guid companyId, string account, DateOnly from, DateOnly to, IQueryHandler<GeneralLedgerQuery, GeneralLedgerDto> h,
+                CancellationToken ct) =>
+                (await h.Handle(new GeneralLedgerQuery(companyId, account, from, to), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GeneralLedger").RequirePermission(AccountingPermissions.ReportsRead);
+
         acc.MapGet("/reports/trial-balance", async (Guid companyId, DateOnly asOf, IQueryHandler<TrialBalanceQuery, TrialBalanceDto> h, CancellationToken ct) =>
                 (await h.Handle(new TrialBalanceQuery(companyId, asOf), ct).ConfigureAwait(false)).ToHttp())
             .WithName("TrialBalance").RequirePermission(AccountingPermissions.ReportsRead);

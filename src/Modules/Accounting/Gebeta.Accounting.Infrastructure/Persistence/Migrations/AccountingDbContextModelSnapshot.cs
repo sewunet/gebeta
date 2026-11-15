@@ -475,6 +475,108 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                     b.ToTable("journal_entry", "accounting");
                 });
 
+            modelBuilder.Entity("Gebeta.Accounting.Domain.Ledger.PeriodClosing", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<string>("ClosedBy")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("closed_by");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly>("End")
+                        .HasColumnType("date")
+                        .HasColumnName("end");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("label");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<decimal>("NetProfit")
+                        .HasPrecision(21, 2)
+                        .HasColumnType("numeric(21,2)")
+                        .HasColumnName("net_profit");
+
+                    b.Property<string>("ReopenReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("reopen_reason");
+
+                    b.Property<DateTimeOffset?>("ReopenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reopened_at");
+
+                    b.Property<string>("ReopenedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("reopened_by");
+
+                    b.Property<DateOnly>("Start")
+                        .HasColumnType("date")
+                        .HasColumnName("start");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TotalCredit")
+                        .HasPrecision(21, 2)
+                        .HasColumnType("numeric(21,2)")
+                        .HasColumnName("total_credit");
+
+                    b.Property<decimal>("TotalDebit")
+                        .HasPrecision(21, 2)
+                        .HasColumnType("numeric(21,2)")
+                        .HasColumnName("total_debit");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_period_closing");
+
+                    b.HasIndex("CompanyId", "End")
+                        .HasDatabaseName("ix_period_closing_company_id_end");
+
+                    b.ToTable("period_closing", "accounting");
+                });
+
             modelBuilder.Entity("Gebeta.Persistence.InboxMessage", b =>
                 {
                     b.Property<Guid>("MessageId")

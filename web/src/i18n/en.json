@@ -1,0 +1,34 @@
+{
+  "app": { "name": "Gebeta ERP", "by": "by Abay Systems" },
+  "nav": {
+    "dashboard": "Dashboard", "core": "Core", "companies": "Companies", "employees": "Employees",
+    "payroll": "Payroll", "salarySlips": "Salary slips", "payrollRun": "Payroll run", "calculator": "Salary calculator"
+  },
+  "common": {
+    "company": "Company", "month": "Month", "signOut": "Sign out", "language": "Language", "calendar": "Calendar",
+    "loading": "Loading…", "empty": "Nothing here yet.", "total": "Total", "save": "Save", "cancel": "Cancel",
+    "noCompany": "Choose a company first.", "error": "Something went wrong"
+  },
+  "calendar": { "Ethiopian": "Ethiopian", "Gregorian": "Gregorian", "Both": "Both" },
+  "status": { "Draft": "Draft", "Submitted": "Submitted", "Cancelled": "Cancelled", "Active": "Active", "Left": "Left", "Suspended": "Suspended" },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}", "today": "Today", "fiscalYear": "Fiscal year", "fiscalYearValue": "FY {{year}} E.C.",
+    "companies": "Companies", "employees": "Employees", "modules": "Installed modules"
+  },
+  "fields": {
+    "name": "Name", "abbreviation": "Abbreviation", "tin": "TIN", "legalForm": "Legal form", "currency": "Currency",
+    "fiscalYear": "Fiscal year", "number": "No.", "employee": "Employee", "firstName": "Given name", "fatherName": "Father's name",
+    "grandfatherName": "Grandfather's name", "gender": "Gender", "joined": "Joined", "status": "Status", "period": "Period",
+    "gross": "Gross pay", "deductions": "Deductions", "net": "Net pay", "tax": "Income tax", "employer": "Employer contributions",
+    "base": "Basic salary", "paymentDays": "Payment days", "component": "Component", "type": "Type", "amount": "Amount",
+    "payrollDate": "Payroll date", "taxTable": "Tax table", "female": "Female", "male": "Male"
+  },
+  "employees": { "add": "Add employee", "added": "Employee {{number}} added." },
+  "slips": { "submit": "Submit", "cancelSlip": "Cancel slip", "back": "All salary slips", "lines": "Lines" },
+  "run": {
+    "create": "Start payroll run", "generate": "Prepare salary slips", "submit": "Submit all slips", "issues": "Not paid",
+    "reports": "Monthly reports", "incomeTax": "Income tax declaration", "pension": "Pension schedule", "bank": "Bank transfer list",
+    "slips": "Slips", "explain": "Prepares a salary slip for every employee employed in the month, then submits them together."
+  },
+  "calculator": { "calculate": "Calculate", "explain": "Standard Ethiopian structure: basic salary, income tax, 7% employee and 11% employer pension." }
+}

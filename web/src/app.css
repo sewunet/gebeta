@@ -1,0 +1,102 @@
+/* Gebeta ERP: same palette as the Keycloak login theme (Abay blue and gold). */
+:root {
+  --navy: #0f3b5f;
+  --navy-deep: #0a2740;
+  --gold: #d9a441;
+  --gold-dark: #b9862a;
+  --ink: #1c2733;
+  --muted: #5b6b7b;
+  --line: #e3e8ee;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ok: #1f7a4d;
+  --danger: #b42318;
+  --radius: 10px;
+  font-family: "Inter", "Segoe UI", "Noto Sans Ethiopic", "Nyala", system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+h1 { font-size: 22px; margin: 0 0 16px; }
+h2 { font-size: 16px; margin: 28px 0 12px; }
+a { color: var(--navy); }
+
+.center-screen { min-height: 100vh; display: grid; place-content: center; gap: 12px; color: var(--muted); }
+
+.shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
+.sidebar { background: linear-gradient(180deg, var(--navy), var(--navy-deep)); color: #fff; padding: 18px 12px; }
+.brand { display: flex; gap: 10px; align-items: center; padding: 0 8px 18px; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 12px; }
+.brand-name { font-weight: 700; }
+.brand-by { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.6); }
+.nav-group { margin: 16px 8px 6px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); }
+.nav-link { display: block; padding: 8px 10px; border-radius: 8px; color: rgba(255,255,255,.85); text-decoration: none; }
+.nav-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+.nav-link.active { background: rgba(217,164,65,.18); color: #fff; box-shadow: inset 3px 0 0 var(--gold); }
+
+.main { display: flex; flex-direction: column; min-width: 0; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.user { font-weight: 600; }
+.content { padding: 24px; max-width: 1200px; width: 100%; }
+
+.field-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+select, input { font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+select:focus, input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--navy); color: #fff; cursor: pointer; }
+button:hover:not(:disabled) { background: var(--navy-deep); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.secondary { background: #fff; color: var(--navy); border: 1px solid var(--line); }
+button.danger { background: var(--danger); }
+.link-button { background: none; color: var(--navy); padding: 4px; }
+.link-button:hover:not(:disabled) { background: none; text-decoration: underline; }
+.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.segmented button { background: #fff; color: var(--muted); border-radius: 0; padding: 6px 10px; font-weight: 500; }
+.segmented button.on { background: var(--navy); color: #fff; }
+
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.page-head h1 { margin: 0; }
+.back { display: inline-block; margin-bottom: 10px; text-decoration: none; font-size: 13px; }
+.muted { color: var(--muted); }
+.error { color: var(--danger); margin: 8px 0; }
+.notice { background: #eaf6ef; color: var(--ok); padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; }
+.mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, "Cascadia Mono", monospace; font-size: 13px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin: 8px 0 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: var(--radius); padding: 14px 16px; }
+.card-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.card-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+.card-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+
+.table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; font-size: 14px; }
+.table.narrow { max-width: 640px; }
+.table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); background: #f8fafc; }
+.table th, .table td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.table tfoot td { font-weight: 600; background: #fbfcfd; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.table .strong, .strong td { font-weight: 700; }
+.table tr.muted td { color: var(--muted); }
+
+.badge { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: #eef2f6; color: var(--muted); }
+.badge.Submitted, .badge.Active { background: #eaf6ef; color: var(--ok); }
+.badge.Cancelled, .badge.Left { background: #fdecea; color: var(--danger); }
+.badge.Draft { background: #fff6e5; color: var(--gold-dark); }
+
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.form-grid label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.form-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; grid-column: 1 / -1; }
+.steps { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+.issues { background: #fff6e5; border-radius: 8px; padding: 10px 28px; }
+
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { padding: 12px 16px; }
+  .sidebar nav { display: flex; flex-wrap: wrap; gap: 4px; }
+  .nav-group { width: 100%; margin: 8px 0 2px; }
+  .content, .topbar { padding: 16px; }
+  .table { display: block; overflow-x: auto; }
+}

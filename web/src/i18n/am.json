@@ -1,0 +1,34 @@
+{
+  "app": { "name": "ገበታ ኢአርፒ", "by": "በዓባይ ሲስተምስ" },
+  "nav": {
+    "dashboard": "ዋና ገጽ", "core": "መሠረታዊ", "companies": "ኩባንያዎች", "employees": "ሠራተኞች",
+    "payroll": "ደመወዝ", "salarySlips": "የደመወዝ ወረቀቶች", "payrollRun": "የወር ደመወዝ ክፍያ", "calculator": "የደመወዝ ማስያ"
+  },
+  "common": {
+    "company": "ኩባንያ", "month": "ወር", "signOut": "ውጣ", "language": "ቋንቋ", "calendar": "የቀን አቆጣጠር",
+    "loading": "በመጫን ላይ…", "empty": "እስካሁን ምንም የለም።", "total": "ድምር", "save": "አስቀምጥ", "cancel": "ተው",
+    "noCompany": "መጀመሪያ ኩባንያ ይምረጡ።", "error": "ስህተት ተፈጥሯል"
+  },
+  "calendar": { "Ethiopian": "ኢትዮጵያዊ", "Gregorian": "ግሪጎሪያን", "Both": "ሁለቱም" },
+  "status": { "Draft": "ረቂቅ", "Submitted": "የቀረበ", "Cancelled": "የተሰረዘ", "Active": "በሥራ ላይ", "Left": "የለቀቀ", "Suspended": "የታገደ" },
+  "dashboard": {
+    "welcome": "እንኳን ደህና መጡ፣ {{name}}", "today": "ዛሬ", "fiscalYear": "በጀት ዓመት", "fiscalYearValue": "{{year}} ዓ.ም. በጀት ዓመት",
+    "companies": "ኩባንያዎች", "employees": "ሠራተኞች", "modules": "የተጫኑ ሞጁሎች"
+  },
+  "fields": {
+    "name": "ስም", "abbreviation": "አህጽሮት", "tin": "የግብር ከፋይ መለያ ቁጥር", "legalForm": "የድርጅት ዓይነት", "currency": "ገንዘብ",
+    "fiscalYear": "በጀት ዓመት", "number": "ቁጥር", "employee": "ሠራተኛ", "firstName": "ስም", "fatherName": "የአባት ስም",
+    "grandfatherName": "የአያት ስም", "gender": "ጾታ", "joined": "የተቀጠሩበት", "status": "ሁኔታ", "period": "ወቅት",
+    "gross": "ጠቅላላ ገቢ", "deductions": "ተቀናሾች", "net": "የተጣራ ክፍያ", "tax": "የገቢ ግብር", "employer": "የአሠሪ መዋጮ",
+    "base": "መሠረታዊ ደመወዝ", "paymentDays": "የክፍያ ቀናት", "component": "ዝርዝር", "type": "ዓይነት", "amount": "መጠን",
+    "payrollDate": "የክፍያ ቀን", "taxTable": "የግብር ሰንጠረዥ", "female": "ሴት", "male": "ወንድ"
+  },
+  "employees": { "add": "ሠራተኛ ጨምር", "added": "ሠራተኛ {{number}} ተጨምሯል።" },
+  "slips": { "submit": "አቅርብ", "cancelSlip": "ሰርዝ", "back": "ሁሉም የደመወዝ ወረቀቶች", "lines": "ዝርዝሮች" },
+  "run": {
+    "create": "የወር ደመወዝ ክፍያ ጀምር", "generate": "የደመወዝ ወረቀቶችን አዘጋጅ", "submit": "ሁሉንም አቅርብ", "issues": "ያልተከፈላቸው",
+    "reports": "ወርሃዊ ሪፖርቶች", "incomeTax": "የገቢ ግብር ማሳወቂያ", "pension": "የጡረታ መዋጮ ዝርዝር", "bank": "የባንክ ዝውውር ዝርዝር",
+    "slips": "ወረቀቶች", "explain": "በወሩ ለተቀጠሩ ሠራተኞች ሁሉ የደመወዝ ወረቀት ያዘጋጃል፣ ከዚያም በአንድ ላይ ያቀርባል።"
+  },
+  "calculator": { "calculate": "አስላ", "explain": "መደበኛ የኢትዮጵያ መዋቅር፦ መሠረታዊ ደመወዝ፣ የገቢ ግብር፣ 7% የሠራተኛ እና 11% የአሠሪ ጡረታ።" }
+}

@@ -1,5 +1,13 @@
 # Frontend
 
+> **Built so far** (`web/`): Keycloak sign-in (authorization code + PKCE, tokens in memory), layout with
+> sidebar from installed modules and permissions, company switcher, English/Amharic and calendar
+> preference saved on the user profile, Ethiopian dates and birr formatting, and screens for dashboard,
+> companies, employees (list and add), salary slips (list by month, detail, submit/cancel), payroll run
+> with CSV report downloads, and the salary calculator. Styling is plain CSS with the Gebeta palette for
+> now; shadcn/ui and Tailwind can come later. The OpenAPI client is hand-typed in `src/lib/types.ts`
+> until client generation is set up.
+
 React 19 + TypeScript (strict) + Vite, in `web/`.
 
 ## Structure

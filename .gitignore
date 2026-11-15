@@ -19,3 +19,4 @@ web/dist/
 
 # Build output
 artifacts/
+*.tsbuildinfo

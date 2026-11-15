@@ -124,6 +124,14 @@ through `ICompanyAccess`.
 
 In Development the API applies every module's migrations at start-up.
 
+Web app (React, http://localhost:5173, signs in through Keycloak and proxies `/api` to the API on 5090):
+
+```bash
+cd web && npm install && npm run dev
+```
+
+`npm test` runs the web tests; `npm run build` type-checks and builds `web/dist`.
+
 Run the API in Docker too (port 5090):
 
 ```bash

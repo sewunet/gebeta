@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Payroll.Contracts</RootNamespace>
+    <Description>Payroll's public contract: DTOs, integration events, permission names. No dependencies.</Description>
+  </PropertyGroup>
+</Project>

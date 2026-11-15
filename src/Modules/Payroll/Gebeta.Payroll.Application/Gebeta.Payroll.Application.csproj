@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Payroll.Application</RootNamespace>
+    <Description>Payroll use cases. Depends on Payroll.Domain and Payroll.Contracts, never on Infrastructure.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Application\Gebeta.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Payroll.Domain\Gebeta.Payroll.Domain.csproj" />
+    <ProjectReference Include="..\Gebeta.Payroll.Contracts\Gebeta.Payroll.Contracts.csproj" />
+  </ItemGroup>
+</Project>

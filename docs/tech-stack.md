@@ -18,7 +18,7 @@
 | Cache / locks | Redis (StackExchange.Redis) | Distributed locks for reposting and payroll runs |
 | Auth | **Keycloak 26** (OIDC) with the Gebeta login theme | SSO, MFA, LDAP/AD if needed. OpenIddict is the self-hosted alternative. |
 | Realtime | SignalR | |
-| Formula engine (payroll) | NCalc, wrapped with a whitelist of variables and functions | No `eval`, no reflection |
+| Formula engine (payroll) | Gebeta's own parser (`Gebeta.Payroll.Domain.Formulas`) | ERPNext/Python formula syntax, exact decimals, whitelisted names and functions; no `eval`, no reflection |
 | PDF | QuestPDF | Payslips, invoices, print formats |
 | Excel | ClosedXML | Import and export |
 | Logging / tracing | Serilog, OpenTelemetry | |

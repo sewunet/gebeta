@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Payroll.Infrastructure</RootNamespace>
+    <Description>Payroll composition root (PayrollModule); persistence follows in the next step.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Gebeta.Payroll.Application\Gebeta.Payroll.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Payroll.Presentation\Gebeta.Payroll.Presentation.csproj" />
+  </ItemGroup>
+</Project>

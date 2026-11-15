@@ -14,5 +14,6 @@
     <ProjectReference Include="..\BuildingBlocks\Gebeta.Modularity\Gebeta.Modularity.csproj" />
     <ProjectReference Include="..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
     <ProjectReference Include="..\Modules\Core\Gebeta.Core.Infrastructure\Gebeta.Core.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Payroll\Gebeta.Payroll.Infrastructure\Gebeta.Payroll.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

@@ -21,7 +21,7 @@ dedicated opening-balance import.
 | 1 | Companies, branches, departments, cost centres, fiscal years | Counts |
 | 2 | Users, roles, record restrictions | Counts, sample logins |
 | 3 | Employees and HR masters (grades, steps, levels) | Counts, sample comparison |
-| 4 | Salary components, structures, assignments; formulas converted to the new syntax | Recalculate last month's slips in Gebeta = ERPNext slips |
+| 4 | Salary components, structures, assignments; formulas copied as they are (same syntax) | Recalculate last month's slips in Gebeta = ERPNext slips |
 | 5 | Salary slip history (read-only, for back payment and reports) | Sum of net pay per month |
 | 6 | Leave ledger | Balance per employee per leave type |
 | 7 | Chart of accounts, opening balances per company at cut-over | Trial balance at cut-over date |
@@ -29,13 +29,13 @@ dedicated opening-balance import.
 | 9 | Items, warehouses, opening stock with valuation (FIFO queues) | Stock value per warehouse = GL stock account |
 | 10 | Open orders, BOMs, work orders, assets | Counts and values |
 
-## Formula conversion
+## Formulas
 
-ERPNext salary formulas are Python expressions. The converter:
-- translates `a if cond else b` (also nested) to `if(cond, a, b)`;
-- maps `and`/`or`/`not`, `round()`, `min()`, `max()`;
-- **refuses** anything else (function calls, attribute access) and lists it for manual rewrite;
-- is checked by recalculating real slips (step 4).
+Gebeta's formula engine reads the ERPNext (Python) formula syntax, so salary formulas are copied
+unchanged. The migration tool:
+- parses every formula and condition and lists the ones that use anything outside the allowed names
+  and functions (for example attribute access such as `doc.x`), for manual rewrite;
+- recalculates real slips in Gebeta and compares them with ERPNext (step 4).
 
 ## Cut-over checklist (per module)
 

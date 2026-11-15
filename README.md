@@ -96,7 +96,7 @@ Requires the .NET 10 SDK (`global.json` pins the version).
 
 ```bash
 dotnet build Gebeta.slnx
-dotnet test --solution Gebeta.slnx       # API tests start a throw-away PostgreSQL in Docker
+dotnet test --solution Gebeta.slnx --max-parallel-test-modules 2   # container tests start PostgreSQL/RabbitMQ in Docker
 dotnet run --project src/Gebeta.Api      # http://localhost:5080/api/modules
 ```
 

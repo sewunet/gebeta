@@ -46,7 +46,7 @@ public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory
 
         var body = await client.GetFromJsonAsync<ModulesResponse>(new Uri("/api/modules", UriKind.Relative), Ct);
 
-        Assert.Equal("core", Assert.Single(body!.Modules).Id);
+        Assert.Equal("core", body!.Modules[0].Id);
     }
 
     [Fact]
@@ -319,6 +319,39 @@ public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory
         using var stranger = factory.ClientFor("stranger");
 
         Assert.Equal(HttpStatusCode.Forbidden, (await stranger.GetAsync(new Uri("/api/core/holidays/2019", UriKind.Relative), Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task The_payroll_calculator_uses_the_ethiopian_standard_structure()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+
+        var response = await admin.PostAsJsonAsync(new Uri("/api/payroll/calculator", UriKind.Relative),
+            new { @base = 13000, payrollDate = "2026-11-30" }, Ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var slip = await response.Content.ReadFromJsonAsync<Gebeta.Payroll.Contracts.SalaryCalculationDto>(Ct);
+        Assert.Equal(9540m, slip!.NetPay);
+        Assert.Equal(1430m, slip.EmployerContributions);
+        Assert.Equal("ET-EMP-2025", slip.TaxTable);
+
+        var bad = await admin.PostAsJsonAsync(new Uri("/api/payroll/calculator", UriKind.Relative), new
+        {
+            @base = 1000,
+            payrollDate = "2026-11-30",
+            components = new[] { new { name = "Loop", abbreviation = "A", type = "Earning", formula = "A + 1" } },
+        }, Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+    }
+
+    [Fact]
+    public async Task Payroll_is_listed_as_an_installed_module()
+    {
+        using var client = factory.ClientFor("module-checker");
+
+        var body = await client.GetFromJsonAsync<ModulesResponse>(new Uri("/api/modules", UriKind.Relative), Ct);
+
+        Assert.Contains(body!.Modules, m => m.Id == "payroll" && m.Enhances.Contains("hr"));
     }
 
     [Fact]

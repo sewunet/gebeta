@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Payroll.Domain</RootNamespace>
+    <Description>Payroll rules: formula engine, Ethiopian income tax tables, salary structures and slip calculation.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.SharedKernel\Gebeta.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

@@ -17,12 +17,20 @@
     <Project Path="src/Modules/Core/Gebeta.Core.Infrastructure/Gebeta.Core.Infrastructure.csproj" />
     <Project Path="src/Modules/Core/Gebeta.Core.Presentation/Gebeta.Core.Presentation.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Payroll/">
+    <Project Path="src/Modules/Payroll/Gebeta.Payroll.Application/Gebeta.Payroll.Application.csproj" />
+    <Project Path="src/Modules/Payroll/Gebeta.Payroll.Contracts/Gebeta.Payroll.Contracts.csproj" />
+    <Project Path="src/Modules/Payroll/Gebeta.Payroll.Domain/Gebeta.Payroll.Domain.csproj" />
+    <Project Path="src/Modules/Payroll/Gebeta.Payroll.Infrastructure/Gebeta.Payroll.Infrastructure.csproj" />
+    <Project Path="src/Modules/Payroll/Gebeta.Payroll.Presentation/Gebeta.Payroll.Presentation.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Gebeta.Api.Tests/Gebeta.Api.Tests.csproj" />
     <Project Path="tests/Gebeta.ArchitectureTests/Gebeta.ArchitectureTests.csproj" />
     <Project Path="tests/Gebeta.Core.Tests/Gebeta.Core.Tests.csproj" />
     <Project Path="tests/Gebeta.Messaging.Tests/Gebeta.Messaging.Tests.csproj" />
     <Project Path="tests/Gebeta.Modularity.Tests/Gebeta.Modularity.Tests.csproj" />
+    <Project Path="tests/Gebeta.Payroll.Tests/Gebeta.Payroll.Tests.csproj" />
     <Project Path="tests/Gebeta.Persistence.Tests/Gebeta.Persistence.Tests.csproj" />
     <Project Path="tests/Gebeta.SharedKernel.Tests/Gebeta.SharedKernel.Tests.csproj" />
   </Folder>

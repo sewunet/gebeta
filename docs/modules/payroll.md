@@ -20,16 +20,20 @@ taxable or not, depends on payment days, formula or fixed amount, condition, acc
 
 ### Formula engine
 
-- Expressions like `base`, `BS * 0.07`, `0 if BS <= 2000 else BS*0.15 - 300 ...`.
-- Implemented on NCalc behind `IFormulaEngine`:
-  - only whitelisted variables: component abbreviations, `base`, `payment_days`, `total_working_days`,
-    employee fields (grade, step, branch), and settings;
-  - only whitelisted functions: `if`, `min`, `max`, `round`, `floor`, `ceil`, `abs`;
-  - all numbers evaluated as `decimal`;
-  - a timeout and a size limit.
-- Components are evaluated in dependency order (topological sort of abbreviations), and a cycle is
-  a validation error when the structure is saved.
-- Python-style `x if c else y` from ERPNext is converted to `if(c, x, y)` by the migration tool.
+Built in Gebeta (`Gebeta.Payroll.Domain.Formulas.Formula`), no external library:
+- the **same syntax as ERPNext salary formulas** (a Python subset), so existing formulas such as
+  `0 if BS <= 2000 else BS*0.15 - 300 if BS <= 4000 else ...` run unchanged and need no conversion;
+- every number is a `decimal`; rounding is half away from zero;
+- only these names exist: component abbreviations, `base`, `payment_days`, `total_working_days`,
+  declared employee variables, and for deductions `gross_pay` and `taxable_earnings`;
+- only these functions: `if`, `min`, `max`, `round`, `flt`, `floor`, `ceil`, `abs`, `int`, and
+  `income_tax(x)` (the table valid on the payroll date);
+- no attribute access, imports or statements; length (2,000 characters) and nesting are limited;
+- components are evaluated in dependency order; a circle, an unknown name or an earning that reads a
+  deduction is a validation error when the structure is saved.
+
+A parity test runs the current ERPNext income tax formula through the engine for every amount from
+0 to 20,000 birr in steps of 0.50 and compares it with Gebeta's tax table.
 
 ## Income tax and pension (Ethiopia)
 

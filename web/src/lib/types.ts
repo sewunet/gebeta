@@ -33,3 +33,31 @@ export type PayrollRunDto = {
 
 export const can = (me: MeDto | undefined, permission: string) =>
   !!me?.permissions.some((p) => p === "*" || p === permission || (p.endsWith(".*") && permission.startsWith(p.slice(0, -1))));
+
+export type LeaveApplicationDto = {
+  id: string; number?: string; companyId: string; employeeId: string; employeeName: string; type: string;
+  fromDate: string; toDate: string; days: number; isPaid: boolean; reason?: string; status: string; approvedBy?: string;
+};
+export type LeaveBalanceDto = { type: string; allocated: number; taken: number; balance: number };
+export type AttendanceDto = { employeeId: string; date: string; status: string };
+export type CashierDto = {
+  id: string; companyId: string; code: string; name: string; type: string; status: string; cashAccountCode: string;
+  autoTopUp: boolean; maxTransaction?: number; maxWithdrawal?: number; maxDeposit?: number; balance: number;
+};
+export type CashLedgerEntryDto = { date: string; kind: string; sourceNumber: string; description: string; amount: number; balanceAfter: number };
+export type PettyCashRequestDto = {
+  id: string; number?: string; cashierId: string; cashierName: string; requestedAmount: number; balanceWhenRequested: number;
+  createdBySystem: boolean; status: string; fundingFrom?: string; sourceAccountCode?: string; fundingCashierId?: string;
+  approvedBy?: string; rejectionReason?: string;
+};
+export type CashMovementDto = { number: string; cashierId: string; kind: string; amount: number; balanceAfter: number; topUpRequest?: PettyCashRequestDto };
+export type AccountDto = { id: string; code: string; name: string; rootType: string; isGroup: boolean; parentId?: string };
+export type JournalLineDto = { accountCode: string; accountName: string; debit: number; credit: number; description?: string };
+export type JournalEntryDto = {
+  id: string; number?: string; companyId: string; postingDate: string; remark: string; source: string; sourceNumber?: string;
+  status: string; lines: JournalLineDto[]; totalDebit: number; totalCredit: number;
+};
+export type TrialBalanceDto = {
+  companyId: string; asOf: string; totalDebit: number; totalCredit: number;
+  rows: { code: string; name: string; rootType: string; debit: number; credit: number; balance: number }[];
+};

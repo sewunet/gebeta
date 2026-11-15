@@ -1,34 +1,201 @@
 {
-  "app": { "name": "Gebeta ERP", "by": "by Abay Systems" },
+  "app": {
+    "name": "Gebeta ERP",
+    "by": "by Abay Systems"
+  },
   "nav": {
-    "dashboard": "Dashboard", "core": "Core", "companies": "Companies", "employees": "Employees",
-    "payroll": "Payroll", "salarySlips": "Salary slips", "payrollRun": "Payroll run", "calculator": "Salary calculator"
+    "dashboard": "Dashboard",
+    "core": "Core",
+    "companies": "Companies",
+    "employees": "Employees",
+    "payroll": "Payroll",
+    "salarySlips": "Salary slips",
+    "payrollRun": "Payroll run",
+    "calculator": "Salary calculator",
+    "hr": "HR",
+    "leave": "Leave",
+    "attendance": "Attendance",
+    "cash": "Cash",
+    "cashiers": "Cashiers",
+    "pettyCash": "Petty cash",
+    "accounting": "Accounting",
+    "accounts": "Chart of accounts",
+    "journals": "Journals",
+    "trialBalance": "Trial balance"
   },
   "common": {
-    "company": "Company", "month": "Month", "signOut": "Sign out", "language": "Language", "calendar": "Calendar",
-    "loading": "Loading…", "empty": "Nothing here yet.", "total": "Total", "save": "Save", "cancel": "Cancel",
-    "noCompany": "Choose a company first.", "error": "Something went wrong"
+    "company": "Company",
+    "month": "Month",
+    "signOut": "Sign out",
+    "language": "Language",
+    "calendar": "Calendar",
+    "loading": "Loading…",
+    "empty": "Nothing here yet.",
+    "total": "Total",
+    "save": "Save",
+    "cancel": "Cancel",
+    "noCompany": "Choose a company first.",
+    "error": "Something went wrong"
   },
-  "calendar": { "Ethiopian": "Ethiopian", "Gregorian": "Gregorian", "Both": "Both" },
-  "status": { "Draft": "Draft", "Submitted": "Submitted", "Cancelled": "Cancelled", "Active": "Active", "Left": "Left", "Suspended": "Suspended" },
+  "calendar": {
+    "Ethiopian": "Ethiopian",
+    "Gregorian": "Gregorian",
+    "Both": "Both"
+  },
+  "status": {
+    "Draft": "Draft",
+    "Submitted": "Submitted",
+    "Cancelled": "Cancelled",
+    "Active": "Active",
+    "Left": "Left",
+    "Suspended": "Suspended"
+  },
   "dashboard": {
-    "welcome": "Welcome, {{name}}", "today": "Today", "fiscalYear": "Fiscal year", "fiscalYearValue": "FY {{year}} E.C.",
-    "companies": "Companies", "employees": "Employees", "modules": "Installed modules"
+    "welcome": "Welcome, {{name}}",
+    "today": "Today",
+    "fiscalYear": "Fiscal year",
+    "fiscalYearValue": "FY {{year}} E.C.",
+    "companies": "Companies",
+    "employees": "Employees",
+    "modules": "Installed modules"
   },
   "fields": {
-    "name": "Name", "abbreviation": "Abbreviation", "tin": "TIN", "legalForm": "Legal form", "currency": "Currency",
-    "fiscalYear": "Fiscal year", "number": "No.", "employee": "Employee", "firstName": "Given name", "fatherName": "Father's name",
-    "grandfatherName": "Grandfather's name", "gender": "Gender", "joined": "Joined", "status": "Status", "period": "Period",
-    "gross": "Gross pay", "deductions": "Deductions", "net": "Net pay", "tax": "Income tax", "employer": "Employer contributions",
-    "base": "Basic salary", "paymentDays": "Payment days", "component": "Component", "type": "Type", "amount": "Amount",
-    "payrollDate": "Payroll date", "taxTable": "Tax table", "female": "Female", "male": "Male"
+    "name": "Name",
+    "abbreviation": "Abbreviation",
+    "tin": "TIN",
+    "legalForm": "Legal form",
+    "currency": "Currency",
+    "fiscalYear": "Fiscal year",
+    "number": "No.",
+    "employee": "Employee",
+    "firstName": "Given name",
+    "fatherName": "Father's name",
+    "grandfatherName": "Grandfather's name",
+    "gender": "Gender",
+    "joined": "Joined",
+    "status": "Status",
+    "period": "Period",
+    "gross": "Gross pay",
+    "deductions": "Deductions",
+    "net": "Net pay",
+    "tax": "Income tax",
+    "employer": "Employer contributions",
+    "base": "Basic salary",
+    "paymentDays": "Payment days",
+    "component": "Component",
+    "type": "Type",
+    "amount": "Amount",
+    "payrollDate": "Payroll date",
+    "taxTable": "Tax table",
+    "female": "Female",
+    "male": "Male"
   },
-  "employees": { "add": "Add employee", "added": "Employee {{number}} added." },
-  "slips": { "submit": "Submit", "cancelSlip": "Cancel slip", "back": "All salary slips", "lines": "Lines" },
+  "employees": {
+    "add": "Add employee",
+    "added": "Employee {{number}} added."
+  },
+  "slips": {
+    "submit": "Submit",
+    "cancelSlip": "Cancel slip",
+    "back": "All salary slips",
+    "lines": "Lines"
+  },
   "run": {
-    "create": "Start payroll run", "generate": "Prepare salary slips", "submit": "Submit all slips", "issues": "Not paid",
-    "reports": "Monthly reports", "incomeTax": "Income tax declaration", "pension": "Pension schedule", "bank": "Bank transfer list",
-    "slips": "Slips", "explain": "Prepares a salary slip for every employee employed in the month, then submits them together."
+    "create": "Start payroll run",
+    "generate": "Prepare salary slips",
+    "submit": "Submit all slips",
+    "issues": "Not paid",
+    "reports": "Monthly reports",
+    "incomeTax": "Income tax declaration",
+    "pension": "Pension schedule",
+    "bank": "Bank transfer list",
+    "slips": "Slips",
+    "explain": "Prepares a salary slip for every employee employed in the month, then submits them together."
   },
-  "calculator": { "calculate": "Calculate", "explain": "Standard Ethiopian structure: basic salary, income tax, 7% employee and 11% employer pension." }
+  "calculator": {
+    "calculate": "Calculate",
+    "explain": "Standard Ethiopian structure: basic salary, income tax, 7% employee and 11% employer pension."
+  },
+  "leave": {
+    "apply": "Apply for leave",
+    "type": "Leave type",
+    "from": "From",
+    "to": "To",
+    "days": "Days",
+    "reason": "Reason",
+    "approve": "Approve",
+    "cancel": "Cancel",
+    "allocate": "Allocate annual leave",
+    "fiscalYear": "Fiscal year (E.C.)",
+    "allocated": "{{count}} employees received {{days}} days.",
+    "balance": "Leave balance",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "types": {
+      "Annual": "Annual",
+      "Sick": "Sick",
+      "Maternity": "Maternity",
+      "Paternity": "Paternity",
+      "Marriage": "Marriage",
+      "Bereavement": "Bereavement",
+      "Unpaid": "Unpaid"
+    }
+  },
+  "attendance": {
+    "mark": "Record attendance",
+    "date": "Date",
+    "Present": "Present",
+    "Absent": "Absent",
+    "HalfDay": "Half day",
+    "explain": "Only exceptions are recorded; other days count as present."
+  },
+  "cash": {
+    "addCashier": "Add cashier",
+    "code": "Code",
+    "balance": "Balance",
+    "receipt": "Receipt",
+    "payment": "Payment",
+    "transfer": "Transfer",
+    "amount": "Amount",
+    "account": "Other account",
+    "description": "Description",
+    "to": "To cashier",
+    "ledger": "Ledger",
+    "approve": "Approve",
+    "reject": "Reject",
+    "fundingFrom": "Funding from",
+    "sourceAccount": "Source account",
+    "fundingCashier": "Funding cashier",
+    "reason": "Reason",
+    "system": "Automatic",
+    "request": "Request petty cash",
+    "types": {
+      "SalesCashier": "Sales cashier",
+      "PettyCashier": "Petty cashier",
+      "Other": "Other"
+    },
+    "statuses": {
+      "Pending": "Pending",
+      "ApprovedAndPaid": "Approved and paid",
+      "Rejected": "Rejected",
+      "Draft": "Draft",
+      "Cancelled": "Cancelled"
+    },
+    "topUp": "Automatic top-up requested: {{amount}}",
+    "autoTopUp": "Automatic top-up"
+  },
+  "acc": {
+    "code": "Code",
+    "rootType": "Type",
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance",
+    "asOf": "As of",
+    "newJournal": "New journal",
+    "remark": "Remark",
+    "addLine": "Add line",
+    "source": "Source",
+    "setUpChart": "Set up chart of accounts",
+    "noChart": "This company has no chart of accounts yet."
+  }
 }

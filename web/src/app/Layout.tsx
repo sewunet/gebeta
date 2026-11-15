@@ -9,7 +9,8 @@ export function Layout() {
   const { t } = useTranslation();
   const { signOut } = useAuth();
   const { me, modules, companies, company, setCompanyId, savePreferences } = useSession();
-  const hasPayroll = modules.some((m) => m.id === "payroll");
+  const has = (id: string) => modules.some((m) => m.id === id);
+  const hasPayroll = has("payroll");
 
   return (
     <div className="shell">
@@ -32,6 +33,28 @@ export function Layout() {
               {can(me, "payroll.salary-slips.read") && <Link to="/payroll/slips" className="nav-link">{t("nav.salarySlips")}</Link>}
               {can(me, "payroll.runs.read") && <Link to="/payroll/run" className="nav-link">{t("nav.payrollRun")}</Link>}
               {can(me, "payroll.calculator.use") && <Link to="/payroll/calculator" className="nav-link">{t("nav.calculator")}</Link>}
+            </>
+          )}
+          {has("hr") && (
+            <>
+              <div className="nav-group">{t("nav.hr")}</div>
+              {can(me, "hr.leave.read") && <Link to="/hr/leave" className="nav-link">{t("nav.leave")}</Link>}
+              {can(me, "hr.attendance.read") && <Link to="/hr/attendance" className="nav-link">{t("nav.attendance")}</Link>}
+            </>
+          )}
+          {has("cash") && (
+            <>
+              <div className="nav-group">{t("nav.cash")}</div>
+              {can(me, "cash.cashiers.read") && <Link to="/cash/cashiers" className="nav-link">{t("nav.cashiers")}</Link>}
+              {can(me, "cash.cashiers.read") && <Link to="/cash/petty-cash" className="nav-link">{t("nav.pettyCash")}</Link>}
+            </>
+          )}
+          {has("accounting") && (
+            <>
+              <div className="nav-group">{t("nav.accounting")}</div>
+              {can(me, "accounting.accounts.read") && <Link to="/accounting/accounts" className="nav-link">{t("nav.accounts")}</Link>}
+              {can(me, "accounting.journals.read") && <Link to="/accounting/journals" className="nav-link">{t("nav.journals")}</Link>}
+              {can(me, "accounting.reports.read") && <Link to="/accounting/trial-balance" className="nav-link">{t("nav.trialBalance")}</Link>}
             </>
           )}
         </nav>

@@ -1,34 +1,201 @@
 {
-  "app": { "name": "ገበታ ኢአርፒ", "by": "በዓባይ ሲስተምስ" },
+  "app": {
+    "name": "ገበታ ኢአርፒ",
+    "by": "በዓባይ ሲስተምስ"
+  },
   "nav": {
-    "dashboard": "ዋና ገጽ", "core": "መሠረታዊ", "companies": "ኩባንያዎች", "employees": "ሠራተኞች",
-    "payroll": "ደመወዝ", "salarySlips": "የደመወዝ ወረቀቶች", "payrollRun": "የወር ደመወዝ ክፍያ", "calculator": "የደመወዝ ማስያ"
+    "dashboard": "ዋና ገጽ",
+    "core": "መሠረታዊ",
+    "companies": "ኩባንያዎች",
+    "employees": "ሠራተኞች",
+    "payroll": "ደመወዝ",
+    "salarySlips": "የደመወዝ ወረቀቶች",
+    "payrollRun": "የወር ደመወዝ ክፍያ",
+    "calculator": "የደመወዝ ማስያ",
+    "hr": "የሰው ኃይል",
+    "leave": "ፈቃድ",
+    "attendance": "መገኘት",
+    "cash": "ጥሬ ገንዘብ",
+    "cashiers": "ገንዘብ ያዦች",
+    "pettyCash": "አነስተኛ ወጪ ገንዘብ",
+    "accounting": "ሂሳብ",
+    "accounts": "የሂሳብ መደቦች",
+    "journals": "የሂሳብ መዝገቦች",
+    "trialBalance": "የሙከራ ሚዛን"
   },
   "common": {
-    "company": "ኩባንያ", "month": "ወር", "signOut": "ውጣ", "language": "ቋንቋ", "calendar": "የቀን አቆጣጠር",
-    "loading": "በመጫን ላይ…", "empty": "እስካሁን ምንም የለም።", "total": "ድምር", "save": "አስቀምጥ", "cancel": "ተው",
-    "noCompany": "መጀመሪያ ኩባንያ ይምረጡ።", "error": "ስህተት ተፈጥሯል"
+    "company": "ኩባንያ",
+    "month": "ወር",
+    "signOut": "ውጣ",
+    "language": "ቋንቋ",
+    "calendar": "የቀን አቆጣጠር",
+    "loading": "በመጫን ላይ…",
+    "empty": "እስካሁን ምንም የለም።",
+    "total": "ድምር",
+    "save": "አስቀምጥ",
+    "cancel": "ተው",
+    "noCompany": "መጀመሪያ ኩባንያ ይምረጡ።",
+    "error": "ስህተት ተፈጥሯል"
   },
-  "calendar": { "Ethiopian": "ኢትዮጵያዊ", "Gregorian": "ግሪጎሪያን", "Both": "ሁለቱም" },
-  "status": { "Draft": "ረቂቅ", "Submitted": "የቀረበ", "Cancelled": "የተሰረዘ", "Active": "በሥራ ላይ", "Left": "የለቀቀ", "Suspended": "የታገደ" },
+  "calendar": {
+    "Ethiopian": "ኢትዮጵያዊ",
+    "Gregorian": "ግሪጎሪያን",
+    "Both": "ሁለቱም"
+  },
+  "status": {
+    "Draft": "ረቂቅ",
+    "Submitted": "የቀረበ",
+    "Cancelled": "የተሰረዘ",
+    "Active": "በሥራ ላይ",
+    "Left": "የለቀቀ",
+    "Suspended": "የታገደ"
+  },
   "dashboard": {
-    "welcome": "እንኳን ደህና መጡ፣ {{name}}", "today": "ዛሬ", "fiscalYear": "በጀት ዓመት", "fiscalYearValue": "{{year}} ዓ.ም. በጀት ዓመት",
-    "companies": "ኩባንያዎች", "employees": "ሠራተኞች", "modules": "የተጫኑ ሞጁሎች"
+    "welcome": "እንኳን ደህና መጡ፣ {{name}}",
+    "today": "ዛሬ",
+    "fiscalYear": "በጀት ዓመት",
+    "fiscalYearValue": "{{year}} ዓ.ም. በጀት ዓመት",
+    "companies": "ኩባንያዎች",
+    "employees": "ሠራተኞች",
+    "modules": "የተጫኑ ሞጁሎች"
   },
   "fields": {
-    "name": "ስም", "abbreviation": "አህጽሮት", "tin": "የግብር ከፋይ መለያ ቁጥር", "legalForm": "የድርጅት ዓይነት", "currency": "ገንዘብ",
-    "fiscalYear": "በጀት ዓመት", "number": "ቁጥር", "employee": "ሠራተኛ", "firstName": "ስም", "fatherName": "የአባት ስም",
-    "grandfatherName": "የአያት ስም", "gender": "ጾታ", "joined": "የተቀጠሩበት", "status": "ሁኔታ", "period": "ወቅት",
-    "gross": "ጠቅላላ ገቢ", "deductions": "ተቀናሾች", "net": "የተጣራ ክፍያ", "tax": "የገቢ ግብር", "employer": "የአሠሪ መዋጮ",
-    "base": "መሠረታዊ ደመወዝ", "paymentDays": "የክፍያ ቀናት", "component": "ዝርዝር", "type": "ዓይነት", "amount": "መጠን",
-    "payrollDate": "የክፍያ ቀን", "taxTable": "የግብር ሰንጠረዥ", "female": "ሴት", "male": "ወንድ"
+    "name": "ስም",
+    "abbreviation": "አህጽሮት",
+    "tin": "የግብር ከፋይ መለያ ቁጥር",
+    "legalForm": "የድርጅት ዓይነት",
+    "currency": "ገንዘብ",
+    "fiscalYear": "በጀት ዓመት",
+    "number": "ቁጥር",
+    "employee": "ሠራተኛ",
+    "firstName": "ስም",
+    "fatherName": "የአባት ስም",
+    "grandfatherName": "የአያት ስም",
+    "gender": "ጾታ",
+    "joined": "የተቀጠሩበት",
+    "status": "ሁኔታ",
+    "period": "ወቅት",
+    "gross": "ጠቅላላ ገቢ",
+    "deductions": "ተቀናሾች",
+    "net": "የተጣራ ክፍያ",
+    "tax": "የገቢ ግብር",
+    "employer": "የአሠሪ መዋጮ",
+    "base": "መሠረታዊ ደመወዝ",
+    "paymentDays": "የክፍያ ቀናት",
+    "component": "ዝርዝር",
+    "type": "ዓይነት",
+    "amount": "መጠን",
+    "payrollDate": "የክፍያ ቀን",
+    "taxTable": "የግብር ሰንጠረዥ",
+    "female": "ሴት",
+    "male": "ወንድ"
   },
-  "employees": { "add": "ሠራተኛ ጨምር", "added": "ሠራተኛ {{number}} ተጨምሯል።" },
-  "slips": { "submit": "አቅርብ", "cancelSlip": "ሰርዝ", "back": "ሁሉም የደመወዝ ወረቀቶች", "lines": "ዝርዝሮች" },
+  "employees": {
+    "add": "ሠራተኛ ጨምር",
+    "added": "ሠራተኛ {{number}} ተጨምሯል።"
+  },
+  "slips": {
+    "submit": "አቅርብ",
+    "cancelSlip": "ሰርዝ",
+    "back": "ሁሉም የደመወዝ ወረቀቶች",
+    "lines": "ዝርዝሮች"
+  },
   "run": {
-    "create": "የወር ደመወዝ ክፍያ ጀምር", "generate": "የደመወዝ ወረቀቶችን አዘጋጅ", "submit": "ሁሉንም አቅርብ", "issues": "ያልተከፈላቸው",
-    "reports": "ወርሃዊ ሪፖርቶች", "incomeTax": "የገቢ ግብር ማሳወቂያ", "pension": "የጡረታ መዋጮ ዝርዝር", "bank": "የባንክ ዝውውር ዝርዝር",
-    "slips": "ወረቀቶች", "explain": "በወሩ ለተቀጠሩ ሠራተኞች ሁሉ የደመወዝ ወረቀት ያዘጋጃል፣ ከዚያም በአንድ ላይ ያቀርባል።"
+    "create": "የወር ደመወዝ ክፍያ ጀምር",
+    "generate": "የደመወዝ ወረቀቶችን አዘጋጅ",
+    "submit": "ሁሉንም አቅርብ",
+    "issues": "ያልተከፈላቸው",
+    "reports": "ወርሃዊ ሪፖርቶች",
+    "incomeTax": "የገቢ ግብር ማሳወቂያ",
+    "pension": "የጡረታ መዋጮ ዝርዝር",
+    "bank": "የባንክ ዝውውር ዝርዝር",
+    "slips": "ወረቀቶች",
+    "explain": "በወሩ ለተቀጠሩ ሠራተኞች ሁሉ የደመወዝ ወረቀት ያዘጋጃል፣ ከዚያም በአንድ ላይ ያቀርባል።"
   },
-  "calculator": { "calculate": "አስላ", "explain": "መደበኛ የኢትዮጵያ መዋቅር፦ መሠረታዊ ደመወዝ፣ የገቢ ግብር፣ 7% የሠራተኛ እና 11% የአሠሪ ጡረታ።" }
+  "calculator": {
+    "calculate": "አስላ",
+    "explain": "መደበኛ የኢትዮጵያ መዋቅር፦ መሠረታዊ ደመወዝ፣ የገቢ ግብር፣ 7% የሠራተኛ እና 11% የአሠሪ ጡረታ።"
+  },
+  "leave": {
+    "apply": "ፈቃድ ጠይቅ",
+    "type": "የፈቃድ ዓይነት",
+    "from": "ከ",
+    "to": "እስከ",
+    "days": "ቀናት",
+    "reason": "ምክንያት",
+    "approve": "አጽድቅ",
+    "cancel": "ሰርዝ",
+    "allocate": "የዓመት ፈቃድ መድብ",
+    "fiscalYear": "በጀት ዓመት (ዓ.ም.)",
+    "allocated": "{{count}} ሠራተኞች {{days}} ቀናት ተመድበዋል።",
+    "balance": "የፈቃድ ቀሪ",
+    "paid": "የሚከፈልበት",
+    "unpaid": "ያለ ክፍያ",
+    "types": {
+      "Annual": "የዓመት",
+      "Sick": "የሕመም",
+      "Maternity": "የወሊድ",
+      "Paternity": "የአባትነት",
+      "Marriage": "የጋብቻ",
+      "Bereavement": "የሐዘን",
+      "Unpaid": "ያለ ክፍያ"
+    }
+  },
+  "attendance": {
+    "mark": "መገኘት መዝግብ",
+    "date": "ቀን",
+    "Present": "ተገኝቷል",
+    "Absent": "ቀርቷል",
+    "HalfDay": "ግማሽ ቀን",
+    "explain": "የሚመዘገቡት ልዩ ሁኔታዎች ብቻ ናቸው፤ ሌሎች ቀናት እንደተገኙ ይቆጠራሉ።"
+  },
+  "cash": {
+    "addCashier": "ገንዘብ ያዥ ጨምር",
+    "code": "መለያ",
+    "balance": "ቀሪ ሂሳብ",
+    "receipt": "ገቢ",
+    "payment": "ወጪ",
+    "transfer": "ዝውውር",
+    "amount": "መጠን",
+    "account": "ተዛማጅ ሂሳብ",
+    "description": "መግለጫ",
+    "to": "ለገንዘብ ያዥ",
+    "ledger": "መዝገብ",
+    "approve": "አጽድቅ",
+    "reject": "ውድቅ አድርግ",
+    "fundingFrom": "ገንዘቡ የሚመጣው ከ",
+    "sourceAccount": "ምንጭ ሂሳብ",
+    "fundingCashier": "አቅራቢ ገንዘብ ያዥ",
+    "reason": "ምክንያት",
+    "system": "በራስ-ሰር",
+    "request": "አነስተኛ ወጪ ገንዘብ ጠይቅ",
+    "types": {
+      "SalesCashier": "የሽያጭ ገንዘብ ያዥ",
+      "PettyCashier": "የአነስተኛ ወጪ ገንዘብ ያዥ",
+      "Other": "ሌላ"
+    },
+    "statuses": {
+      "Pending": "በመጠባበቅ ላይ",
+      "ApprovedAndPaid": "ጸድቆ ተከፍሏል",
+      "Rejected": "ውድቅ ተደርጓል",
+      "Draft": "ረቂቅ",
+      "Cancelled": "ተሰርዟል"
+    },
+    "topUp": "በራስ-ሰር የመሙላት ጥያቄ ቀርቧል፦ {{amount}}",
+    "autoTopUp": "በራስ-ሰር መሙላት"
+  },
+  "acc": {
+    "code": "ኮድ",
+    "rootType": "ዓይነት",
+    "debit": "ዴቢት",
+    "credit": "ክሬዲት",
+    "balance": "ቀሪ",
+    "asOf": "እስከ",
+    "newJournal": "አዲስ መዝገብ",
+    "remark": "ማብራሪያ",
+    "addLine": "መስመር ጨምር",
+    "source": "ምንጭ",
+    "setUpChart": "የሂሳብ መደቦችን አዘጋጅ",
+    "noChart": "ይህ ኩባንያ እስካሁን የሂሳብ መደቦች የሉትም።"
+  }
 }

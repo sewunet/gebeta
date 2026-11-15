@@ -240,6 +240,8 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Gebeta.Acc
         builder.Property(i => i.PartyName).HasMaxLength(140).IsRequired();
         builder.Property(i => i.PartyTin).HasMaxLength(10);
         builder.Property(i => i.SupplierInvoiceNumber).HasMaxLength(60);
+        builder.Property(i => i.ReturnAgainstNumber).HasMaxLength(60);
+        builder.HasIndex(i => i.ReturnAgainstId).HasFilter("return_against_id IS NOT NULL");
         foreach (var money in new[] { "NetTotal", "VatAmount", "WithholdingAmount", "Outstanding" })
         {
             builder.Property(money).HasPrecision(21, 2);
@@ -294,6 +296,17 @@ internal sealed class InvoiceRepository(AccountingDbContext db) : Gebeta.Account
     public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Invoicing.Payment>> PaymentsAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
         await db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().AsNoTracking()
             .Where(p => p.CompanyId == companyId && p.PostingDate >= from && p.PostingDate <= to).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<Gebeta.Accounting.Domain.Invoicing.Payment?> GetPaymentAsync(Guid id, CancellationToken cancellationToken) =>
+        db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Invoicing.Payment>> PaymentsForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken) =>
+        await db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().AsNoTracking().Where(p => p.InvoiceId == invoiceId)
+            .OrderBy(p => p.PostingDate).ThenBy(p => p.Name).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Invoicing.Invoice>> ReturnsAgainstAsync(Guid invoiceId, CancellationToken cancellationToken) =>
+        await db.Set<Gebeta.Accounting.Domain.Invoicing.Invoice>().AsNoTracking().Where(i => i.ReturnAgainstId == invoiceId)
+            .OrderBy(i => i.PostingDate).ThenBy(i => i.Name).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public void Add(Gebeta.Accounting.Domain.Invoicing.Invoice invoice) => db.Set<Gebeta.Accounting.Domain.Invoicing.Invoice>().Add(invoice);
 

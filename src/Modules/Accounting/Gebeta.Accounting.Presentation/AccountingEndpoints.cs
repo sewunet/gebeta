@@ -65,6 +65,22 @@ public static class AccountingEndpoints
         acc.MapPost("/invoices/{id:guid}/cancel", async (Guid id, ICommandHandler<CancelInvoiceCommand, InvoiceDto> h, CancellationToken ct) =>
                 (await h.Handle(new CancelInvoiceCommand(id), ct).ConfigureAwait(false)).ToHttp())
             .WithName("CancelInvoice").RequirePermission(InvoicingPermissions.InvoicesSubmit);
+        acc.MapPost("/invoices/{id:guid}/return", async (Guid id, ReturnRequest body, ICommandHandler<CreateReturnCommand, InvoiceDto> h, CancellationToken ct) =>
+                (await h.Handle(new CreateReturnCommand(id, body.PostingDate, body.Lines), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateReturn").RequirePermission(InvoicingPermissions.InvoicesCreate);
+        acc.MapPost("/invoices/opening", async (CreateOpeningInvoiceCommand command, ICommandHandler<CreateOpeningInvoiceCommand, InvoiceDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateOpeningInvoice").RequirePermission(AccountingPermissions.PeriodsClose);
+        acc.MapGet("/invoices/{id:guid}/payments", async (Guid id, IQueryHandler<ListInvoicePaymentsQuery, IReadOnlyList<PaymentDto>> h, CancellationToken ct) =>
+                (await h.Handle(new ListInvoicePaymentsQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListInvoicePayments").RequirePermission(InvoicingPermissions.InvoicesRead);
+        acc.MapPost("/payments/{id:guid}/cancel", async (Guid id, ICommandHandler<CancelPaymentCommand, PaymentDto> h, CancellationToken ct) =>
+                (await h.Handle(new CancelPaymentCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CancelPayment").RequirePermission(InvoicingPermissions.PaymentsCreate);
+        acc.MapGet("/reports/ageing", async (Guid companyId, Gebeta.Accounting.Domain.Invoicing.InvoiceKind kind, DateOnly asOf,
+                IQueryHandler<AgeingReportQuery, AgeingReportDto> h, CancellationToken ct) =>
+                (await h.Handle(new AgeingReportQuery(companyId, kind, asOf), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("AgeingReport").RequirePermission(AccountingPermissions.ReportsRead);
         acc.MapPost("/payments", async (CreatePaymentCommand command, ICommandHandler<CreatePaymentCommand, PaymentDto> h, CancellationToken ct) =>
                 (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
             .WithName("CreatePayment").RequirePermission(InvoicingPermissions.PaymentsCreate);
@@ -106,3 +122,6 @@ public static class AccountingEndpoints
             .WithName("TrialBalance").RequirePermission(AccountingPermissions.ReportsRead);
     }
 }
+
+/// <summary>Body of a credit or debit note: the date, and the lines to return (none = the whole invoice).</summary>
+public sealed record ReturnRequest(DateOnly PostingDate, IReadOnlyList<InvoiceLineInput>? Lines);

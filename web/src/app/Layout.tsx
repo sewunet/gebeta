@@ -58,6 +58,7 @@ export function Layout() {
               {can(me, "accounting.journals.read") && <Link to="/accounting/journals" className="nav-link">{t("nav.journals")}</Link>}
               {can(me, "accounting.reports.read") && <Link to="/accounting/trial-balance" className="nav-link">{t("nav.trialBalance")}</Link>}
               {can(me, "accounting.reports.read") && <Link to="/accounting/reports" className="nav-link">{t("nav.financialReports")}</Link>}
+              {can(me, "accounting.reports.read") && <Link to="/accounting/ageing" className="nav-link">{t("nav.ageing")}</Link>}
               {can(me, "accounting.reports.read") && <Link to="/accounting/tax" className="nav-link">{t("nav.taxReports")}</Link>}
               {can(me, "accounting.reports.read") && <Link to="/accounting/periods" className="nav-link">{t("nav.periods")}</Link>}
             </>

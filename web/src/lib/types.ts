@@ -67,9 +67,14 @@ export type InvoiceLineDto = { description: string; quantity: number; rate: numb
 export type InvoiceDto = {
   id: string; number?: string; kind: "Sales" | "Purchase"; companyId: string; partyId: string; partyName: string; partyTin?: string; supplierInvoiceNumber?: string;
   postingDate: string; dueDate: string; status: string; lines: InvoiceLineDto[]; netTotal: number; vatAmount: number; grandTotal: number;
-  withholdingAmount: number; payableAmount: number; outstanding: number;
+  withholdingAmount: number; payableAmount: number; outstanding: number; isReturn: boolean; returnAgainstNumber?: string; isOpening: boolean;
 };
-export type PaymentDto = { id: string; number?: string; kind: string; partyName: string; invoiceId: string; invoiceNumber?: string; amount: number; postingDate: string };
+export type PaymentDto = {
+  id: string; number?: string; kind: string; partyName: string; invoiceId: string; invoiceNumber?: string; amount: number; postingDate: string;
+  bankAccountCode: string; reference?: string; status: string;
+};
+export type AgeingRow = { partyId: string; partyName: string; partyTin?: string; notDue: number; days1To30: number; days31To60: number; days61To90: number; over90: number; total: number };
+export type AgeingReportDto = { kind: string; asOf: string; rows: AgeingRow[]; totals: AgeingRow };
 export type VatReportDto = {
   from: string; to: string; outputVat: number; inputVat: number; netPayable: number;
   rows: { kind: string; number?: string; date: string; partyName: string; partyTin?: string; net: number; vat: number }[];

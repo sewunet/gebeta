@@ -38,6 +38,19 @@ public sealed record ListInvoicesQuery(Guid CompanyId, InvoiceKind? Kind, DateOn
 
 public sealed record CreatePaymentCommand(Guid InvoiceId, decimal Amount, DateOnly PostingDate, string? BankAccountCode, string? Reference) : ICommand<PaymentDto>;
 
+/// <summary>A credit note (sales) or debit note (purchase) against a submitted invoice; without lines, the whole invoice.</summary>
+public sealed record CreateReturnCommand(Guid InvoiceId, DateOnly PostingDate, IReadOnlyList<InvoiceLineInput>? Lines) : ICommand<InvoiceDto>;
+
+/// <summary>An invoice still open at cut-over, for its outstanding amount; posts nothing (the opening balances journal holds it).</summary>
+public sealed record CreateOpeningInvoiceCommand(InvoiceKind Kind, Guid CompanyId, Guid PartyId, DateOnly PostingDate, DateOnly? DueDate, decimal Amount, string? Reference)
+    : ICommand<InvoiceDto>;
+
+public sealed record ListInvoicePaymentsQuery(Guid InvoiceId) : IQuery<IReadOnlyList<PaymentDto>>;
+
+public sealed record CancelPaymentCommand(Guid PaymentId) : ICommand<PaymentDto>;
+
+public sealed record AgeingReportQuery(Guid CompanyId, InvoiceKind Kind, DateOnly AsOf) : IQuery<AgeingReportDto>;
+
 public sealed record VatReportQuery(Guid CompanyId, DateOnly From, DateOnly To) : IQuery<VatReportDto>;
 
 public sealed record WithholdingReportQuery(Guid CompanyId, DateOnly From, DateOnly To) : IQuery<WithholdingReportDto>;
@@ -62,7 +75,12 @@ public sealed class InvoicingHandler(
       IQueryHandler<ListInvoicesQuery, IReadOnlyList<InvoiceDto>>,
       ICommandHandler<CreatePaymentCommand, PaymentDto>,
       IQueryHandler<VatReportQuery, VatReportDto>,
-      IQueryHandler<WithholdingReportQuery, WithholdingReportDto>
+      IQueryHandler<WithholdingReportQuery, WithholdingReportDto>,
+      ICommandHandler<CreateReturnCommand, InvoiceDto>,
+      ICommandHandler<CreateOpeningInvoiceCommand, InvoiceDto>,
+      IQueryHandler<ListInvoicePaymentsQuery, IReadOnlyList<PaymentDto>>,
+      ICommandHandler<CancelPaymentCommand, PaymentDto>,
+      IQueryHandler<AgeingReportQuery, AgeingReportDto>
 {
     public async Task<Result<InvoiceDto>> Handle(CreateInvoiceCommand command, CancellationToken cancellationToken)
     {
@@ -128,9 +146,21 @@ public sealed class InvoicingHandler(
         try
         {
             invoice.Submit();
+            if (invoice.IsReturn)
+            {
+                var original = await invoices.GetAsync(invoice.ReturnAgainstId!.Value, cancellationToken).ConfigureAwait(false)
+                    ?? throw new DomainException("accounting.return_source", "The original invoice no longer exists.");
+                original.ApplyReturn(invoice);
+                original.ModifiedAt = clock.GetUtcNow();
+            }
+
             await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-            await PostAsync(invoice.CompanyId, invoice.PostingDate, $"{invoice.DocumentType} {invoice.Name} · {invoice.PartyName}", invoice.JournalLines(),
-                invoice.Kind == InvoiceKind.Sales ? JournalSource.SalesInvoice : JournalSource.PurchaseInvoice, invoice.Id, invoice.Name!, cancellationToken).ConfigureAwait(false);
+            if (!invoice.IsOpening)
+            {
+                await PostAsync(invoice.CompanyId, invoice.PostingDate, $"{invoice.DocumentType} {invoice.Name} · {invoice.PartyName}", invoice.JournalLines(),
+                    invoice.Kind == InvoiceKind.Sales ? JournalSource.SalesInvoice : JournalSource.PurchaseInvoice, invoice.Id, invoice.Name!, cancellationToken).ConfigureAwait(false);
+            }
+
             invoice.ModifiedAt = clock.GetUtcNow();
             await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -155,6 +185,12 @@ public sealed class InvoicingHandler(
         try
         {
             invoice.Cancel();
+            if (invoice.IsReturn && await invoices.GetAsync(invoice.ReturnAgainstId!.Value, cancellationToken).ConfigureAwait(false) is { } original)
+            {
+                original.ReverseReturn(invoice);
+                original.ModifiedAt = clock.GetUtcNow();
+            }
+
             if (await journals.FindBySourceAsync(invoice.Id, cancellationToken).ConfigureAwait(false) is { DocStatus: DocStatus.Submitted } journal)
             {
                 journals.Add(journal.Reverse());
@@ -212,8 +248,7 @@ public sealed class InvoicingHandler(
                 JournalSource.Payment, payment.Id, payment.Name!, cancellationToken).ConfigureAwait(false);
             await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return new PaymentDto(payment.Id, payment.Name, payment.Kind.ToString(), payment.PartyId, payment.PartyName, payment.InvoiceId, payment.InvoiceNumber,
-                payment.Amount, payment.BankAccountCode, payment.PostingDate, payment.Reference);
+            return ToDto(payment);
         }
         catch (DomainException ex)
         {
@@ -231,9 +266,10 @@ public sealed class InvoicingHandler(
 
         var submitted = (await invoices.ListAsync(query.CompanyId, null, query.From, query.To, cancellationToken).ConfigureAwait(false))
             .Where(i => i.DocStatus == DocStatus.Submitted && i.VatAmount != 0m).ToList();
-        var rows = submitted.Select(i => new VatReportRow(i.Kind.ToString(), i.Name, i.PostingDate, i.PartyName, i.PartyTin, i.NetTotal, i.VatAmount)).ToList();
-        var output = submitted.Where(i => i.Kind == InvoiceKind.Sales).Sum(i => i.VatAmount);
-        var input = submitted.Where(i => i.Kind == InvoiceKind.Purchase).Sum(i => i.VatAmount);
+        static decimal Sign(Invoice i) => i.IsReturn ? -1m : 1m;
+        var rows = submitted.Select(i => new VatReportRow(i.Kind.ToString(), i.Name, i.PostingDate, i.PartyName, i.PartyTin, Sign(i) * i.NetTotal, Sign(i) * i.VatAmount)).ToList();
+        var output = submitted.Where(i => i.Kind == InvoiceKind.Sales).Sum(i => Sign(i) * i.VatAmount);
+        var input = submitted.Where(i => i.Kind == InvoiceKind.Purchase).Sum(i => Sign(i) * i.VatAmount);
         return new VatReportDto(query.From, query.To, output, input, output - input, rows);
     }
 
@@ -247,7 +283,9 @@ public sealed class InvoicingHandler(
 
         var withheld = (await invoices.ListAsync(query.CompanyId, null, query.From, query.To, cancellationToken).ConfigureAwait(false))
             .Where(i => i.DocStatus == DocStatus.Submitted && i.WithholdingAmount != 0m).ToList();
-        WithholdingRow Row(Invoice i) => new(i.Name, i.PostingDate, i.PartyName, i.PartyTin, i.NetTotal, i.WithholdingAmount);
+        WithholdingRow Row(Invoice i) => i.IsReturn
+            ? new(i.Name, i.PostingDate, i.PartyName, i.PartyTin, -i.NetTotal, -i.WithholdingAmount)
+            : new(i.Name, i.PostingDate, i.PartyName, i.PartyTin, i.NetTotal, i.WithholdingAmount);
         var fromSuppliers = withheld.Where(i => i.Kind == InvoiceKind.Purchase).Select(Row).ToList();
         var byCustomers = withheld.Where(i => i.Kind == InvoiceKind.Sales).Select(Row).ToList();
         return new WithholdingReportDto(query.From, query.To, fromSuppliers.Sum(r => r.Withheld), byCustomers.Sum(r => r.Withheld), fromSuppliers, byCustomers);
@@ -275,5 +313,170 @@ public sealed class InvoicingHandler(
     private static InvoiceDto ToDto(Invoice i) => new(i.Id, i.Name, i.Kind.ToString(), i.CompanyId, i.PartyId, i.PartyName, i.PartyTin, i.SupplierInvoiceNumber,
         i.PostingDate, i.DueDate, i.DocStatus.ToString(),
         i.Lines.Select(l => new InvoiceLineDto(l.Description, l.Quantity, l.Rate, l.Amount, l.AccountCode, l.IsService, l.VatApplicable)).ToList(),
-        i.NetTotal, i.VatAmount, i.GrandTotal, i.WithholdingAmount, i.PayableAmount, i.Outstanding);
+        i.NetTotal, i.VatAmount, i.GrandTotal, i.WithholdingAmount, i.PayableAmount, i.Outstanding, i.IsReturn, i.ReturnAgainstNumber, i.IsOpening);
+
+    private static PaymentDto ToDto(Payment p) => new(p.Id, p.Name, p.Kind.ToString(), p.PartyId, p.PartyName, p.InvoiceId, p.InvoiceNumber, p.Amount,
+        p.BankAccountCode, p.PostingDate, p.Reference, p.DocStatus.ToString());
+
+    private async Task<Result<InvoiceDto>> NumberAndSaveAsync(Invoice invoice, string pattern, CancellationToken cancellationToken)
+    {
+        await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        invoice.AssignName(await numbers.NextAsync(invoice.CompanyId, invoice.DocumentType, pattern, invoice.PostingDate, cancellationToken).ConfigureAwait(false));
+        invoice.CreatedAt = clock.GetUtcNow();
+        invoice.CreatedBy = currentUser.Username;
+        invoices.Add(invoice);
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return ToDto(invoice);
+    }
+
+    public async Task<Result<InvoiceDto>> Handle(CreateReturnCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var original = await AccessibleAsync(command.InvoiceId, cancellationToken).ConfigureAwait(false);
+        if (original is null)
+        {
+            return Error.NotFound("Invoice", command.InvoiceId);
+        }
+
+        var lines = command.Lines is { Count: > 0 }
+            ? command.Lines.Select(l => new InvoiceLine(l.Description, l.Quantity, l.Rate, l.AccountCode, l.IsService, l.VatApplicable)).ToList()
+            : original.Lines.ToList();
+        var allowed = original.Lines.Select(l => l.AccountCode).ToHashSet(StringComparer.Ordinal);
+        if (lines.FirstOrDefault(l => !allowed.Contains(l.AccountCode)) is { } stray)
+        {
+            return Error.Validation($"Account {stray.AccountCode} is not on {original.Name}; a return reverses the invoice's own lines.");
+        }
+
+        Invoice note;
+        try
+        {
+            note = Invoice.CreateReturn(original, command.PostingDate, lines, options.Rules);
+        }
+        catch (DomainException ex)
+        {
+            return Error.Validation(ex.Message);
+        }
+
+        return await NumberAndSaveAsync(note, original.Kind == InvoiceKind.Sales ? "CN-.FY.-.#####" : "DN-.FY.-.#####", cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<InvoiceDto>> Handle(CreateOpeningInvoiceCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (!await access.CanAccessAsync(command.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.NotFound("Company", command.CompanyId);
+        }
+
+        var party = await parties.GetAsync(command.PartyId, cancellationToken).ConfigureAwait(false);
+        if (party is null || party.CompanyId != command.CompanyId)
+        {
+            return Error.NotFound(command.Kind == InvoiceKind.Sales ? "Customer" : "Supplier", command.PartyId);
+        }
+
+        Invoice invoice;
+        try
+        {
+            invoice = Invoice.CreateOpening(command.Kind, command.CompanyId, party.Id, party.Name, party.Tin, command.PostingDate, command.DueDate ?? command.PostingDate,
+                command.Amount, command.Reference);
+            invoice.Submit();
+        }
+        catch (DomainException ex)
+        {
+            return Error.Validation(ex.Message);
+        }
+
+        return await NumberAndSaveAsync(invoice, command.Kind == InvoiceKind.Sales ? "SINV-.FY.-.#####" : "PINV-.FY.-.#####", cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<IReadOnlyList<PaymentDto>>> Handle(ListInvoicePaymentsQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        if (await AccessibleAsync(query.InvoiceId, cancellationToken).ConfigureAwait(false) is null)
+        {
+            return Error.NotFound("Invoice", query.InvoiceId);
+        }
+
+        return Result.Success<IReadOnlyList<PaymentDto>>((await invoices.PaymentsForInvoiceAsync(query.InvoiceId, cancellationToken).ConfigureAwait(false)).Select(ToDto).ToList());
+    }
+
+    /// <summary>Cancels a payment: its journal is reversed and the amount is owed on the invoice again.</summary>
+    public async Task<Result<PaymentDto>> Handle(CancelPaymentCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var payment = await invoices.GetPaymentAsync(command.PaymentId, cancellationToken).ConfigureAwait(false);
+        if (payment is null || !await access.CanAccessAsync(payment.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.NotFound("Payment", command.PaymentId);
+        }
+
+        try
+        {
+            payment.Cancel();
+            var invoice = await invoices.GetAsync(payment.InvoiceId, cancellationToken).ConfigureAwait(false)
+                ?? throw new DomainException("accounting.payment_invoice", "The payment's invoice no longer exists.");
+            invoice.ReversePayment(payment.Amount);
+            invoice.ModifiedAt = clock.GetUtcNow();
+            if (await journals.FindBySourceAsync(payment.Id, cancellationToken).ConfigureAwait(false) is { DocStatus: DocStatus.Submitted } journal)
+            {
+                journals.Add(journal.Reverse());
+            }
+        }
+        catch (DomainException ex)
+        {
+            return Error.Validation(ex.Message);
+        }
+
+        payment.ModifiedAt = clock.GetUtcNow();
+        payment.ModifiedBy = currentUser.Username;
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return ToDto(payment);
+    }
+
+    /// <summary>
+    /// What each customer owes (sales) or is owed to each supplier (purchases) on <see cref="AgeingReportQuery.AsOf"/>: every submitted invoice
+    /// dated by then, less payments and returns dated by then, bucketed by days past the due date.
+    /// </summary>
+    public async Task<Result<AgeingReportDto>> Handle(AgeingReportQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        if (!await access.CanAccessAsync(query.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.NotFound("Company", query.CompanyId);
+        }
+
+        var all = (await invoices.ListAsync(query.CompanyId, query.Kind, DateOnly.MinValue, query.AsOf, cancellationToken).ConfigureAwait(false))
+            .Where(i => i.DocStatus == DocStatus.Submitted).ToList();
+        var paid = (await invoices.PaymentsAsync(query.CompanyId, DateOnly.MinValue, query.AsOf, cancellationToken).ConfigureAwait(false))
+            .Where(p => p.DocStatus == DocStatus.Submitted).GroupBy(p => p.InvoiceId).ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
+        var returned = all.Where(i => i.IsReturn).GroupBy(i => i.ReturnAgainstId!.Value).ToDictionary(g => g.Key, g => g.Sum(i => i.PayableAmount));
+
+        var open = all.Where(i => !i.IsReturn)
+            .Select(i => (Invoice: i, Open: i.PayableAmount - paid.GetValueOrDefault(i.Id) - returned.GetValueOrDefault(i.Id)))
+            .Where(x => x.Open != 0m).ToList();
+        AgeingRow Row(Guid partyId, string name, string? tin, IEnumerable<(Invoice Invoice, decimal Open)> items)
+        {
+            decimal notDue = 0m, d30 = 0m, d60 = 0m, d90 = 0m, over = 0m;
+            foreach (var (invoice, amount) in items)
+            {
+                var days = query.AsOf.DayNumber - invoice.DueDate.DayNumber;
+                switch (days)
+                {
+                    case <= 0: notDue += amount; break;
+                    case <= 30: d30 += amount; break;
+                    case <= 60: d60 += amount; break;
+                    case <= 90: d90 += amount; break;
+                    default: over += amount; break;
+                }
+            }
+
+            return new AgeingRow(partyId, name, tin, notDue, d30, d60, d90, over, notDue + d30 + d60 + d90 + over);
+        }
+
+        var rows = open.GroupBy(x => x.Invoice.PartyId)
+            .Select(g => Row(g.Key, g.First().Invoice.PartyName, g.First().Invoice.PartyTin, g))
+            .OrderByDescending(r => r.Total).ToList();
+        return new AgeingReportDto(query.Kind.ToString(), query.AsOf, rows, Row(Guid.Empty, "Total", null, open));
+    }
 }

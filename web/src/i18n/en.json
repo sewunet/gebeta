@@ -26,7 +26,8 @@
     "invoices": "Invoices",
     "financialReports": "Financial reports",
     "taxReports": "VAT & withholding",
-    "periods": "Closing"
+    "periods": "Closing",
+    "ageing": "Receivables & payables"
   },
   "common": {
     "company": "Company",
@@ -53,7 +54,8 @@
     "Cancelled": "Cancelled",
     "Active": "Active",
     "Left": "Left",
-    "Suspended": "Suspended"
+    "Suspended": "Suspended",
+    "Closed": "Closed"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
@@ -247,7 +249,13 @@
     "vatPayable": "VAT payable",
     "vatCredit": "VAT credit",
     "withheldFromSuppliers": "Withheld from suppliers (to declare and pay)",
-    "withheldByCustomers": "Withheld by customers (to claim)"
+    "withheldByCustomers": "Withheld by customers (to claim)",
+    "creditNote": "Credit note",
+    "debitNote": "Debit note",
+    "opening": "Opening",
+    "returnHint": "Quantities to return. A return can be at most the {{amount}} still owed.",
+    "cancelPayment": "Cancel payment",
+    "oldNumber": "Old system no."
   },
   "periods": {
     "closed": "{{label}} is closed.",
@@ -276,7 +284,11 @@
     "opening": "Opening balances",
     "openingHint": "When the company starts in Gebeta: enter the old system's trial balance, dated the day before the first day here.",
     "enterOpening": "Enter opening balances",
-    "postOpening": "Post opening balances"
+    "postOpening": "Post opening balances",
+    "openingInvoices": "Open invoices at cut-over",
+    "openingInvoicesHint": "Invoices still unpaid in the old system, so each can be paid here. They post nothing: the totals are already in the opening balances (1200 receivable, 2100 payable).",
+    "addOpeningInvoice": "Add open invoice",
+    "openingInvoicePosted": "{{number}} added for {{party}}."
   },
   "reports": {
     "pl": "Profit and loss",
@@ -301,5 +313,13 @@
     "voucher": "Voucher",
     "opening": "Opening balance",
     "closing": "Closing balance"
+  },
+  "ageing": {
+    "receivables": "Receivables",
+    "payables": "Payables",
+    "notDue": "Not due",
+    "over90": "Over 90",
+    "nothingOpen": "Nothing is open on this date.",
+    "daysHint": "Columns are days past the due date. Payments and returns dated after the date are not counted."
   }
 }

@@ -17,8 +17,18 @@
 > Payments (`PAY-<FY>-#####`, `/api/accounting/payments`) settle one invoice up to its outstanding amount
 > (bank 1120 by default); an invoice with payments cannot be cancelled. Reports: `/reports/vat` (output, input,
 > net payable) and `/reports/withholding` (withheld from suppliers, withheld by customers). Rates and thresholds
-> are configuration (`Accounting:*`). Not yet: credit notes, payment cancellation, partial allocation across
-> invoices, withholding receipts, TOT.
+> are configuration (`Accounting:*`). Not yet: partial allocation of one payment across invoices, refunds,
+> withholding receipts, TOT.
+>
+> **Corrections and cut-over** (step 21): `POST /invoices/{id}/return` makes a credit note (`CN-`, sales) or debit
+> note (`DN-`, purchases) for some or all of a submitted invoice's lines: VAT as on the original, withholding at
+> the same rate when the original had any (no threshold), journal with sides swapped, and it reduces what is
+> still owed, so it cannot exceed the outstanding amount. VAT and withholding reports count returns negative.
+> `POST /payments/{id}/cancel` reverses a payment's journal and puts the amount back on the invoice.
+> `POST /invoices/opening` brings in an invoice still open at cut-over for its outstanding amount (it may already
+> be overdue); it posts nothing, since the total is in the opening balances journal, but can be paid as usual.
+> `/reports/ageing?kind=Sales|Purchase&asOf=` buckets open amounts per customer or supplier (not due, 1–30,
+> 31–60, 61–90, over 90 days past due), counting only payments and returns dated by then.
 >
 > **Month close and reports** (step 18): `POST /api/accounting/periods/close` closes the month containing a date:
 > one of the 12 Ethiopian fiscal periods for companies on the Ethiopian fiscal year (Nehase takes Pagume), else the

@@ -51,9 +51,24 @@ public sealed class Invoice : DocumentBase
         PartyName = string.Empty;
     }
 
-    public override string DocumentType => Kind == InvoiceKind.Sales ? "Sales Invoice" : "Purchase Invoice";
+    public override string DocumentType => (Kind, IsReturn) switch
+    {
+        (InvoiceKind.Sales, false) => "Sales Invoice",
+        (InvoiceKind.Purchase, false) => "Purchase Invoice",
+        (InvoiceKind.Sales, true) => "Credit Note",
+        _ => "Debit Note",
+    };
 
     public InvoiceKind Kind { get; private set; }
+
+    /// <summary>A credit note (sales) or debit note (purchase) against <see cref="ReturnAgainstId"/>: reverses part or all of it.</summary>
+    public bool IsReturn { get; private set; }
+
+    public Guid? ReturnAgainstId { get; private set; }
+    public string? ReturnAgainstNumber { get; private set; }
+
+    /// <summary>An open invoice brought in at cut-over: its balance is already in the opening balances journal, so it posts nothing.</summary>
+    public bool IsOpening { get; private set; }
     public Guid PartyId { get; private set; }
     public string PartyName { get; private set; }
     public string? PartyTin { get; private set; }
@@ -78,7 +93,68 @@ public sealed class Invoice : DocumentBase
     /// <param name="vatCharged">Sales: our company is VAT-registered. Purchases: the supplier is.</param>
     /// <param name="withholdingApplies">Purchases: we are a withholding agent. Sales: the customer withholds from us.</param>
     public static Invoice Create(InvoiceKind kind, Guid companyId, Guid partyId, string partyName, string? partyTin, DateOnly postingDate, DateOnly dueDate,
-        IReadOnlyList<InvoiceLine> lines, TaxRules rules, bool vatCharged, bool withholdingApplies, string? supplierInvoiceNumber = null)
+        IReadOnlyList<InvoiceLine> lines, TaxRules rules, bool vatCharged, bool withholdingApplies, string? supplierInvoiceNumber = null) =>
+        Build(kind, companyId, partyId, partyName, partyTin, postingDate, dueDate, lines, rules, vatCharged, withholdingApplies ? Withholding.AboveThresholds : Withholding.None,
+            supplierInvoiceNumber);
+
+    /// <summary>
+    /// A credit note (sales) or debit note (purchase) for some or all of a submitted invoice. VAT follows the original;
+    /// withholding is taken at the same rate when the original had any, without the thresholds. It reduces what is
+    /// still owed on the original, so it cannot exceed the outstanding amount (refunds of paid invoices are not handled yet).
+    /// </summary>
+    public static Invoice CreateReturn(Invoice original, DateOnly postingDate, IReadOnlyList<InvoiceLine> lines, TaxRules rules)
+    {
+        ArgumentNullException.ThrowIfNull(original);
+        if (original.DocStatus != DocStatus.Submitted || original.IsReturn || original.IsOpening)
+        {
+            throw new DomainException("accounting.return_source", "A return can only be made against a submitted invoice.");
+        }
+
+        if (postingDate < original.PostingDate)
+        {
+            throw new DomainException("accounting.return_date", "A return cannot be dated before its invoice.");
+        }
+
+        var note = Build(original.Kind, original.CompanyId, original.PartyId, original.PartyName, original.PartyTin, postingDate, postingDate, lines, rules,
+            original.VatAmount > 0m, original.WithholdingAmount > 0m ? Withholding.FlatRate : Withholding.None, original.SupplierInvoiceNumber);
+        if (note.PayableAmount > original.Outstanding)
+        {
+            throw new DomainException("accounting.return_exceeds", $"The return ({note.PayableAmount}) is more than is still owed on {original.Name} ({original.Outstanding}).");
+        }
+
+        note.IsReturn = true;
+        note.ReturnAgainstId = original.Id;
+        note.ReturnAgainstNumber = original.Name;
+        note.Outstanding = 0m;
+        return note;
+    }
+
+    /// <summary>An invoice still open at cut-over, for its outstanding amount only (no VAT or withholding; those were dealt with in the old system).</summary>
+    public static Invoice CreateOpening(InvoiceKind kind, Guid companyId, Guid partyId, string partyName, string? partyTin, DateOnly postingDate, DateOnly dueDate,
+        decimal amount, string? reference)
+    {
+        if (amount <= 0m)
+        {
+            throw new DomainException("accounting.opening_amount", "An opening invoice needs a positive outstanding amount.");
+        }
+
+        var line = new InvoiceLine($"Opening balance{(string.IsNullOrWhiteSpace(reference) ? "" : " " + reference.Trim())}", 1m, amount,
+            kind == InvoiceKind.Sales ? ReceivableAccount : PayableAccount, false, false);
+        var invoice = Build(kind, companyId, partyId, partyName, partyTin, postingDate, postingDate, [line], TaxRules.EthiopianDefault, false, Withholding.None, reference);
+        invoice.IsOpening = true;
+        invoice.DueDate = dueDate; // may be before the cut-over date: the invoice can already be overdue
+        return invoice;
+    }
+
+    private enum Withholding
+    {
+        None,
+        AboveThresholds,
+        FlatRate,
+    }
+
+    private static Invoice Build(InvoiceKind kind, Guid companyId, Guid partyId, string partyName, string? partyTin, DateOnly postingDate, DateOnly dueDate,
+        IReadOnlyList<InvoiceLine> lines, TaxRules rules, bool vatCharged, Withholding withholdingMode, string? supplierInvoiceNumber)
     {
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(rules);
@@ -96,7 +172,11 @@ public sealed class Invoice : DocumentBase
         var vat = vatCharged ? Rounding.ToCurrency(lines.Where(l => l.VatApplicable).Sum(l => l.Amount) * rules.VatRatePercent / 100m) : 0m;
 
         var withholding = 0m;
-        if (withholdingApplies)
+        if (withholdingMode == Withholding.FlatRate)
+        {
+            withholding = Rounding.ToCurrency(net * rules.WithholdingRatePercent / 100m);
+        }
+        else if (withholdingMode == Withholding.AboveThresholds)
         {
             var goods = lines.Where(l => !l.IsService).Sum(l => l.Amount);
             var services = lines.Where(l => l.IsService).Sum(l => l.Amount);
@@ -123,8 +203,19 @@ public sealed class Invoice : DocumentBase
         return invoice;
     }
 
-    /// <summary>Journal lines as account codes (+ debit, − credit), balanced by construction.</summary>
+    /// <summary>Journal lines as account codes, balanced by construction. A return posts the same lines with sides swapped; an opening invoice posts nothing.</summary>
     public IReadOnlyList<(string AccountCode, decimal Debit, decimal Credit, string Description)> JournalLines()
+    {
+        if (IsOpening)
+        {
+            return [];
+        }
+
+        var lines = InvoiceSideLines();
+        return IsReturn ? lines.Select(l => (l.AccountCode, l.Credit, l.Debit, l.Description)).ToList() : lines;
+    }
+
+    private List<(string AccountCode, decimal Debit, decimal Credit, string Description)> InvoiceSideLines()
     {
         var label = $"{DocumentType} {Name} · {PartyName}";
         var result = new List<(string, decimal, decimal, string)>();
@@ -175,11 +266,40 @@ public sealed class Invoice : DocumentBase
         Outstanding -= amount;
     }
 
+    /// <summary>A cancelled payment puts its amount back on the invoice.</summary>
+    public void ReversePayment(decimal amount)
+    {
+        if (amount <= 0m || Outstanding + amount > PayableAmount)
+        {
+            throw new DomainException("accounting.payment_reversal", "The payment does not belong to what was paid on this invoice.");
+        }
+
+        Outstanding += amount;
+    }
+
+    /// <summary>A submitted credit or debit note reduces what is owed; cancelling it puts the amount back.</summary>
+    public void ApplyReturn(Invoice note)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        if (!note.IsReturn || note.ReturnAgainstId != Id)
+        {
+            throw new DomainException("accounting.return_source", "This note is not against this invoice.");
+        }
+
+        ApplyPayment(note.PayableAmount);
+    }
+
+    public void ReverseReturn(Invoice note)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        ReversePayment(note.PayableAmount);
+    }
+
     protected override void OnCancel()
     {
-        if (Outstanding != PayableAmount)
+        if (!IsReturn && Outstanding != PayableAmount)
         {
-            throw new DomainException("accounting.invoice_paid", "This invoice has payments; cancel the payments first.");
+            throw new DomainException("accounting.invoice_paid", "This invoice has payments or returns; cancel them first.");
         }
     }
 }
@@ -243,6 +363,9 @@ public interface IInvoiceRepository
     Task<Invoice?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyList<Invoice>> ListAsync(Guid companyId, InvoiceKind? kind, DateOnly from, DateOnly to, CancellationToken cancellationToken);
     Task<IReadOnlyList<Payment>> PaymentsAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
+    Task<Payment?> GetPaymentAsync(Guid id, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Payment>> PaymentsForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Invoice>> ReturnsAgainstAsync(Guid invoiceId, CancellationToken cancellationToken);
     void Add(Invoice invoice);
     void Add(Payment payment);
 }

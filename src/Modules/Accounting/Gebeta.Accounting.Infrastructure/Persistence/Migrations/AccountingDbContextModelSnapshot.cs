@@ -56,6 +56,14 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("due_date");
 
+                    b.Property<bool>("IsOpening")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_opening");
+
+                    b.Property<bool>("IsReturn")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_return");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -105,6 +113,15 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("posting_date");
 
+                    b.Property<Guid?>("ReturnAgainstId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("return_against_id");
+
+                    b.Property<string>("ReturnAgainstNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("return_against_number");
+
                     b.Property<string>("SupplierInvoiceNumber")
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)")
@@ -127,6 +144,10 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_invoice");
+
+                    b.HasIndex("ReturnAgainstId")
+                        .HasDatabaseName("ix_invoice_return_against_id")
+                        .HasFilter("return_against_id IS NOT NULL");
 
                     b.HasIndex("CompanyId", "Name")
                         .IsUnique()

@@ -21,6 +21,7 @@ export function Invoices() {
   const [month, setMonth] = useState(currentMonth());
   const [open, setOpen] = useState<string | null>(null);
   const [paying, setPaying] = useState<string | null>(null);
+  const [returning, setReturning] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [lines, setLines] = useState<Line[]>([emptyLine("Sales")]);
   const { start, end } = monthRange(month);
@@ -47,6 +48,21 @@ export function Invoices() {
     onSuccess: (inv) => { setShowForm(false); setLines([emptyLine(kind)]); setOpen(inv.id); refresh(); },
   });
   const act = useMutation({ mutationFn: ({ id, action }: { id: string; action: "submit" | "cancel" }) => post<InvoiceDto>(`/api/accounting/invoices/${id}/${action}`), onSuccess: refresh });
+  const payments = useQuery({
+    queryKey: ["invoices", "payments", open],
+    queryFn: () => api<PaymentDto[]>(`/api/accounting/invoices/${open}/payments`),
+    enabled: !!open,
+  });
+  const cancelPayment = useMutation({ mutationFn: (id: string) => post<PaymentDto>(`/api/accounting/payments/${id}/cancel`), onSuccess: refresh });
+  const makeReturn = useMutation({
+    mutationFn: ({ inv, quantities, postingDate }: { inv: InvoiceDto; quantities: number[]; postingDate: string }) =>
+      post<InvoiceDto>(`/api/accounting/invoices/${inv.id}/return`, {
+        postingDate,
+        lines: inv.lines.map((l, i) => ({ ...l, quantity: quantities[i] ?? 0 })).filter((l) => l.quantity > 0)
+          .map(({ description, quantity, rate, accountCode, isService, vatApplicable }) => ({ description, quantity, rate, accountCode, isService, vatApplicable })),
+      }),
+    onSuccess: (note) => { setReturning(null); setOpen(note.id); refresh(); },
+  });
   const pay = useMutation({
     mutationFn: (body: { invoiceId: string; amount: number; postingDate: string; reference: string }) => post<PaymentDto>("/api/accounting/payments", body),
     onSuccess: () => { setPaying(null); refresh(); },
@@ -73,7 +89,12 @@ export function Invoices() {
     const f = new FormData(e.currentTarget);
     pay.mutate({ invoiceId: inv.id, amount: Number(f.get("amount")), postingDate: String(f.get("postingDate")), reference: String(f.get("reference") ?? "") });
   };
-  const error = act.error ?? pay.error;
+  const error = act.error ?? pay.error ?? cancelPayment.error ?? makeReturn.error;
+  const onReturn = (inv: InvoiceDto) => (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    makeReturn.mutate({ inv, postingDate: String(f.get("postingDate")), quantities: inv.lines.map((_, i) => Number(f.get(`q${i}`) || 0)) });
+  };
 
   return (
     <>
@@ -136,7 +157,10 @@ export function Invoices() {
           <tbody>
             {invoices.data.flatMap((inv) => [
               <tr key={inv.id} onClick={() => setOpen(open === inv.id ? null : inv.id)} style={{ cursor: "pointer" }}>
-                <td className="mono">{inv.number ?? "—"}</td><td>{formatDate(inv.postingDate, me.calendar, am)}</td><td>{inv.partyName}</td>
+                <td className="mono">{inv.number ?? "—"}
+                  {inv.isReturn && <span className="chip small" title={inv.returnAgainstNumber}>{t(sales ? "inv.creditNote" : "inv.debitNote")} · {inv.returnAgainstNumber}</span>}
+                  {inv.isOpening && <span className="chip small">{t("inv.opening")}</span>}</td>
+                <td>{formatDate(inv.postingDate, me.calendar, am)}</td><td>{inv.partyName}</td>
                 <td className="num">{formatMoney(inv.netTotal)}</td><td className="num">{formatMoney(inv.vatAmount)}</td>
                 <td className="num">{inv.withholdingAmount ? formatMoney(inv.withholdingAmount) : ""}</td>
                 <td className="num">{formatMoney(inv.payableAmount)}</td>
@@ -145,9 +169,11 @@ export function Invoices() {
                 <td className="actions" onClick={(e) => e.stopPropagation()}>
                   {inv.status === "Draft" && can(me, "accounting.invoices.submit") &&
                     <button onClick={() => act.mutate({ id: inv.id, action: "submit" })} disabled={act.isPending}>{t("slips.submit")}</button>}
-                  {inv.status === "Submitted" && inv.outstanding > 0 && can(me, "accounting.payments.create") &&
+                  {inv.status === "Submitted" && !inv.isReturn && inv.outstanding > 0 && can(me, "accounting.payments.create") &&
                     <button onClick={() => setPaying(paying === inv.id ? null : inv.id)}>{t(sales ? "inv.receive" : "inv.pay")}</button>}
-                  {inv.status === "Submitted" && inv.outstanding === inv.payableAmount && can(me, "accounting.invoices.submit") &&
+                  {inv.status === "Submitted" && !inv.isReturn && !inv.isOpening && inv.outstanding > 0 && can(me, "accounting.invoices.create") &&
+                    <button className="secondary" onClick={() => setReturning(returning === inv.id ? null : inv.id)}>{t(sales ? "inv.creditNote" : "inv.debitNote")}</button>}
+                  {inv.status === "Submitted" && (inv.isReturn || inv.outstanding === inv.payableAmount) && can(me, "accounting.invoices.submit") &&
                     <button className="secondary" onClick={() => act.mutate({ id: inv.id, action: "cancel" })} disabled={act.isPending}>{t("common.cancel")}</button>}
                 </td>
               </tr>,
@@ -158,6 +184,23 @@ export function Invoices() {
                     <label className="field-inline"><span>{t("attendance.date")}</span><input name="postingDate" type="date" defaultValue={todayIso()} required /></label>
                     <label className="field-inline"><span>{t("inv.reference")}</span><input name="reference" /></label>
                     <button type="submit" disabled={pay.isPending}>{t("common.save")}</button>
+                  </form>
+                </td></tr>
+              ) : null,
+              returning === inv.id ? (
+                <tr key={`${inv.id}-return`} className="detail"><td colSpan={10}>
+                  <form onSubmit={onReturn(inv)}>
+                    <p className="muted small">{t("inv.returnHint", { amount: formatMoney(inv.outstanding) })}</p>
+                    <table className="table inner"><tbody>
+                      {inv.lines.map((l, i) => (
+                        <tr key={i}><td>{l.description}</td><td className="num">{formatMoney(l.rate)}</td>
+                          <td className="num"><input name={`q${i}`} type="number" step="0.001" min="0" max={l.quantity} defaultValue={l.quantity} style={{ width: 100 }} /> / {l.quantity}</td></tr>
+                      ))}
+                    </tbody></table>
+                    <div className="inline-fields">
+                      <label className="field-inline"><span>{t("attendance.date")}</span><input name="postingDate" type="date" defaultValue={todayIso()} min={inv.postingDate} required /></label>
+                      <button type="submit" disabled={makeReturn.isPending}>{t("inv.saveDraft")}</button>
+                    </div>
                   </form>
                 </td></tr>
               ) : null,
@@ -174,6 +217,18 @@ export function Invoices() {
                       </td></tr>
                     </tbody>
                   </table>
+                  {!!payments.data?.length && (
+                    <table className="table inner">
+                      <tbody>{payments.data.map((p) => (
+                        <tr key={p.id} className={p.status === "Cancelled" ? "muted" : ""}>
+                          <td className="mono">{p.number}</td><td>{formatDate(p.postingDate, me.calendar, am)}</td><td>{p.reference}</td>
+                          <td className="num">{formatMoney(p.amount)}</td><td><span className={`badge ${p.status}`}>{t(`status.${p.status}`)}</span></td>
+                          <td className="actions">{p.status === "Submitted" && can(me, "accounting.payments.create") &&
+                            <button className="secondary" onClick={() => cancelPayment.mutate(p.id)} disabled={cancelPayment.isPending}>{t("inv.cancelPayment")}</button>}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  )}
                 </td></tr>
               ) : null,
             ])}

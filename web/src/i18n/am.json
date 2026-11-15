@@ -26,7 +26,8 @@
     "invoices": "ደረሰኞች",
     "financialReports": "የሂሳብ ሪፖርቶች",
     "taxReports": "ተ.እ.ታ እና ተቀናሽ ግብር",
-    "periods": "የሂሳብ መዝጊያ"
+    "periods": "የሂሳብ መዝጊያ",
+    "ageing": "ተሰብሳቢና ተከፋይ ሂሳቦች"
   },
   "common": {
     "company": "ኩባንያ",
@@ -53,7 +54,8 @@
     "Cancelled": "የተሰረዘ",
     "Active": "በሥራ ላይ",
     "Left": "የለቀቀ",
-    "Suspended": "የታገደ"
+    "Suspended": "የታገደ",
+    "Closed": "ተዘግቷል"
   },
   "dashboard": {
     "welcome": "እንኳን ደህና መጡ፣ {{name}}",
@@ -247,7 +249,13 @@
     "vatPayable": "የሚከፈል ተ.እ.ታ",
     "vatCredit": "ተመላሽ ተ.እ.ታ",
     "withheldFromSuppliers": "ከአቅራቢዎች የተቀነሰ (የሚታወቅና የሚከፈል)",
-    "withheldByCustomers": "በደንበኞች የተቀነሰ (የሚጠየቅ)"
+    "withheldByCustomers": "በደንበኞች የተቀነሰ (የሚጠየቅ)",
+    "creditNote": "የክሬዲት ማስታወሻ",
+    "debitNote": "የዴቢት ማስታወሻ",
+    "opening": "መክፈቻ",
+    "returnHint": "የሚመለሰው ብዛት። መመለስ የሚቻለው ቢበዛ ያልተከፈለውን {{amount}} ነው።",
+    "cancelPayment": "ክፍያ ሰርዝ",
+    "oldNumber": "የቀድሞ ሥርዓት ቁጥር"
   },
   "periods": {
     "closed": "{{label}} ተዘግቷል።",
@@ -276,7 +284,11 @@
     "opening": "የመክፈቻ ሂሳቦች",
     "openingHint": "ድርጅቱ ገበታን ሲጀምር፡ የቀድሞውን ሥርዓት የሙከራ ሚዛን እዚህ ከሚጀመርበት ቀን አንድ ቀን በፊት ባለው ቀን ያስገቡ።",
     "enterOpening": "የመክፈቻ ሂሳቦችን አስገባ",
-    "postOpening": "የመክፈቻ ሂሳቦችን መዝግብ"
+    "postOpening": "የመክፈቻ ሂሳቦችን መዝግብ",
+    "openingInvoices": "በሽግግር ጊዜ ያልተከፈሉ ደረሰኞች",
+    "openingInvoicesHint": "በቀድሞው ሥርዓት ያልተከፈሉ ደረሰኞች፣ እዚህ እንዲከፈሉ። ምንም አይመዘግቡም፤ ድምራቸው በመክፈቻ ሂሳቦች ውስጥ አለ (1200 ተሰብሳቢ፣ 2100 ተከፋይ)።",
+    "addOpeningInvoice": "ያልተከፈለ ደረሰኝ ጨምር",
+    "openingInvoicePosted": "{{number}} ለ{{party}} ተጨምሯል።"
   },
   "reports": {
     "pl": "ትርፍና ኪሳራ",
@@ -301,5 +313,13 @@
     "voucher": "ሰነድ",
     "opening": "የመክፈቻ ቀሪ",
     "closing": "የመዝጊያ ቀሪ"
+  },
+  "ageing": {
+    "receivables": "ተሰብሳቢ",
+    "payables": "ተከፋይ",
+    "notDue": "ጊዜው ያልደረሰ",
+    "over90": "ከ90 በላይ",
+    "nothingOpen": "በዚህ ቀን ያልተከፈለ የለም።",
+    "daysHint": "ዓምዶቹ ከመክፈያ ቀን በኋላ ያለፉ ቀናት ናቸው። ከቀኑ በኋላ የተደረጉ ክፍያዎችና ተመላሾች አይቆጠሩም።"
   }
 }

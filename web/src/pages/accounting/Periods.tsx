@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useSession } from "../../app/context";
 import { api, post } from "../../lib/api";
 import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
-import { can, type AccountDto, type JournalEntryDto, type PeriodClosingDto, type PeriodClosingsDto } from "../../lib/types";
+import { can, type AccountDto, type InvoiceDto, type JournalEntryDto, type PeriodClosingDto, type PeriodClosingsDto } from "../../lib/types";
+import { useParties } from "./Parties";
 
 type Line = { accountCode: string; debit: string; credit: string };
 const emptyLine = (): Line => ({ accountCode: "", debit: "", credit: "" });
@@ -42,6 +43,14 @@ export function Periods() {
     mutationFn: (date: string) => post<JournalEntryDto>("/api/accounting/years/close", { companyId: company!.id, date }),
     onSuccess: (j) => { setNotice(t("periods.yearClosed", { label: j.sourceNumber, number: j.number })); refresh(); },
   });
+  const parties = useParties();
+  const openingInvoice = useMutation({
+    mutationFn: (body: Record<string, string>) => post<InvoiceDto>("/api/accounting/invoices/opening", {
+      kind: body.kind, companyId: company!.id, partyId: body.partyId, postingDate: body.postingDate, dueDate: body.dueDate || null,
+      amount: Number(body.amount), reference: body.reference || null,
+    }),
+    onSuccess: (inv) => { setNotice(t("periods.openingInvoicePosted", { number: inv.number, party: inv.partyName })); void queryClient.invalidateQueries({ queryKey: ["invoices"] }); },
+  });
   const opening = useMutation({
     mutationFn: (date: string) => post<JournalEntryDto>("/api/accounting/opening-balances", {
       companyId: company!.id, date,
@@ -55,7 +64,7 @@ export function Periods() {
   const date = (iso: string) => formatDate(iso, me.calendar, am);
   const manage = can(me, "accounting.periods.close");
   const latest = periods.data?.closings.find((c) => c.status === "Closed");
-  const error = closeMonth.error ?? reopen.error ?? closeYear.error ?? opening.error;
+  const error = closeMonth.error ?? reopen.error ?? closeYear.error ?? opening.error ?? openingInvoice.error;
   const field = (e: FormEvent<HTMLFormElement>, name: string) => { e.preventDefault(); return String(new FormData(e.currentTarget).get(name)); };
   const setLine = (i: number, patch: Partial<Line>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   const debit = lines.reduce((a, l) => a + Number(l.debit || 0), 0);
@@ -142,6 +151,21 @@ export function Periods() {
               </div>
             </form>
           )}
+          <h3>{t("periods.openingInvoices")}</h3>
+          <p className="muted small">{t("periods.openingInvoicesHint")}</p>
+          <form className="form-grid" onSubmit={(e) => { e.preventDefault(); openingInvoice.mutate(Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>); e.currentTarget.reset(); }}>
+            <label>{t("fields.type")}
+              <select name="kind" defaultValue="Sales"><option value="Sales">{t("ageing.receivables")}</option><option value="Purchase">{t("ageing.payables")}</option></select>
+            </label>
+            <label>{t("inv.customer")} / {t("inv.supplier")}
+              <select name="partyId" required defaultValue=""><option value="" disabled>—</option>{parties.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+            </label>
+            <label>{t("attendance.date")}<input type="date" name="postingDate" required /></label>
+            <label>{t("inv.dueDate")}<input type="date" name="dueDate" /></label>
+            <label>{t("inv.outstanding")}<input type="number" name="amount" step="0.01" min="0.01" required /></label>
+            <label>{t("inv.oldNumber")}<input name="reference" /></label>
+            <div className="form-actions"><button type="submit" disabled={openingInvoice.isPending}>{t("periods.addOpeningInvoice")}</button></div>
+          </form>
         </>
       )}
     </>

@@ -17,6 +17,13 @@
     <Project Path="src/Modules/Core/Gebeta.Core.Infrastructure/Gebeta.Core.Infrastructure.csproj" />
     <Project Path="src/Modules/Core/Gebeta.Core.Presentation/Gebeta.Core.Presentation.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Hr/">
+    <Project Path="src/Modules/Hr/Gebeta.Hr.Application/Gebeta.Hr.Application.csproj" />
+    <Project Path="src/Modules/Hr/Gebeta.Hr.Contracts/Gebeta.Hr.Contracts.csproj" />
+    <Project Path="src/Modules/Hr/Gebeta.Hr.Domain/Gebeta.Hr.Domain.csproj" />
+    <Project Path="src/Modules/Hr/Gebeta.Hr.Infrastructure/Gebeta.Hr.Infrastructure.csproj" />
+    <Project Path="src/Modules/Hr/Gebeta.Hr.Presentation/Gebeta.Hr.Presentation.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Payroll/">
     <Project Path="src/Modules/Payroll/Gebeta.Payroll.Application/Gebeta.Payroll.Application.csproj" />
     <Project Path="src/Modules/Payroll/Gebeta.Payroll.Contracts/Gebeta.Payroll.Contracts.csproj" />
@@ -28,6 +35,7 @@
     <Project Path="tests/Gebeta.Api.Tests/Gebeta.Api.Tests.csproj" />
     <Project Path="tests/Gebeta.ArchitectureTests/Gebeta.ArchitectureTests.csproj" />
     <Project Path="tests/Gebeta.Core.Tests/Gebeta.Core.Tests.csproj" />
+    <Project Path="tests/Gebeta.Hr.Tests/Gebeta.Hr.Tests.csproj" />
     <Project Path="tests/Gebeta.Messaging.Tests/Gebeta.Messaging.Tests.csproj" />
     <Project Path="tests/Gebeta.Modularity.Tests/Gebeta.Modularity.Tests.csproj" />
     <Project Path="tests/Gebeta.Payroll.Tests/Gebeta.Payroll.Tests.csproj" />

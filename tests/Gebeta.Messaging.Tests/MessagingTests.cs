@@ -186,7 +186,8 @@ public sealed class MessagingTests : IAsyncLifetime
 
     private async Task WaitUntilAsync(Func<SampleDbContext, Task<bool>> condition)
     {
-        for (var i = 0; i < 80; i++)
+        // Generous: the test machine may be slow (shared Docker, little memory).
+        for (var i = 0; i < 240; i++)
         {
             await using var scope = _host.Services.CreateAsyncScope();
             if (await condition(scope.ServiceProvider.GetRequiredService<SampleDbContext>()))

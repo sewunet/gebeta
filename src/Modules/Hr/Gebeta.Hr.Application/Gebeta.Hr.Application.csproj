@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Hr.Application</RootNamespace>
+    <Description>HR use cases. Uses Payroll's contracts only to provide payment days when Payroll is installed.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Application\Gebeta.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Hr.Domain\Gebeta.Hr.Domain.csproj" />
+    <ProjectReference Include="..\Gebeta.Hr.Contracts\Gebeta.Hr.Contracts.csproj" />
+    <ProjectReference Include="..\..\Payroll\Gebeta.Payroll.Contracts\Gebeta.Payroll.Contracts.csproj" />
+  </ItemGroup>
+</Project>

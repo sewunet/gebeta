@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Hr.Presentation</RootNamespace>
+    <Description>HR HTTP endpoints.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Modularity\Gebeta.Modularity.csproj" />
+    <ProjectReference Include="..\Gebeta.Hr.Application\Gebeta.Hr.Application.csproj" />
+  </ItemGroup>
+</Project>

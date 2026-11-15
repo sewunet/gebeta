@@ -1,5 +1,11 @@
 # HR module
 
+> **Built so far** (`src/Modules/Hr`): leave under Labour Proclamation 1156/2019 (annual leave entitlement
+> by service years, sick leave pay tiers, maternity, paternity, marriage, bereavement, unpaid), working days
+> without Sundays and public holidays, an append-only leave ledger with annual allocation per Ethiopian
+> fiscal year, leave applications with approval, attendance exceptions (absent, half day), and the
+> `IPaymentDaysProvider` capability: with Payroll installed, salary slips use HR's payment days.
+
 People data and everything except salary calculation (see [payroll.md](payroll.md)).
 
 ## Scope

@@ -25,6 +25,7 @@ x-server-env: &server-env
   # Modules running in this container (see docs/plugin-architecture.md)
   Modules__Enabled__0: core
   Modules__Enabled__1: payroll
+  Modules__Enabled__2: hr
 
 services:
   postgres:

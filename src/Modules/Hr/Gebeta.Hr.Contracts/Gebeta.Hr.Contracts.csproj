@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Hr.Contracts</RootNamespace>
+    <Description>HR's public contract: DTOs, events, permission names. No dependencies.</Description>
+  </PropertyGroup>
+</Project>

@@ -32,7 +32,8 @@ builder.Services.AddGebetaMessaging(builder.Configuration);
 // Every module the image contains. Which of them run is decided by Modules:Enabled.
 builder.AddGebetaModules(
     new CoreModule(),
-    new Gebeta.Payroll.Infrastructure.PayrollModule());
+    new Gebeta.Payroll.Infrastructure.PayrollModule(),
+    new Gebeta.Hr.Infrastructure.HrModule());
 
 var app = builder.Build();
 

@@ -1,6 +1,7 @@
 using Gebeta.Modularity;
 using Gebeta.Payroll.Application;
 using Gebeta.Payroll.Contracts;
+using Gebeta.Payroll.Domain.BackPay;
 using Gebeta.Payroll.Domain.Salary;
 using Gebeta.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,8 @@ public sealed class PayrollDbContext(DbContextOptions<PayrollDbContext> options,
     public DbSet<SalaryStructureDefinition> SalaryStructures => Set<SalaryStructureDefinition>();
     public DbSet<SalaryStructureAssignment> Assignments => Set<SalaryStructureAssignment>();
     public DbSet<SalarySlip> SalarySlips => Set<SalarySlip>();
+    public DbSet<SalaryBackPayment> BackPayments => Set<SalaryBackPayment>();
+    public DbSet<AdditionalPayEntry> AdditionalPay => Set<AdditionalPayEntry>();
 
     internal static void Configure(DbContextOptionsBuilder options, string connectionString) =>
         options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(MigrationsHistoryTable, SchemaName))
@@ -134,7 +137,94 @@ internal sealed class SalarySlipRepository(PayrollDbContext db) : ISalarySlipRep
         db.SalarySlips.AnyAsync(s => s.EmployeeId == employeeId && s.DocStatus != Gebeta.SharedKernel.DocStatus.Cancelled
             && s.PeriodStart <= periodEnd && s.PeriodEnd >= periodStart, cancellationToken);
 
+    public async Task<IReadOnlyList<SalarySlip>> SubmittedForEmployeeAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await db.SalarySlips.AsNoTracking()
+            .Where(s => s.EmployeeId == employeeId && s.DocStatus == Gebeta.SharedKernel.DocStatus.Submitted && s.PeriodStart >= from && s.PeriodStart <= to)
+            .OrderBy(s => s.PeriodStart).ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public void Add(SalarySlip slip) => db.SalarySlips.Add(slip);
+}
+
+internal sealed class BackPaymentConfiguration : IEntityTypeConfiguration<SalaryBackPayment>
+{
+    public void Configure(EntityTypeBuilder<SalaryBackPayment> builder)
+    {
+        builder.ToTable("salary_back_payment");
+        builder.HasKey(b => b.Id);
+        builder.Property(b => b.Id).ValueGeneratedNever();
+        builder.Property(b => b.Name).HasMaxLength(60);
+        builder.HasIndex(b => new { b.CompanyId, b.Name }).IsUnique();
+        builder.HasIndex(b => new { b.EmployeeId, b.EffectiveFrom });
+        builder.Property(b => b.DocStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(b => b.EmployeeNumber).HasMaxLength(40).IsRequired();
+        builder.Property(b => b.EmployeeName).HasMaxLength(200).IsRequired();
+        builder.Property(b => b.NewBase).HasPrecision(21, 2);
+        builder.Property(b => b.Reason).HasMaxLength(500).IsRequired();
+        builder.Property(b => b.Reference).HasMaxLength(140);
+        builder.Property<List<BackPaymentMonth>>("_months").HasColumnName("months").IsJsonList();
+        builder.Ignore(b => b.Months);
+        builder.HasMany(b => b.Entries).WithOne().HasForeignKey(e => e.SourceId).OnDelete(DeleteBehavior.Restrict);
+        builder.Navigation(b => b.Entries).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_entries");
+        foreach (var computed in new[] { nameof(SalaryBackPayment.TotalGrossArrears), nameof(SalaryBackPayment.TotalAdditionalTax),
+                     nameof(SalaryBackPayment.TotalOtherDeductions), nameof(SalaryBackPayment.TotalEmployerContributions), nameof(SalaryBackPayment.NetArrears) })
+        {
+            builder.Ignore(computed);
+        }
+
+        builder.Ignore(b => b.DocumentType);
+        builder.Property(b => b.CreatedBy).HasMaxLength(140);
+        builder.Property(b => b.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(b => b.DomainEvents);
+    }
+}
+
+internal sealed class AdditionalPayConfiguration : IEntityTypeConfiguration<AdditionalPayEntry>
+{
+    public void Configure(EntityTypeBuilder<AdditionalPayEntry> builder)
+    {
+        builder.ToTable("additional_pay");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.Name).HasMaxLength(140).IsRequired();
+        builder.Property(e => e.Abbreviation).HasMaxLength(20).IsRequired();
+        builder.Property(e => e.Type).HasConversion<string>().HasMaxLength(30);
+        builder.Property(e => e.Amount).HasPrecision(21, 2);
+        builder.Property(e => e.SourceType).HasMaxLength(60).IsRequired();
+        builder.Property(e => e.SourceNumber).HasMaxLength(60);
+        builder.HasIndex(e => new { e.EmployeeId, e.PayrollDate });
+        builder.HasIndex(e => e.SalarySlipId);
+        builder.Property(e => e.CreatedBy).HasMaxLength(140);
+        builder.Property(e => e.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(e => e.DomainEvents);
+    }
+}
+
+internal sealed class BackPaymentRepository(PayrollDbContext db) : IBackPaymentRepository
+{
+    public Task<SalaryBackPayment?> GetAsync(Guid id, CancellationToken cancellationToken) =>
+        db.BackPayments.Include(b => b.Entries).FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<SalaryBackPayment>> ListAsync(Guid companyId, CancellationToken cancellationToken) =>
+        await db.BackPayments.AsNoTracking().Include(b => b.Entries).Where(b => b.CompanyId == companyId)
+            .OrderByDescending(b => b.CreatedAt).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<SalaryBackPayment>> SubmittedOverlappingAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await db.BackPayments.AsNoTracking()
+            .Where(b => b.EmployeeId == employeeId && b.DocStatus == Gebeta.SharedKernel.DocStatus.Submitted && b.EffectiveFrom <= to && b.EffectiveTo >= from)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(SalaryBackPayment backPayment) => db.BackPayments.Add(backPayment);
+}
+
+internal sealed class AdditionalPayRepository(PayrollDbContext db) : IAdditionalPayRepository
+{
+    public async Task<IReadOnlyList<AdditionalPayEntry>> PendingAsync(Guid employeeId, DateOnly periodStart, DateOnly periodEnd, CancellationToken cancellationToken) =>
+        await db.AdditionalPay.Where(e => e.EmployeeId == employeeId && !e.IsCancelled && e.SalarySlipId == null
+                && e.PayrollDate >= periodStart && e.PayrollDate <= periodEnd)
+            .OrderBy(e => e.CreatedAt).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<AdditionalPayEntry>> ForSlipAsync(Guid salarySlipId, CancellationToken cancellationToken) =>
+        await db.AdditionalPay.Where(e => e.SalarySlipId == salarySlipId).ToListAsync(cancellationToken).ConfigureAwait(false);
 }
 
 internal sealed class PayrollNumbers(PayrollDbContext db, DocumentNumbering numbering) : ModuleDocumentNumbers(db, numbering), IPayrollNumbers;

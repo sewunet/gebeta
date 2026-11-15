@@ -1,3 +1,5 @@
+using Gebeta.Payroll.Domain.BackPay;
+
 namespace Gebeta.Payroll.Domain.Salary;
 
 public interface ISalaryStructureRepository
@@ -26,5 +28,27 @@ public interface ISalarySlipRepository
     /// <summary>True when the employee already has a draft or submitted slip overlapping the period.</summary>
     Task<bool> HasActiveSlipAsync(Guid employeeId, DateOnly periodStart, DateOnly periodEnd, CancellationToken cancellationToken);
 
+    /// <summary>Submitted slips of the employee whose period starts between the two dates.</summary>
+    Task<IReadOnlyList<SalarySlip>> SubmittedForEmployeeAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
+
     void Add(SalarySlip slip);
+}
+
+public interface IBackPaymentRepository
+{
+    Task<SalaryBackPayment?> GetAsync(Guid id, CancellationToken cancellationToken);
+    Task<IReadOnlyList<SalaryBackPayment>> ListAsync(Guid companyId, CancellationToken cancellationToken);
+
+    /// <summary>Submitted back payments of the employee that cover any month between the two dates.</summary>
+    Task<IReadOnlyList<SalaryBackPayment>> SubmittedOverlappingAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
+
+    void Add(SalaryBackPayment backPayment);
+}
+
+public interface IAdditionalPayRepository
+{
+    /// <summary>Entries waiting for the employee's slip whose period contains their payroll date.</summary>
+    Task<IReadOnlyList<AdditionalPayEntry>> PendingAsync(Guid employeeId, DateOnly periodStart, DateOnly periodEnd, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AdditionalPayEntry>> ForSlipAsync(Guid salarySlipId, CancellationToken cancellationToken);
 }

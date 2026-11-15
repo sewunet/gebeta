@@ -79,8 +79,11 @@ public sealed class SalaryStructureAssignment : Entity
     }
 }
 
-/// <summary>One stored line of a salary slip.</summary>
-public sealed record SalarySlipLine(string Component, string Abbreviation, ComponentType Type, decimal Amount, string? Formula);
+/// <summary>
+/// One stored line of a salary slip. <see cref="IsAdditional"/> lines come from outside the structure
+/// (back payment arrears and their tax, recoveries) and are not taxed again in this month.
+/// </summary>
+public sealed record SalarySlipLine(string Component, string Abbreviation, ComponentType Type, decimal Amount, string? Formula, bool IsAdditional = false);
 
 /// <summary>
 /// A salary slip for one employee and one period. Calculated when created (draft), immutable once
@@ -143,7 +146,8 @@ public sealed class SalarySlip : DocumentBase
         decimal paymentDays,
         decimal totalWorkingDays,
         IReadOnlyDictionary<string, decimal>? additional,
-        IncomeTaxTable taxTable)
+        IncomeTaxTable taxTable,
+        IReadOnlyList<SalarySlipLine>? extraLines = null)
     {
         ArgumentNullException.ThrowIfNull(structure);
         ArgumentNullException.ThrowIfNull(assignment);
@@ -159,6 +163,10 @@ public sealed class SalarySlip : DocumentBase
 
         var result = SalaryCalculator.Calculate(structure.Compile(),
             new SalaryInput(assignment.Base, paymentDays, totalWorkingDays, periodEnd, additional), taxTable);
+        var extras = extraLines ?? [];
+        var extraEarnings = extras.Where(l => l.Type == ComponentType.Earning).Sum(l => l.Amount);
+        var extraDeductions = extras.Where(l => l.Type == ComponentType.Deduction).Sum(l => l.Amount);
+        var extraEmployer = extras.Where(l => l.Type == ComponentType.EmployerContribution).Sum(l => l.Amount);
 
         return new SalarySlip(companyId, periodEnd)
         {
@@ -172,13 +180,15 @@ public sealed class SalarySlip : DocumentBase
             Base = assignment.Base,
             PaymentDays = paymentDays,
             TotalWorkingDays = totalWorkingDays,
-            GrossPay = result.GrossPay,
+            GrossPay = result.GrossPay + extraEarnings,
             TaxableEarnings = result.TaxableEarnings,
-            TotalDeductions = result.TotalDeductions,
-            NetPay = result.NetPay,
-            EmployerContributions = result.EmployerContributions,
+            TotalDeductions = result.TotalDeductions + extraDeductions,
+            NetPay = result.NetPay + extraEarnings - extraDeductions,
+            EmployerContributions = result.EmployerContributions + extraEmployer,
             TaxTable = result.TaxTable,
-            _lines = result.Lines.Select(l => new SalarySlipLine(l.Component, l.Abbreviation, l.Type, l.Amount, l.Formula)).ToList(),
+            _lines = result.Lines.Select(l => new SalarySlipLine(l.Component, l.Abbreviation, l.Type, l.Amount, l.Formula))
+                .Concat(extras.Select(l => l with { IsAdditional = true }))
+                .ToList(),
         };
     }
 

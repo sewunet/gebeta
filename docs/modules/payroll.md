@@ -76,7 +76,7 @@ payslips, bank file, and the payroll journal as an export.
 
 ## Salary back payment (arrears)
 
-The current custom logic, to be kept:
+**Built** (`Gebeta.Payroll.Domain.BackPay`, `/api/payroll/back-payments`). The current custom logic, kept:
 
 1. Input: employee (or many, bulk), the revised salary structure assignment, effective from/to,
    payroll date, reason, reference.
@@ -92,9 +92,12 @@ The current custom logic, to be kept:
    creates a **recovery** line instead of a payment.
 6. Earlier back payments for the same months are taken into account, so running it twice does
    not pay twice.
-7. On submit, create **additional salary** lines in the payroll month (arrears, recovery,
-   back-payment income tax). They appear in that month's slip. Cancel removes them, unless they
-   are already in a submitted slip.
+7. On submit, create **additional pay entries** for the payroll month (arrears or recovery,
+   back-payment income tax, pension and employer contributions, with refunds when they are
+   negative). The first slip whose period contains the payroll date takes them as extra lines that
+   are not taxed again. Cancelling that slip releases them; the back payment can only be cancelled
+   while none of its entries is in a slip. Negative arrears follow `Payroll:NegativeArrearsPolicy`
+   (`RecoverInPayroll` by default, or `Refuse`).
 8. Closed periods and submitted slips are never changed.
 
 ## Tests that must exist

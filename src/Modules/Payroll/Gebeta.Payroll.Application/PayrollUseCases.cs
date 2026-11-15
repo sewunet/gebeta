@@ -164,6 +164,7 @@ public sealed class SalarySlipHandler(
     IEmployeeDirectory employees,
     ICompanyAccess access,
     IPayrollPaymentDays paymentDays,
+    IAdditionalPayRepository additionalPay,
     IPayrollNumbers numbers,
     IPayrollUnitOfWork unitOfWork,
     TimeProvider clock)
@@ -216,11 +217,15 @@ public sealed class SalarySlipHandler(
             ?? await paymentDays.GetAsync(employee.Id, command.PeriodStart, command.PeriodEnd, command.TotalWorkingDays, cancellationToken).ConfigureAwait(false)
             ?? EmployedDays(employee, command.PeriodStart, command.PeriodEnd, command.TotalWorkingDays);
 
+        // Back payment arrears (and other additional pay) due in this period.
+        var pending = await additionalPay.PendingAsync(employee.Id, command.PeriodStart, command.PeriodEnd, cancellationToken).ConfigureAwait(false);
+
         SalarySlip slip;
         try
         {
             slip = SalarySlip.Calculate(employee.CompanyId, employee.Id, employee.Number, employee.FullName, command.PeriodStart, command.PeriodEnd,
-                structure, assignment, days, command.TotalWorkingDays, command.Additional, EthiopianIncomeTax.ValidOn(command.PeriodEnd));
+                structure, assignment, days, command.TotalWorkingDays, command.Additional, EthiopianIncomeTax.ValidOn(command.PeriodEnd),
+                pending.Select(e => e.ToSlipLine()).ToList());
         }
         catch (DomainException ex)
         {
@@ -231,6 +236,11 @@ public sealed class SalarySlipHandler(
         slip.AssignName(await numbers.NextAsync(employee.CompanyId, DocumentType, DefaultPattern, command.PeriodEnd, cancellationToken).ConfigureAwait(false));
         slip.CreatedAt = clock.GetUtcNow();
         slips.Add(slip);
+        foreach (var entry in pending)
+        {
+            entry.IncludeIn(slip.Id);
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return PayrollMapping.ToDto(slip);
@@ -279,6 +289,12 @@ public sealed class SalarySlipHandler(
         catch (DomainException ex)
         {
             return Error.Validation(ex.Message);
+        }
+
+        // Arrears in a cancelled slip wait for the corrected slip.
+        foreach (var entry in await additionalPay.ForSlipAsync(slip.Id, cancellationToken).ConfigureAwait(false))
+        {
+            entry.Release();
         }
 
         slip.ModifiedAt = clock.GetUtcNow();

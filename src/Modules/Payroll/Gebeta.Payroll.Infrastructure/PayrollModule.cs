@@ -3,6 +3,7 @@ using Gebeta.Messaging;
 using Gebeta.Modularity;
 using Gebeta.Payroll.Application;
 using Gebeta.Payroll.Contracts;
+using Gebeta.Payroll.Domain.BackPay;
 using Gebeta.Payroll.Domain.Salary;
 using Gebeta.Payroll.Infrastructure.Persistence;
 using Gebeta.Payroll.Presentation;
@@ -37,6 +38,11 @@ public sealed class PayrollModule : IErpModule
         services.AddScoped<ISalaryStructureRepository, SalaryStructureRepository>();
         services.AddScoped<ISalaryStructureAssignmentRepository, AssignmentRepository>();
         services.AddScoped<ISalarySlipRepository, SalarySlipRepository>();
+        services.AddScoped<IBackPaymentRepository, BackPaymentRepository>();
+        services.AddScoped<IAdditionalPayRepository, AdditionalPayRepository>();
+        var payrollOptions = new PayrollOptions();
+        context.Configuration.GetSection(PayrollOptions.Section).Bind(payrollOptions);
+        services.AddSingleton(payrollOptions);
         services.AddScoped<IModuleMigrator, PayrollMigrator>();
         services.AddOutboxDispatcher<PayrollDbContext>(Id, PayrollDbContext.SchemaName);
 
@@ -61,6 +67,13 @@ public sealed class PayrollModule : IErpModule
         services.AddScoped<ICommandHandler<CancelSalarySlipCommand, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());
         services.AddScoped<IQueryHandler<GetSalarySlipQuery, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());
         services.AddScoped<IQueryHandler<ListSalarySlipsQuery, IReadOnlyList<SalarySlipDto>>>(sp => sp.GetRequiredService<SalarySlipHandler>());
+
+        services.AddScoped<BackPaymentHandler>();
+        services.AddScoped<ICommandHandler<CreateBackPaymentCommand, SalaryBackPaymentDto>>(sp => sp.GetRequiredService<BackPaymentHandler>());
+        services.AddScoped<ICommandHandler<SubmitBackPaymentCommand, SalaryBackPaymentDto>>(sp => sp.GetRequiredService<BackPaymentHandler>());
+        services.AddScoped<ICommandHandler<CancelBackPaymentCommand, SalaryBackPaymentDto>>(sp => sp.GetRequiredService<BackPaymentHandler>());
+        services.AddScoped<IQueryHandler<GetBackPaymentQuery, SalaryBackPaymentDto>>(sp => sp.GetRequiredService<BackPaymentHandler>());
+        services.AddScoped<IQueryHandler<ListBackPaymentsQuery, IReadOnlyList<SalaryBackPaymentDto>>>(sp => sp.GetRequiredService<BackPaymentHandler>());
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints) => PayrollEndpoints.Map(endpoints);

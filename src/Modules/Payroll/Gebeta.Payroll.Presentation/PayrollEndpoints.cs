@@ -72,6 +72,39 @@ public static class PayrollEndpoints
                 (await handler.Handle(new CancelSalarySlipCommand(id), ct).ConfigureAwait(false)).ToHttp())
             .WithName("CancelSalarySlip")
             .RequirePermission(PayrollPermissions.SlipsCancel);
+
+        MapBackPayments(endpoints);
+    }
+
+    public static void MapBackPayments(IEndpointRouteBuilder endpoints)
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+        var backPayments = endpoints.MapGroup("/api/payroll/back-payments").WithTags("Payroll: Back payments");
+
+        backPayments.MapGet("/", async (Guid companyId, IQueryHandler<ListBackPaymentsQuery, IReadOnlyList<SalaryBackPaymentDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new ListBackPaymentsQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListBackPayments")
+            .RequirePermission(PayrollPermissions.BackPaymentsRead);
+
+        backPayments.MapGet("/{id:guid}", async (Guid id, IQueryHandler<GetBackPaymentQuery, SalaryBackPaymentDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new GetBackPaymentQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetBackPayment")
+            .RequirePermission(PayrollPermissions.BackPaymentsRead);
+
+        backPayments.MapPost("/", async (CreateBackPaymentCommand command, ICommandHandler<CreateBackPaymentCommand, SalaryBackPaymentDto> handler, CancellationToken ct) =>
+                Created(await handler.Handle(command, ct).ConfigureAwait(false), r => $"/api/payroll/back-payments/{r.Id}"))
+            .WithName("CreateBackPayment")
+            .RequirePermission(PayrollPermissions.BackPaymentsCreate);
+
+        backPayments.MapPost("/{id:guid}/submit", async (Guid id, ICommandHandler<SubmitBackPaymentCommand, SalaryBackPaymentDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new SubmitBackPaymentCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("SubmitBackPayment")
+            .RequirePermission(PayrollPermissions.BackPaymentsSubmit);
+
+        backPayments.MapPost("/{id:guid}/cancel", async (Guid id, ICommandHandler<CancelBackPaymentCommand, SalaryBackPaymentDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new CancelBackPaymentCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CancelBackPayment")
+            .RequirePermission(PayrollPermissions.BackPaymentsCancel);
     }
 
     private static IResult Created<T>(Gebeta.SharedKernel.Result<T> result, Func<T, string> location) =>

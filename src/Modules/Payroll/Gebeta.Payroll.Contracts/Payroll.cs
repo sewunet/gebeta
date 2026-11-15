@@ -13,9 +13,14 @@ public static class PayrollPermissions
     public const string SlipsCreate = "payroll.salary-slips.create";
     public const string SlipsSubmit = "payroll.salary-slips.submit";
     public const string SlipsCancel = "payroll.salary-slips.cancel";
+    public const string BackPaymentsRead = "payroll.back-payments.read";
+    public const string BackPaymentsCreate = "payroll.back-payments.create";
+    public const string BackPaymentsSubmit = "payroll.back-payments.submit";
+    public const string BackPaymentsCancel = "payroll.back-payments.cancel";
 
     public static IReadOnlyList<string> All { get; } =
-        [CalculatorUse, TaxTablesRead, StructuresRead, StructuresManage, AssignmentsRead, AssignmentsManage, SlipsRead, SlipsCreate, SlipsSubmit, SlipsCancel];
+        [CalculatorUse, TaxTablesRead, StructuresRead, StructuresManage, AssignmentsRead, AssignmentsManage, SlipsRead, SlipsCreate, SlipsSubmit, SlipsCancel,
+         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel];
 }
 
 /// <summary>A salary component. Type: Earning, Deduction or EmployerContribution.</summary>
@@ -113,3 +118,49 @@ public interface IPaymentDaysProvider
 {
     Task<decimal?> GetPaymentDaysAsync(Guid employeeId, DateOnly periodStart, DateOnly periodEnd, decimal totalWorkingDays, CancellationToken cancellationToken);
 }
+
+public sealed record BackPaymentMonthDto(
+    DateOnly PeriodStart,
+    DateOnly PeriodEnd,
+    string EthiopianMonth,
+    string Source,
+    string TaxTable,
+    decimal OldGross,
+    decimal NewGross,
+    decimal OldTax,
+    decimal NewTax,
+    decimal GrossArrears,
+    decimal AdditionalTax,
+    decimal OtherDeductionsArrears,
+    decimal EmployerContributionsArrears,
+    decimal NetArrears);
+
+public sealed record AdditionalPayDto(string Name, string Abbreviation, string Type, decimal Amount, Guid? SalarySlipId);
+
+public sealed record SalaryBackPaymentDto(
+    Guid Id,
+    string? Number,
+    Guid CompanyId,
+    Guid EmployeeId,
+    string EmployeeNumber,
+    string EmployeeName,
+    decimal NewBase,
+    DateOnly EffectiveFrom,
+    DateOnly EffectiveTo,
+    DateOnly PayrollDate,
+    string Reason,
+    string? Reference,
+    string Status,
+    IReadOnlyList<BackPaymentMonthDto> Months,
+    decimal TotalGrossArrears,
+    decimal TotalAdditionalTax,
+    decimal TotalOtherDeductions,
+    decimal TotalEmployerContributions,
+    decimal NetArrears,
+    IReadOnlyList<AdditionalPayDto> Entries);
+
+/// <summary>Published when a back payment is submitted; its amounts are paid in the payroll month.</summary>
+public sealed record SalaryBackPaymentSubmitted(Guid BackPaymentId, string Number, Guid CompanyId, Guid EmployeeId, DateOnly PayrollDate,
+    decimal GrossArrears, decimal AdditionalTax, decimal NetArrears, DateTimeOffset OccurredAt);
+
+public sealed record SalaryBackPaymentCancelled(Guid BackPaymentId, string Number, Guid CompanyId, DateTimeOffset OccurredAt);

@@ -159,6 +159,10 @@ public static class AccountingEndpoints
         acc.MapPost("/bank-accounts/{id:guid}/unmatch/{lineId:guid}", async (Guid id, Guid lineId, ICommandHandler<UnmatchStatementLineCommand, int> h, CancellationToken ct) =>
                 (await h.Handle(new UnmatchStatementLineCommand(id, lineId), ct).ConfigureAwait(false)).ToHttp())
             .WithName("UnmatchStatementLine").RequirePermission(BankingPermissions.Manage);
+        acc.MapPost("/bank-accounts/{id:guid}/lines/{lineId:guid}/post", async (Guid id, Guid lineId, PostLineBody body,
+                ICommandHandler<PostStatementLineCommand, JournalEntryDto> h, CancellationToken ct) =>
+                (await h.Handle(new PostStatementLineCommand(id, lineId, body.AccountCode, body.Remark), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("PostStatementLine").RequirePermission(BankingPermissions.Manage);
         acc.MapPost("/bank-accounts/{id:guid}/auto-match", async (Guid id, DateOnly from, DateOnly to, ICommandHandler<AutoMatchCommand, int> h, CancellationToken ct) =>
                 (await h.Handle(new AutoMatchCommand(id, from, to), ct).ConfigureAwait(false)).ToHttp())
             .WithName("AutoMatchStatement").RequirePermission(BankingPermissions.Manage);
@@ -175,3 +179,5 @@ public sealed record ReturnRequest(DateOnly PostingDate, IReadOnlyList<InvoiceLi
 public sealed record StatementBody(IReadOnlyList<StatementLineInput> Lines);
 
 public sealed record MatchBody(Guid StatementLineId, IReadOnlyList<Guid> GlEntryIds);
+
+public sealed record PostLineBody(string? AccountCode, string? Remark);

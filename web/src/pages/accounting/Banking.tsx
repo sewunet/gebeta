@@ -6,7 +6,7 @@ import { api, post } from "../../lib/api";
 import { parseAmount, parseCsv, parseDate } from "../../lib/csv";
 import { formatDate, formatMoney } from "../../lib/ethiopian";
 import { formData } from "../../lib/hooks";
-import { can, type BankAccountDto, type ReconciliationDto } from "../../lib/types";
+import { can, type AccountDto, type BankAccountDto, type ReconciliationDto } from "../../lib/types";
 import { currentMonth, monthRange } from "../payroll/month";
 
 type Field = "date" | "description" | "reference" | "amount" | "withdrawal" | "deposit" | "balance";
@@ -39,6 +39,7 @@ export function Banking() {
   const [rows, setRows] = useState<string[][] | null>(null);
   const [mapping, setMapping] = useState<Partial<Record<Field, number>>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  const [booking, setBooking] = useState<string | null>(null);
   const { start, end } = monthRange(month);
   const bankId = selected ?? accounts.data?.[0]?.id ?? null;
   const manage = can(me, "accounting.banking.manage");
@@ -66,6 +67,16 @@ export function Banking() {
     onSuccess: refresh,
   });
   const unmatch = useMutation({ mutationFn: (lineId: string) => post(`/api/accounting/bank-accounts/${bankId}/unmatch/${lineId}`), onSuccess: refresh });
+  const chartAccounts = useQuery({
+    queryKey: ["accounts", company?.id],
+    queryFn: () => api<AccountDto[]>(`/api/accounting/accounts?companyId=${company!.id}`),
+    enabled: !!company && !!booking,
+  });
+  const book = useMutation({
+    mutationFn: ({ lineId, accountCode, remark }: { lineId: string; accountCode: string; remark: string }) =>
+      post(`/api/accounting/bank-accounts/${bankId}/lines/${lineId}/post`, { accountCode, remark: remark || null }),
+    onSuccess: () => { setBooking(null); refresh(); void queryClient.invalidateQueries({ queryKey: ["journals"] }); },
+  });
   const autoMatch = useMutation({
     mutationFn: () => post<number>(`/api/accounting/bank-accounts/${bankId}/auto-match?from=${start}&to=${end}`),
     onSuccess: (n) => { setNotice(t("bank.autoMatched", { count: n })); refresh(); },
@@ -90,7 +101,7 @@ export function Banking() {
   const lineAmount = r?.statementLines.find((l) => l.id === line)?.amount ?? 0;
   const entriesAmount = (r?.bookEntries ?? []).filter((e) => entries.includes(e.glEntryId)).reduce((a, e) => a + e.amount, 0);
   const balanced = !!line && entries.length > 0 && Math.round(lineAmount * 100) === Math.round(entriesAmount * 100);
-  const error = create.error ?? importLines.error ?? match.error ?? unmatch.error ?? autoMatch.error;
+  const error = create.error ?? importLines.error ?? match.error ?? unmatch.error ?? autoMatch.error ?? book.error;
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -203,16 +214,33 @@ export function Banking() {
                 <section>
                   <h3>{t("bank.statement")}</h3>
                   <table className="table">
-                    <tbody>{r.statementLines.map((l) => (
+                    <tbody>{r.statementLines.flatMap((l) => [
                       <tr key={l.id} className={`${l.matched ? "muted" : ""} ${line === l.id ? "selected" : ""} ${suggestedLines.has(l.id) ? "suggested" : ""}`}
                         onClick={() => !l.matched && manage && setLine(line === l.id ? null : l.id)} style={{ cursor: l.matched || !manage ? "default" : "pointer" }}>
                         <td>{date(l.date)}</td><td>{l.description}{l.reference && <div className="mono small muted">{l.reference}</div>}</td>
                         <td className={`num ${l.amount < 0 ? "neg" : ""}`}>{formatMoney(l.amount)}</td>
                         <td className="actions">{l.matched
                           ? <>{l.matchedVouchers.join(", ")} {manage && <button className="link-button" onClick={(e) => { e.stopPropagation(); unmatch.mutate(l.id); }}>{t("bank.unmatch")}</button>}</>
-                          : null}</td>
-                      </tr>
-                    ))}</tbody>
+                          : manage && <button className="link-button" onClick={(e) => { e.stopPropagation(); setBooking(booking === l.id ? null : l.id); }}>{t("bank.book")}</button>}</td>
+                      </tr>,
+                      booking === l.id ? (
+                        <tr key={`${l.id}-book`} className="detail"><td colSpan={4}>
+                          <form className="inline-fields" onSubmit={(e) => {
+                            e.preventDefault();
+                            const f = new FormData(e.currentTarget);
+                            book.mutate({ lineId: l.id, accountCode: String(f.get("accountCode")), remark: String(f.get("remark") ?? "") });
+                          }}>
+                            <select name="accountCode" defaultValue={l.amount < 0 ? "6400" : "4300"}>
+                              {chartAccounts.data?.filter((a) => !a.isGroup && a.code !== accounts.data?.find((b) => b.id === bankId)?.ledgerAccountCode)
+                                .map((a) => <option key={a.id} value={a.code}>{a.code} · {a.name}</option>)}
+                            </select>
+                            <input name="remark" placeholder={l.description} />
+                            <button type="submit" disabled={book.isPending}>{t("bank.bookButton")}</button>
+                          </form>
+                          <p className="muted small">{t("bank.bookHint")}</p>
+                        </td></tr>
+                      ) : null,
+                    ])}</tbody>
                   </table>
                   {!r.statementLines.length && <p className="muted">{t("bank.noStatement")}</p>}
                 </section>

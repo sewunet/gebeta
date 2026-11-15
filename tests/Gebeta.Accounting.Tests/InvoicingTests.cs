@@ -198,4 +198,39 @@ public class InvoicingTests
         Assert.False(sale.NeedsWithholdingReceipt);
         Assert.Throws<DomainException>(() => sale.AssignWithholdingReceipt("WHT-3"));
     }
+
+    [Fact]
+    public void One_payment_settles_several_invoices_of_the_same_party_and_cancelling_restores_each()
+    {
+        var first = Make(InvoiceKind.Sales, false, false, new InvoiceLine("Cement", 1m, 10_000m, "4100", false));
+        var second = Make(InvoiceKind.Sales, false, false, new InvoiceLine("Sand", 1m, 5_000m, "4100", false));
+        first.Submit();
+        second.Submit();
+
+        var payment = Payment.Create([(first, 10_000m), (second, 2_000m)], Date, "1120", "CHQ 0042");
+        payment.AssignName("PAY-1");
+        Assert.Equal(12_000m, payment.Amount);
+        Assert.Equal(2, payment.Allocations.Count);
+        Assert.Equal(0m, first.Outstanding);
+        Assert.Equal(3_000m, second.Outstanding);
+        Assert.Contains(payment.JournalLines(), l => l.AccountCode == "1120" && l.Debit == 12_000m);
+
+        payment.Submit();
+        payment.CancelAgainst([first, second]);
+        Assert.Equal(10_000m, first.Outstanding);
+        Assert.Equal(5_000m, second.Outstanding);
+    }
+
+    [Fact]
+    public void A_payment_cannot_mix_parties_repeat_an_invoice_or_pay_a_note()
+    {
+        var mine = Make(InvoiceKind.Sales, false, false, new InvoiceLine("Cement", 1m, 1_000m, "4100", false));
+        var theirs = Invoice.Create(InvoiceKind.Sales, Company, Guid.CreateVersion7(), "Someone Else", null, Date, Date, [new InvoiceLine("Sand", 1m, 1_000m, "4100", false)],
+            Rules, false, false);
+        mine.Submit();
+        theirs.Submit();
+        Assert.Equal("accounting.payment_mixed", Assert.Throws<DomainException>(() => Payment.Create([(mine, 100m), (theirs, 100m)], Date, "1120", null)).Code);
+        Assert.Equal("accounting.payment_duplicate", Assert.Throws<DomainException>(() => Payment.Create([(mine, 100m), (mine, 100m)], Date, "1120", null)).Code);
+        Assert.Equal(1_000m, theirs.Outstanding);
+    }
 }

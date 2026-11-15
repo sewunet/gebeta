@@ -211,6 +211,7 @@ public sealed record TrialBalanceQuery(Guid CompanyId, DateOnly AsOf) : IQuery<T
 public sealed class JournalHandler(
     IAccountRepository accounts,
     IJournalRepository journals,
+    Gebeta.Accounting.Domain.Banking.IBankRepository banks,
     ChartSetup chart,
     ICompanyAccess access,
     ICurrentUser currentUser,
@@ -333,7 +334,7 @@ public sealed class JournalHandler(
             return Error.NotFound("Journal entry", command.JournalId);
         }
 
-        if (journal.Source is not (JournalSource.Manual or JournalSource.Opening or JournalSource.YearEnd))
+        if (journal.Source is not (JournalSource.Manual or JournalSource.Opening or JournalSource.YearEnd or JournalSource.Bank))
         {
             return Error.Validation($"This journal comes from {journal.Source} ({journal.SourceNumber}); cancel the source document instead.");
         }
@@ -345,6 +346,11 @@ public sealed class JournalHandler(
         catch (DomainException ex)
         {
             return Error.Validation(ex.Message);
+        }
+
+        if (journal.Source == JournalSource.Bank && journal.SourceId is { } lineId)
+        {
+            banks.Remove(await banks.MatchesForLineAsync(lineId, cancellationToken).ConfigureAwait(false)); // the statement line is unmatched again
         }
 
         journal.ModifiedAt = clock.GetUtcNow();

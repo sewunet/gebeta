@@ -58,6 +58,7 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<ICommandHandler<MatchStatementLineCommand, ReconciliationDto>>(sp => sp.GetRequiredService<BankingHandler>());
         services.AddScoped<ICommandHandler<UnmatchStatementLineCommand, int>>(sp => sp.GetRequiredService<BankingHandler>());
         services.AddScoped<ICommandHandler<AutoMatchCommand, int>>(sp => sp.GetRequiredService<BankingHandler>());
+        services.AddScoped<ICommandHandler<PostStatementLineCommand, JournalEntryDto>>(sp => sp.GetRequiredService<BankingHandler>());
         services.AddScoped<ICommandHandler<PostOpeningBalancesCommand, JournalEntryDto>>(sp => sp.GetRequiredService<OpeningAndYearEndHandler>());
         services.AddScoped<ICommandHandler<CloseYearCommand, JournalEntryDto>>(sp => sp.GetRequiredService<OpeningAndYearEndHandler>());
         services.AddScoped<ICommandHandler<ClosePeriodCommand, PeriodClosingDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());

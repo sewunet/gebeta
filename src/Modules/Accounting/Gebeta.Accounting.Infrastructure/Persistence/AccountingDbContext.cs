@@ -272,11 +272,20 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Gebeta.Acc
         builder.Property(p => p.Id).ValueGeneratedNever();
         builder.Property(p => p.Name).HasMaxLength(60);
         builder.HasIndex(p => new { p.CompanyId, p.Name }).IsUnique();
-        builder.HasIndex(p => p.InvoiceId);
         builder.Property(p => p.Kind).HasConversion<string>().HasMaxLength(20);
+        builder.OwnsMany<Gebeta.Accounting.Domain.Invoicing.PaymentAllocation>("_allocations", a =>
+        {
+            a.ToTable("payment_allocation");
+            a.WithOwner().HasForeignKey("PaymentId");
+            a.Property<int>("Id");
+            a.HasKey("PaymentId", "Id");
+            a.Property(x => x.InvoiceNumber).HasMaxLength(60);
+            a.Property(x => x.Amount).HasPrecision(21, 2);
+            a.HasIndex(x => x.InvoiceId);
+        });
+        builder.Ignore(p => p.Allocations);
         builder.Property(p => p.DocStatus).HasConversion<string>().HasMaxLength(20);
         builder.Property(p => p.PartyName).HasMaxLength(140).IsRequired();
-        builder.Property(p => p.InvoiceNumber).HasMaxLength(60);
         builder.Property(p => p.Amount).HasPrecision(21, 2);
         builder.Property(p => p.BankAccountCode).HasMaxLength(20).IsRequired();
         builder.Property(p => p.Reference).HasMaxLength(100);
@@ -306,7 +315,8 @@ internal sealed class InvoiceRepository(AccountingDbContext db) : Gebeta.Account
         db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Invoicing.Payment>> PaymentsForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken) =>
-        await db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().AsNoTracking().Where(p => p.InvoiceId == invoiceId)
+        await db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().AsNoTracking()
+            .Where(p => EF.Property<List<Gebeta.Accounting.Domain.Invoicing.PaymentAllocation>>(p, "_allocations").Any(a => a.InvoiceId == invoiceId))
             .OrderBy(p => p.PostingDate).ThenBy(p => p.Name).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Invoicing.Invoice>> ReturnsAgainstAsync(Guid invoiceId, CancellationToken cancellationToken) =>
@@ -395,6 +405,9 @@ internal sealed class BankRepository(AccountingDbContext db) : Gebeta.Accounting
 
     public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Banking.BankMatch>> MatchesAsync(Guid bankAccountId, CancellationToken cancellationToken) =>
         await db.Set<Gebeta.Accounting.Domain.Banking.BankMatch>().Where(m => m.BankAccountId == bankAccountId).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Banking.BankMatch>> MatchesForLineAsync(Guid statementLineId, CancellationToken cancellationToken) =>
+        await db.Set<Gebeta.Accounting.Domain.Banking.BankMatch>().Where(m => m.StatementLineId == statementLineId).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public void Add(IEnumerable<Gebeta.Accounting.Domain.Banking.BankMatch> matches) => db.Set<Gebeta.Accounting.Domain.Banking.BankMatch>().AddRange(matches);
 

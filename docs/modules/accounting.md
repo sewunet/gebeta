@@ -17,7 +17,7 @@
 > Payments (`PAY-<FY>-#####`, `/api/accounting/payments`) settle one invoice up to its outstanding amount
 > (bank 1120 by default); an invoice with payments cannot be cancelled. Reports: `/reports/vat` (output, input,
 > net payable) and `/reports/withholding` (withheld from suppliers, withheld by customers). Rates and thresholds
-> are configuration (`Accounting:*`). Not yet: partial allocation of one payment across invoices, refunds, TOT.
+> are configuration (`Accounting:*`). Not yet: advances (payments before an invoice), refunds, TOT.
 >
 > **Corrections and cut-over** (step 21): `POST /invoices/{id}/return` makes a credit note (`CN-`, sales) or debit
 > note (`DN-`, purchases) for some or all of a submitted invoice's lines: VAT as on the original, withholding at
@@ -45,8 +45,15 @@
 > three days, one candidate on each side). A voucher reversed on the same account (a cancelled payment) drops out.
 > Summary: book balance + statement lines not in the books − book rows not on the statement = statement balance,
 > compared with the balance printed on the last statement line. Unmatching removes the match only; the ledger is
-> never touched (replaces the old custom `bank_reconciliation_reversal_log`). Not yet: posting bank charges
-> straight from an unmatched line, bank-specific import presets.
+> never touched (replaces the old custom `bank_reconciliation_reversal_log`). Not yet: bank-specific import presets.
+>
+> **Allocations and bank postings** (step 24): a payment can settle several invoices of one customer or supplier
+> (`allocations: [{invoiceId, amount}]`, stored in `payment_allocation`); cancelling it puts each share back. The
+> bank account is checked to be a cash or bank account. An unmatched statement line the books do not have yet
+> (charges, interest) is booked with `POST /bank-accounts/{id}/lines/{lineId}/post` (default 6400 Bank Charges
+> for money out, 4300 Interest Income for money in; both added to the chart template): a journal with source
+> `Bank` on the line's date, matched to the line at once. Cancelling that journal unmatches the line; a line is
+> booked from the statement only once (afterwards, post a journal by hand and match it).
 >
 > **Month close and reports** (step 18): `POST /api/accounting/periods/close` closes the month containing a date:
 > one of the 12 Ethiopian fiscal periods for companies on the Ethiopian fiscal year (Nehase takes Pagume), else the

@@ -60,6 +60,8 @@ public static class EthiopianChartOfAccounts
     public const string SalaryExpense = "6110";
     public const string EmployerPensionExpense = "6120";
     public const string RetainedEarnings = "3200";
+    public const string BankCharges = "6400";
+    public const string InterestIncome = "4300";
 
     public static IReadOnlyList<AccountTemplate> Accounts { get; } =
     [
@@ -88,6 +90,7 @@ public static class EthiopianChartOfAccounts
         new("4000", "Income", RootType.Income, true, null),
         new("4100", "Sales", RootType.Income, false, "4000"),
         new("4200", "Other Income", RootType.Income, false, "4000"),
+        new(InterestIncome, "Interest Income", RootType.Income, false, "4000"),
         new("5000", "Cost of Sales", RootType.Expense, false, null),
         new("6000", "Operating Expenses", RootType.Expense, true, null),
         new("6100", "Employee Costs", RootType.Expense, true, "6000"),
@@ -95,6 +98,7 @@ public static class EthiopianChartOfAccounts
         new(EmployerPensionExpense, "Employer Pension Contribution", RootType.Expense, false, "6100"),
         new("6200", "Rent", RootType.Expense, false, "6000"),
         new("6300", "Utilities", RootType.Expense, false, "6000"),
+        new(BankCharges, "Bank Charges", RootType.Expense, false, "6000"),
         new("6900", "Other Expenses", RootType.Expense, false, "6000"),
     ];
 }
@@ -116,6 +120,9 @@ public enum JournalSource
 
     /// <summary>Year-end closing: income and expenses of the fiscal year moved to retained earnings.</summary>
     YearEnd,
+
+    /// <summary>Posted from a bank statement line (bank charges, interest); the source is the statement line.</summary>
+    Bank,
 }
 
 /// <summary>

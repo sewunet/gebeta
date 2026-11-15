@@ -337,9 +337,33 @@ public enum PaymentKind
     Pay,
 }
 
-/// <summary>A payment received from a customer or paid to a supplier, against one invoice.</summary>
+/// <summary>The part of a payment that settles one invoice.</summary>
+public sealed class PaymentAllocation
+{
+    private PaymentAllocation()
+    {
+    }
+
+    public PaymentAllocation(Guid invoiceId, string? invoiceNumber, decimal amount)
+    {
+        InvoiceId = invoiceId;
+        InvoiceNumber = invoiceNumber;
+        Amount = amount;
+    }
+
+    public Guid InvoiceId { get; private set; }
+    public string? InvoiceNumber { get; private set; }
+    public decimal Amount { get; private set; }
+}
+
+/// <summary>
+/// A payment received from a customer or paid to a supplier. One payment can settle several invoices of the same
+/// party (one cheque or transfer for many invoices); each invoice's share is an allocation.
+/// </summary>
 public sealed class Payment : DocumentBase
 {
+    private List<PaymentAllocation> _allocations = [];
+
     private Payment()
     {
         PartyName = string.Empty;
@@ -358,27 +382,75 @@ public sealed class Payment : DocumentBase
     public PaymentKind Kind { get; private set; }
     public Guid PartyId { get; private set; }
     public string PartyName { get; private set; }
-    public Guid InvoiceId { get; private set; }
-    public string? InvoiceNumber { get; private set; }
+    public IReadOnlyList<PaymentAllocation> Allocations => _allocations;
     public decimal Amount { get; private set; }
     public string BankAccountCode { get; private set; }
     public string? Reference { get; private set; }
 
-    public static Payment Create(Invoice invoice, decimal amount, DateOnly date, string bankAccountCode, string? reference)
+    public static Payment Create(Invoice invoice, decimal amount, DateOnly date, string bankAccountCode, string? reference) =>
+        Create([(invoice, amount)], date, bankAccountCode, reference);
+
+    /// <summary>Applies each share to its invoice; all invoices must be submitted, of one company, one party and one kind.</summary>
+    public static Payment Create(IReadOnlyList<(Invoice Invoice, decimal Amount)> shares, DateOnly date, string bankAccountCode, string? reference)
     {
-        ArgumentNullException.ThrowIfNull(invoice);
-        return new Payment(invoice.CompanyId, date)
+        ArgumentNullException.ThrowIfNull(shares);
+        if (shares.Count == 0)
         {
-            Kind = invoice.Kind == InvoiceKind.Sales ? PaymentKind.Receive : PaymentKind.Pay, PartyId = invoice.PartyId, PartyName = invoice.PartyName,
-            InvoiceId = invoice.Id, InvoiceNumber = invoice.Name, Amount = Rounding.ToCurrency(amount),
+            throw new DomainException("accounting.payment_empty", "A payment needs at least one invoice.");
+        }
+
+        var first = shares[0].Invoice;
+        if (shares.Any(s => s.Invoice.CompanyId != first.CompanyId || s.Invoice.PartyId != first.PartyId || s.Invoice.Kind != first.Kind))
+        {
+            throw new DomainException("accounting.payment_mixed", "One payment can only settle invoices of the same customer or supplier.");
+        }
+
+        if (shares.Any(s => s.Invoice.IsReturn))
+        {
+            throw new DomainException("accounting.payment_return", "Credit and debit notes are not paid; they reduce their invoice.");
+        }
+
+        if (shares.Select(s => s.Invoice.Id).Distinct().Count() != shares.Count)
+        {
+            throw new DomainException("accounting.payment_duplicate", "Each invoice can appear only once in a payment.");
+        }
+
+        foreach (var (invoice, amount) in shares)
+        {
+            invoice.ApplyPayment(Rounding.ToCurrency(amount));
+        }
+
+        return new Payment(first.CompanyId, date)
+        {
+            Kind = first.Kind == InvoiceKind.Sales ? PaymentKind.Receive : PaymentKind.Pay, PartyId = first.PartyId, PartyName = first.PartyName,
+            _allocations = shares.Select(s => new PaymentAllocation(s.Invoice.Id, s.Invoice.Name, Rounding.ToCurrency(s.Amount))).ToList(),
+            Amount = shares.Sum(s => Rounding.ToCurrency(s.Amount)),
             BankAccountCode = string.IsNullOrWhiteSpace(bankAccountCode) ? EthiopianChartOfAccounts.Bank : bankAccountCode.Trim(),
             Reference = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim(),
         };
     }
 
+    /// <summary>Cancels the payment and puts each share back on its invoice (pass the invoices it settled).</summary>
+    public void CancelAgainst(IReadOnlyList<Invoice> invoices)
+    {
+        ArgumentNullException.ThrowIfNull(invoices);
+        Cancel();
+        foreach (var allocation in _allocations)
+        {
+            var invoice = invoices.FirstOrDefault(i => i.Id == allocation.InvoiceId)
+                ?? throw new DomainException("accounting.payment_invoice", $"Invoice {allocation.InvoiceNumber} of this payment is missing.");
+            invoice.ReversePayment(allocation.Amount);
+        }
+    }
+
     public IReadOnlyList<(string AccountCode, decimal Debit, decimal Credit, string Description)> JournalLines()
     {
-        var label = $"Payment {Name} · {PartyName} · {InvoiceNumber}";
+        var label = $"Payment {Name} · {PartyName} · {string.Join(", ", _allocations.Select(a => a.InvoiceNumber))}";
+        if (label.Length > 300)
+        {
+            label = label[..300];
+        }
+
         return Kind == PaymentKind.Receive
             ? [(BankAccountCode, Amount, 0m, label), (Invoice.ReceivableAccount, 0m, Amount, label)]
             : [(Invoice.PayableAccount, Amount, 0m, label), (BankAccountCode, 0m, Amount, label)];

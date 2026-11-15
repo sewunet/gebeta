@@ -167,6 +167,7 @@ public interface IBankRepository
     void Add(IEnumerable<BankStatementLine> lines);
 
     Task<IReadOnlyList<BankMatch>> MatchesAsync(Guid bankAccountId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<BankMatch>> MatchesForLineAsync(Guid statementLineId, CancellationToken cancellationToken);
     void Add(IEnumerable<BankMatch> matches);
     void Remove(IEnumerable<BankMatch> matches);
 }

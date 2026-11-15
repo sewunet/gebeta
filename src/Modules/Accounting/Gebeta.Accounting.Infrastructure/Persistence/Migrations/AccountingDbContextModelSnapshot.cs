@@ -411,15 +411,6 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("doc_status");
 
-                    b.Property<Guid>("InvoiceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("invoice_id");
-
-                    b.Property<string>("InvoiceNumber")
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)")
-                        .HasColumnName("invoice_number");
-
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -461,9 +452,6 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_payment");
-
-                    b.HasIndex("InvoiceId")
-                        .HasDatabaseName("ix_payment_invoice_id");
 
                     b.HasIndex("CompanyId", "Name")
                         .IsUnique()
@@ -896,6 +884,51 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                         .HasFilter("processed_at IS NULL");
 
                     b.ToTable("outbox_message", "accounting");
+                });
+
+            modelBuilder.Entity("Gebeta.Accounting.Domain.Invoicing.Payment", b =>
+                {
+                    b.OwnsMany("Gebeta.Accounting.Domain.Invoicing.PaymentAllocation", "_allocations", b1 =>
+                        {
+                            b1.Property<Guid>("PaymentId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("payment_id");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer")
+                                .HasColumnName("id");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(21, 2)
+                                .HasColumnType("numeric(21,2)")
+                                .HasColumnName("amount");
+
+                            b1.Property<Guid>("InvoiceId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("invoice_id");
+
+                            b1.Property<string>("InvoiceNumber")
+                                .HasMaxLength(60)
+                                .HasColumnType("character varying(60)")
+                                .HasColumnName("invoice_number");
+
+                            b1.HasKey("PaymentId", "Id")
+                                .HasName("pk_payment_allocation");
+
+                            b1.HasIndex("InvoiceId")
+                                .HasDatabaseName("ix_payment_allocation_invoice_id");
+
+                            b1.ToTable("payment_allocation", "accounting");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PaymentId")
+                                .HasConstraintName("fk_payment_allocation_payment_payment_id");
+                        });
+
+                    b.Navigation("_allocations");
                 });
 #pragma warning restore 612, 618
         }

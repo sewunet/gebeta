@@ -16,7 +16,9 @@ public sealed record InvoiceDto(Guid Id, string? Number, string Kind, Guid Compa
     string? WithholdingReceiptNumber = null);
 
 public sealed record PaymentDto(Guid Id, string? Number, string Kind, Guid PartyId, string PartyName, Guid InvoiceId, string? InvoiceNumber, decimal Amount,
-    string BankAccountCode, DateOnly PostingDate, string? Reference, string Status = "Submitted");
+    string BankAccountCode, DateOnly PostingDate, string? Reference, string Status = "Submitted", IReadOnlyList<PaymentAllocationDto>? Allocations = null);
+
+public sealed record PaymentAllocationDto(Guid InvoiceId, string? InvoiceNumber, decimal Amount);
 
 public sealed record VatReportRow(string Kind, string? Number, DateOnly Date, string PartyName, string? PartyTin, decimal Net, decimal Vat);
 

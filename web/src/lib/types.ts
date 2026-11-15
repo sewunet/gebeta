@@ -71,7 +71,7 @@ export type InvoiceDto = {
 };
 export type PaymentDto = {
   id: string; number?: string; kind: string; partyName: string; invoiceId: string; invoiceNumber?: string; amount: number; postingDate: string;
-  bankAccountCode: string; reference?: string; status: string;
+  bankAccountCode: string; reference?: string; status: string; allocations?: { invoiceId: string; invoiceNumber?: string; amount: number }[];
 };
 export type AgeingRow = { partyId: string; partyName: string; partyTin?: string; notDue: number; days1To30: number; days31To60: number; days61To90: number; over90: number; total: number };
 export type AgeingReportDto = { kind: string; asOf: string; rows: AgeingRow[]; totals: AgeingRow };

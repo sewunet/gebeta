@@ -36,7 +36,11 @@ public sealed record GetInvoiceQuery(Guid InvoiceId) : IQuery<InvoiceDto>;
 
 public sealed record ListInvoicesQuery(Guid CompanyId, InvoiceKind? Kind, DateOnly From, DateOnly To) : IQuery<IReadOnlyList<InvoiceDto>>;
 
-public sealed record CreatePaymentCommand(Guid InvoiceId, decimal Amount, DateOnly PostingDate, string? BankAccountCode, string? Reference) : ICommand<PaymentDto>;
+public sealed record PaymentAllocationInput(Guid InvoiceId, decimal Amount);
+
+/// <summary>A payment for one invoice (<see cref="InvoiceId"/> and <see cref="Amount"/>) or several of the same party (<see cref="Allocations"/>).</summary>
+public sealed record CreatePaymentCommand(Guid? InvoiceId, decimal? Amount, DateOnly PostingDate, string? BankAccountCode, string? Reference,
+    IReadOnlyList<PaymentAllocationInput>? Allocations = null) : ICommand<PaymentDto>;
 
 /// <summary>A credit note (sales) or debit note (purchase) against a submitted invoice; without lines, the whole invoice.</summary>
 public sealed record CreateReturnCommand(Guid InvoiceId, DateOnly PostingDate, IReadOnlyList<InvoiceLineInput>? Lines) : ICommand<InvoiceDto>;
@@ -239,16 +243,36 @@ public sealed class InvoicingHandler(
     public async Task<Result<PaymentDto>> Handle(CreatePaymentCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var invoice = await AccessibleAsync(command.InvoiceId, cancellationToken).ConfigureAwait(false);
-        if (invoice is null)
+        var requested = command.Allocations is { Count: > 0 }
+            ? command.Allocations.ToList()
+            : command.InvoiceId is { } single ? [new PaymentAllocationInput(single, command.Amount ?? 0m)] : [];
+        if (requested.Count == 0)
         {
-            return Error.NotFound("Invoice", command.InvoiceId);
+            return Error.Validation("Say which invoice or invoices the payment is for.");
+        }
+
+        var shares = new List<(Invoice, decimal)>();
+        foreach (var r in requested)
+        {
+            if (await AccessibleAsync(r.InvoiceId, cancellationToken).ConfigureAwait(false) is not { } found)
+            {
+                return Error.NotFound("Invoice", r.InvoiceId);
+            }
+
+            shares.Add((found, r.Amount));
+        }
+
+        var invoice = shares[0].Item1;
+        var bankCode = string.IsNullOrWhiteSpace(command.BankAccountCode) ? EthiopianChartOfAccounts.Bank : command.BankAccountCode.Trim();
+        var bankAccount = (await accounts.ListAsync(invoice.CompanyId, cancellationToken).ConfigureAwait(false)).FirstOrDefault(a => a.Code == bankCode);
+        if (bankAccount is null || bankAccount.IsGroup || bankAccount.RootType != RootType.Asset)
+        {
+            return Error.Validation($"Account {bankCode} is not a cash or bank account of this company.");
         }
 
         try
         {
-            invoice.ApplyPayment(command.Amount);
-            var payment = Payment.Create(invoice, command.Amount, command.PostingDate, command.BankAccountCode ?? EthiopianChartOfAccounts.Bank, command.Reference);
+            var payment = Payment.Create(shares, command.PostingDate, bankCode, command.Reference);
             await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
             payment.AssignName(await numbers.NextAsync(invoice.CompanyId, payment.DocumentType, "PAY-.FY.-.#####", command.PostingDate, cancellationToken).ConfigureAwait(false));
             payment.Submit();
@@ -341,8 +365,9 @@ public sealed class InvoicingHandler(
             invoice.WithholdingRatePercent, invoice.WithholdingAmount);
     }
 
-    private static PaymentDto ToDto(Payment p) => new(p.Id, p.Name, p.Kind.ToString(), p.PartyId, p.PartyName, p.InvoiceId, p.InvoiceNumber, p.Amount,
-        p.BankAccountCode, p.PostingDate, p.Reference, p.DocStatus.ToString());
+    private static PaymentDto ToDto(Payment p) => new(p.Id, p.Name, p.Kind.ToString(), p.PartyId, p.PartyName, p.Allocations[0].InvoiceId,
+        string.Join(", ", p.Allocations.Select(a => a.InvoiceNumber)), p.Amount, p.BankAccountCode, p.PostingDate, p.Reference, p.DocStatus.ToString(),
+        p.Allocations.Select(a => new PaymentAllocationDto(a.InvoiceId, a.InvoiceNumber, a.Amount)).ToList());
 
     private async Task<Result<InvoiceDto>> NumberAndSaveAsync(Invoice invoice, string pattern, CancellationToken cancellationToken)
     {
@@ -439,11 +464,17 @@ public sealed class InvoicingHandler(
 
         try
         {
-            payment.Cancel();
-            var invoice = await invoices.GetAsync(payment.InvoiceId, cancellationToken).ConfigureAwait(false)
-                ?? throw new DomainException("accounting.payment_invoice", "The payment's invoice no longer exists.");
-            invoice.ReversePayment(payment.Amount);
-            invoice.ModifiedAt = clock.GetUtcNow();
+            var settled = new List<Invoice>();
+            foreach (var allocation in payment.Allocations)
+            {
+                if (await invoices.GetAsync(allocation.InvoiceId, cancellationToken).ConfigureAwait(false) is { } settledInvoice)
+                {
+                    settledInvoice.ModifiedAt = clock.GetUtcNow();
+                    settled.Add(settledInvoice);
+                }
+            }
+
+            payment.CancelAgainst(settled);
             if (await journals.FindBySourceAsync(payment.Id, cancellationToken).ConfigureAwait(false) is { DocStatus: DocStatus.Submitted } journal)
             {
                 journals.Add(journal.Reverse());
@@ -475,7 +506,7 @@ public sealed class InvoicingHandler(
         var all = (await invoices.ListAsync(query.CompanyId, query.Kind, DateOnly.MinValue, query.AsOf, cancellationToken).ConfigureAwait(false))
             .Where(i => i.DocStatus == DocStatus.Submitted).ToList();
         var paid = (await invoices.PaymentsAsync(query.CompanyId, DateOnly.MinValue, query.AsOf, cancellationToken).ConfigureAwait(false))
-            .Where(p => p.DocStatus == DocStatus.Submitted).GroupBy(p => p.InvoiceId).ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
+            .Where(p => p.DocStatus == DocStatus.Submitted).SelectMany(p => p.Allocations).GroupBy(a => a.InvoiceId).ToDictionary(g => g.Key, g => g.Sum(a => a.Amount));
         var returned = all.Where(i => i.IsReturn).GroupBy(i => i.ReturnAgainstId!.Value).ToDictionary(g => g.Key, g => g.Sum(i => i.PayableAmount));
 
         var open = all.Where(i => !i.IsReturn)

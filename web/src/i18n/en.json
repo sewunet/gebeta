@@ -256,7 +256,13 @@
     "opening": "Opening",
     "returnHint": "Quantities to return. A return can be at most the {{amount}} still owed.",
     "cancelPayment": "Cancel payment",
-    "oldNumber": "Old system no."
+    "oldNumber": "Old system no.",
+    "pickedCount": "{{count}} selected · {{party}}",
+    "receiveSelected": "Receive one payment",
+    "paySelected": "Pay in one payment",
+    "select": "Select",
+    "ofPayment": "of a payment of",
+    "invoicesShort": "invoices"
   },
   "periods": {
     "closed": "{{label}} is closed.",
@@ -379,6 +385,9 @@
     "statement": "Bank statement",
     "books": "Books",
     "noStatement": "No statement lines this month. Import the bank's CSV.",
-    "howTo": "Click a statement line, then the book entries that make it up (one cheque can pay several invoices), then Match. Gold marks a suggested pair. Bank charges and interest not yet booked stay unmatched until you post them."
+    "howTo": "Click a statement line, then the book entries that make it up (one cheque can pay several invoices), then Match. Gold marks a suggested pair. Bank charges and interest not yet booked stay unmatched until you post them.",
+    "book": "Book",
+    "bookButton": "Book and match",
+    "bookHint": "For what the bank did that the books do not have yet: charges (6400), interest (4300), a standing order. A journal is posted on the line's date and matched to it."
   }
 }

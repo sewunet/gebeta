@@ -21,6 +21,12 @@ public sealed record MatchStatementLineCommand(Guid BankAccountId, Guid Statemen
 
 public sealed record UnmatchStatementLineCommand(Guid BankAccountId, Guid StatementLineId) : ICommand<int>;
 
+/// <summary>
+/// Books an unmatched statement line the books do not have yet (bank charges, interest, a standing order) against
+/// <paramref name="AccountCode"/> and matches it. Defaults: 6400 Bank Charges for money out, 4300 Interest Income for money in.
+/// </summary>
+public sealed record PostStatementLineCommand(Guid BankAccountId, Guid StatementLineId, string? AccountCode, string? Remark) : ICommand<JournalEntryDto>;
+
 public sealed record AutoMatchCommand(Guid BankAccountId, DateOnly From, DateOnly To) : ICommand<int>;
 
 public sealed class BankingHandler(
@@ -30,9 +36,11 @@ public sealed class BankingHandler(
     ChartSetup chart,
     ICompanyAccess access,
     ICurrentUser currentUser,
+    IAccountingNumbers numbers,
     IAccountingUnitOfWork unitOfWork,
     TimeProvider clock)
     : IQueryHandler<ListBankAccountsQuery, IReadOnlyList<BankAccountDto>>,
+      ICommandHandler<PostStatementLineCommand, JournalEntryDto>,
       ICommandHandler<CreateBankAccountCommand, BankAccountDto>,
       ICommandHandler<ImportStatementCommand, ImportResultDto>,
       IQueryHandler<ReconciliationQuery, ReconciliationDto>,
@@ -225,6 +233,62 @@ public sealed class BankingHandler(
         banks.Remove(matches);
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return matches.Count;
+    }
+
+    public async Task<Result<JournalEntryDto>> Handle(PostStatementLineCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var bank = await AccessibleAsync(command.BankAccountId, cancellationToken).ConfigureAwait(false);
+        var line = await banks.GetLineAsync(command.StatementLineId, cancellationToken).ConfigureAwait(false);
+        if (bank is null || line is null || line.BankAccountId != bank.Id)
+        {
+            return Error.NotFound("Statement line", command.StatementLineId);
+        }
+
+        if ((await banks.MatchesForLineAsync(line.Id, cancellationToken).ConfigureAwait(false)).Count > 0)
+        {
+            return Error.Conflict("This statement line is already matched.");
+        }
+
+        if (await journals.FindBySourceAsync(line.Id, cancellationToken).ConfigureAwait(false) is { } booked)
+        {
+            return Error.Conflict(booked.DocStatus == DocStatus.Submitted
+                ? $"This statement line is already booked by {booked.Name}."
+                : $"This line was booked by {booked.Name}, which was cancelled; post a journal by hand and match it instead.");
+        }
+
+        if (await chart.EnsureAsync(bank.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var byCode = (await accounts.ListAsync(bank.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
+        var code = string.IsNullOrWhiteSpace(command.AccountCode)
+            ? (line.Amount < 0m ? EthiopianChartOfAccounts.BankCharges : EthiopianChartOfAccounts.InterestIncome)
+            : command.AccountCode.Trim();
+        if (!byCode.TryGetValue(code, out var other) || other.IsGroup || other.Id == bank.LedgerAccountId)
+        {
+            return Error.Validation($"Account {code} is not a postable account for this line.");
+        }
+
+        var amount = Math.Abs(line.Amount);
+        var remark = string.IsNullOrWhiteSpace(command.Remark) ? $"{line.Description} ({bank.BankName})" : command.Remark.Trim();
+        JournalLine[] lines = line.Amount < 0m
+            ? [new(other.Id, amount, 0m, remark), new(bank.LedgerAccountId, 0m, amount, remark)]
+            : [new(bank.LedgerAccountId, amount, 0m, remark), new(other.Id, 0m, amount, remark)];
+        var journal = JournalEntry.Create(bank.CompanyId, line.Date, remark, lines, JournalSource.Bank, line.Id, line.Reference ?? bank.Name);
+
+        await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        journal.AssignName(await numbers.NextAsync(bank.CompanyId, journal.DocumentType, JournalHandler.DefaultPattern, line.Date, cancellationToken).ConfigureAwait(false));
+        journal.CreatedAt = clock.GetUtcNow();
+        journal.CreatedBy = currentUser.Username;
+        var posted = journal.Post();
+        journals.Add(journal);
+        journals.Add(posted);
+        banks.Add(BankMatch.Match(line, posted.Where(e => e.AccountId == bank.LedgerAccountId).ToList(), currentUser.Username ?? "system", clock.GetUtcNow()));
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return JournalHandler.ToDto(journal, byCode.Values.ToDictionary(a => a.Id));
     }
 
     /// <summary>Matches every unambiguous pair (same amount, within three days, one candidate on each side).</summary>

@@ -23,6 +23,8 @@ export function Invoices() {
   const [month, setMonth] = useState(currentMonth());
   const [open, setOpen] = useState<string | null>(null);
   const [paying, setPaying] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [payMany, setPayMany] = useState(false);
   const [returning, setReturning] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [lines, setLines] = useState<Line[]>([emptyLine("Sales")]);
@@ -66,6 +68,11 @@ export function Invoices() {
       }),
     onSuccess: (note) => { setReturning(null); setOpen(note.id); refresh(); },
   });
+  const payAll = useMutation({
+    mutationFn: (body: { postingDate: string; reference: string; bankAccountCode: string | null; allocations: { invoiceId: string; amount: number }[] }) =>
+      post<PaymentDto>("/api/accounting/payments", body),
+    onSuccess: () => { setPicked([]); setPayMany(false); refresh(); },
+  });
   const pay = useMutation({
     mutationFn: (body: { invoiceId: string; amount: number; postingDate: string; reference: string; bankAccountCode: string | null }) => post<PaymentDto>("/api/accounting/payments", body),
     onSuccess: () => { setPaying(null); refresh(); },
@@ -93,7 +100,19 @@ export function Invoices() {
     pay.mutate({ invoiceId: inv.id, amount: Number(f.get("amount")), postingDate: String(f.get("postingDate")), reference: String(f.get("reference") ?? ""),
       bankAccountCode: String(f.get("bankAccountCode") ?? "") || null });
   };
-  const error = act.error ?? pay.error ?? cancelPayment.error ?? makeReturn.error;
+  const error = act.error ?? pay.error ?? cancelPayment.error ?? makeReturn.error ?? payAll.error;
+  const payable = (inv: InvoiceDto) => inv.status === "Submitted" && !inv.isReturn && inv.outstanding > 0;
+  const pickedInvoices = (invoices.data ?? []).filter((i) => picked.includes(i.id));
+  const pickParty = pickedInvoices[0]?.partyId;
+  const togglePick = (inv: InvoiceDto) => setPicked((p) => (p.includes(inv.id) ? p.filter((x) => x !== inv.id) : [...p, inv.id]));
+  const onPayMany = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    payAll.mutate({
+      postingDate: String(f.get("postingDate")), reference: String(f.get("reference") ?? ""), bankAccountCode: String(f.get("bankAccountCode") ?? "") || null,
+      allocations: pickedInvoices.map((i) => ({ invoiceId: i.id, amount: Number(f.get(`a-${i.id}`) || 0) })).filter((a) => a.amount > 0),
+    });
+  };
   const onReturn = (inv: InvoiceDto) => (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -151,16 +170,49 @@ export function Invoices() {
         </form>
       )}
       {error && <div className="error">{error.message}</div>}
+      {picked.length > 0 && can(me, "accounting.payments.create") && (
+        <div className="inline-fields toolbar">
+          <span>{t("inv.pickedCount", { count: picked.length, party: pickedInvoices[0]?.partyName ?? "" })}</span>
+          <button onClick={() => setPayMany((s) => !s)}>{t(sales ? "inv.receiveSelected" : "inv.paySelected")}</button>
+          <button className="secondary" onClick={() => { setPicked([]); setPayMany(false); }}>{t("common.cancel")}</button>
+        </div>
+      )}
+      {payMany && pickedInvoices.length > 0 && (
+        <form className="form-grid" onSubmit={onPayMany}>
+          <div className="lines">
+            <table className="table inner"><tbody>
+              {pickedInvoices.map((i) => (
+                <tr key={i.id}><td className="mono">{i.number}</td><td>{formatDate(i.dueDate, me.calendar, am)}</td><td className="num">{formatMoney(i.outstanding)}</td>
+                  <td className="num"><input name={`a-${i.id}`} type="number" step="0.01" min="0" max={i.outstanding} defaultValue={i.outstanding} style={{ width: 140 }} /></td></tr>
+              ))}
+            </tbody></table>
+          </div>
+          <label>{t("attendance.date")}<input name="postingDate" type="date" defaultValue={todayIso()} required /></label>
+          <label>{t("inv.reference")}<input name="reference" placeholder="CHQ / TRF" /></label>
+          {!!bankAccounts.data?.length && (
+            <label>{t("bank.bank")}
+              <select name="bankAccountCode" defaultValue={bankAccounts.data[0]!.ledgerAccountCode}>
+                {bankAccounts.data.map((b) => <option key={b.id} value={b.ledgerAccountCode}>{b.bankName} · {b.name}</option>)}
+              </select>
+            </label>
+          )}
+          <div className="form-actions"><button type="submit" disabled={payAll.isPending}>{t("common.save")}</button></div>
+        </form>
+      )}
       {invoices.data?.length ? (
         <table className="table">
           <thead><tr>
-            <th>{t("fields.number")}</th><th>{t("attendance.date")}</th><th>{t(sales ? "inv.customer" : "inv.supplier")}</th>
+            <th aria-label={t("inv.select")} /><th>{t("fields.number")}</th><th>{t("attendance.date")}</th><th>{t(sales ? "inv.customer" : "inv.supplier")}</th>
             <th className="num">{t("inv.net")}</th><th className="num">{t("inv.vat")}</th><th className="num">{t("inv.withholding")}</th>
             <th className="num">{t("inv.payable")}</th><th className="num">{t("inv.outstanding")}</th><th>{t("fields.status")}</th><th />
           </tr></thead>
           <tbody>
             {invoices.data.flatMap((inv) => [
               <tr key={inv.id} onClick={() => setOpen(open === inv.id ? null : inv.id)} style={{ cursor: "pointer" }}>
+                <td onClick={(e) => e.stopPropagation()}>{payable(inv) && (
+                  <input type="checkbox" aria-label={t("inv.select")} checked={picked.includes(inv.id)} disabled={!!pickParty && pickParty !== inv.partyId}
+                    onChange={() => togglePick(inv)} />
+                )}</td>
                 <td className="mono">{inv.number ?? "—"}
                   {inv.isReturn && <span className="chip small" title={inv.returnAgainstNumber}>{t(sales ? "inv.creditNote" : "inv.debitNote")} · {inv.returnAgainstNumber}</span>}
                   {inv.isOpening && <span className="chip small">{t("inv.opening")}</span>}</td>
@@ -184,7 +236,7 @@ export function Invoices() {
                 </td>
               </tr>,
               paying === inv.id ? (
-                <tr key={`${inv.id}-pay`} className="detail"><td colSpan={10}>
+                <tr key={`${inv.id}-pay`} className="detail"><td colSpan={11}>
                   <form className="inline-fields" onSubmit={onPay(inv)}>
                     <label className="field-inline"><span>{t("cash.amount")}</span><input name="amount" type="number" step="0.01" min="0.01" max={inv.outstanding} defaultValue={inv.outstanding} required /></label>
                     <label className="field-inline"><span>{t("attendance.date")}</span><input name="postingDate" type="date" defaultValue={todayIso()} required /></label>
@@ -201,7 +253,7 @@ export function Invoices() {
                 </td></tr>
               ) : null,
               returning === inv.id ? (
-                <tr key={`${inv.id}-return`} className="detail"><td colSpan={10}>
+                <tr key={`${inv.id}-return`} className="detail"><td colSpan={11}>
                   <form onSubmit={onReturn(inv)}>
                     <p className="muted small">{t("inv.returnHint", { amount: formatMoney(inv.outstanding) })}</p>
                     <table className="table inner"><tbody>
@@ -218,7 +270,7 @@ export function Invoices() {
                 </td></tr>
               ) : null,
               open === inv.id ? (
-                <tr key={`${inv.id}-lines`} className="detail"><td colSpan={10}>
+                <tr key={`${inv.id}-lines`} className="detail"><td colSpan={11}>
                   <table className="table inner">
                     <tbody>
                       {inv.lines.map((l, i) => (
@@ -235,7 +287,10 @@ export function Invoices() {
                       <tbody>{payments.data.map((p) => (
                         <tr key={p.id} className={p.status === "Cancelled" ? "muted" : ""}>
                           <td className="mono">{p.number}</td><td>{formatDate(p.postingDate, me.calendar, am)}</td><td>{p.reference}</td>
-                          <td className="num">{formatMoney(p.amount)}</td><td><span className={`badge ${p.status}`}>{t(`status.${p.status}`)}</span></td>
+                          <td className="num" title={p.allocations && p.allocations.length > 1 ? `${t("inv.ofPayment")} ${formatMoney(p.amount)}` : undefined}>
+                            {formatMoney(p.allocations?.find((a) => a.invoiceId === inv.id)?.amount ?? p.amount)}
+                            {p.allocations && p.allocations.length > 1 && <span className="chip small">{p.allocations.length} {t("inv.invoicesShort")}</span>}</td>
+                          <td><span className={`badge ${p.status}`}>{t(`status.${p.status}`)}</span></td>
                           <td className="actions">{p.status === "Submitted" && can(me, "accounting.payments.create") &&
                             <button className="secondary" onClick={() => cancelPayment.mutate(p.id)} disabled={cancelPayment.isPending}>{t("inv.cancelPayment")}</button>}</td>
                         </tr>

@@ -56,4 +56,11 @@ public class PeriodTests
         Assert.Equal(PeriodClosingStatus.Reopened, closing.Status);
         Assert.Equal("accounting.period_not_closed", Assert.Throws<DomainException>(() => closing.Reopen("b", Now, "again")).Code);
     }
+
+    [Fact]
+    public void Fiscal_years_follow_the_company_calendar()
+    {
+        Assert.Equal(new FiscalYearSpan(new DateOnly(2026, 7, 8), new DateOnly(2027, 7, 7), "FY 2019 E.C."), FiscalYearSpan.Containing(new DateOnly(2027, 3, 1), true));
+        Assert.Equal(new FiscalYearSpan(new DateOnly(2027, 1, 1), new DateOnly(2027, 12, 31), "FY 2027"), FiscalYearSpan.Containing(new DateOnly(2027, 3, 1), false));
+    }
 }

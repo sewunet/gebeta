@@ -22,6 +22,21 @@ public sealed record AccountingPeriod(DateOnly Start, DateOnly End, string Label
     }
 }
 
+/// <summary>A fiscal year: Hamle 1 – Sene 30 (Ethiopian, named after the year it ends in) or January – December.</summary>
+public sealed record FiscalYearSpan(DateOnly Start, DateOnly End, string Label)
+{
+    public static FiscalYearSpan Containing(DateOnly date, bool ethiopian)
+    {
+        if (ethiopian)
+        {
+            var fy = EthiopianFiscalYear.Containing(date);
+            return new FiscalYearSpan(fy.StartDate, fy.EndDate, fy.ToString());
+        }
+
+        return new FiscalYearSpan(new DateOnly(date.Year, 1, 1), new DateOnly(date.Year, 12, 31), $"FY {date.Year}");
+    }
+}
+
 public enum PeriodClosingStatus
 {
     Closed,

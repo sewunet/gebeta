@@ -62,7 +62,7 @@ public sealed class PeriodsAndReportsHandler(
 
         var byId = (await accounts.ListAsync(command.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Id);
         var balances = (await journals.TotalsAsync(command.CompanyId, period.End, cancellationToken).ConfigureAwait(false)).Select(t => t.Debit - t.Credit).ToList();
-        var month = await journals.TotalsBetweenAsync(command.CompanyId, period.Start, period.End, cancellationToken).ConfigureAwait(false);
+        var month = await journals.TotalsBetweenAsync(command.CompanyId, period.Start, period.End, cancellationToken, excludeYearEnd: true).ConfigureAwait(false);
         var profit = -month.Where(t => byId.TryGetValue(t.AccountId, out var a) && a.RootType is RootType.Income or RootType.Expense).Sum(t => t.Debit - t.Credit);
 
         var latest = await closings.LatestClosedAsync(command.CompanyId, cancellationToken).ConfigureAwait(false);
@@ -135,7 +135,7 @@ public sealed class PeriodsAndReportsHandler(
             return Error.NotFound("Company", query.CompanyId);
         }
 
-        var rows = await RowsAsync(query.CompanyId, await journals.TotalsBetweenAsync(query.CompanyId, query.From, query.To, cancellationToken).ConfigureAwait(false),
+        var rows = await RowsAsync(query.CompanyId, await journals.TotalsBetweenAsync(query.CompanyId, query.From, query.To, cancellationToken, excludeYearEnd: true).ConfigureAwait(false),
             cancellationToken).ConfigureAwait(false);
         var income = rows.Where(r => r.RootType == nameof(RootType.Income)).ToList();
         var expenses = rows.Where(r => r.RootType == nameof(RootType.Expense)).ToList();

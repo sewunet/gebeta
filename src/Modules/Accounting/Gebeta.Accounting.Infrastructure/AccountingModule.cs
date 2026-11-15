@@ -48,6 +48,9 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<InvoicingHandler>();
         services.AddScoped<IPeriodClosingRepository, PeriodClosingRepository>();
         services.AddScoped<PeriodsAndReportsHandler>();
+        services.AddScoped<OpeningAndYearEndHandler>();
+        services.AddScoped<ICommandHandler<PostOpeningBalancesCommand, JournalEntryDto>>(sp => sp.GetRequiredService<OpeningAndYearEndHandler>());
+        services.AddScoped<ICommandHandler<CloseYearCommand, JournalEntryDto>>(sp => sp.GetRequiredService<OpeningAndYearEndHandler>());
         services.AddScoped<ICommandHandler<ClosePeriodCommand, PeriodClosingDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());
         services.AddScoped<ICommandHandler<ReopenPeriodCommand, PeriodClosingDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());
         services.AddScoped<IQueryHandler<ListPeriodClosingsQuery, PeriodClosingsDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());

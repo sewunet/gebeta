@@ -29,7 +29,14 @@
 > closed month is retried and dead-lettered). `POST /periods/reopen` reopens the latest closed month with a
 > reason. Reports: `/reports/profit-and-loss`, `/reports/balance-sheet` (profit not yet closed to retained
 > earnings shown in equity) and `/reports/general-ledger` (one account, opening and running balance).
-> Not yet: year-end closing to retained earnings, opening balances import, comparative columns.
+>
+> **Cut-over and year end** (step 19): `POST /opening-balances` posts the old system's trial balance as one
+> balanced journal (source `Opening`), usually dated the day before the company starts in Gebeta.
+> `POST /years/close` closes the fiscal year containing a date (Hamle–Sene, or January–December): one journal
+> (source `YearEnd`) dated the year's last day brings every income and expense account to zero and puts the
+> profit or loss in retained earnings (3200). The year's last month must still be open; close it afterwards.
+> Cancelling the year-end journal reopens the year. Profit and loss leaves year-end journals out, so it still
+> shows the year's result. Not yet: open invoices per customer and supplier at cut-over, comparative columns.
 
 The core of the system. Every other money-moving module posts here.
 

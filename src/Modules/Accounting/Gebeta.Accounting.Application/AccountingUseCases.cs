@@ -333,7 +333,7 @@ public sealed class JournalHandler(
             return Error.NotFound("Journal entry", command.JournalId);
         }
 
-        if (journal.Source != JournalSource.Manual)
+        if (journal.Source is not (JournalSource.Manual or JournalSource.Opening or JournalSource.YearEnd))
         {
             return Error.Validation($"This journal comes from {journal.Source} ({journal.SourceNumber}); cancel the source document instead.");
         }
@@ -404,7 +404,7 @@ public sealed class JournalHandler(
     private async Task<JournalEntryDto> ToDtoAsync(JournalEntry journal, CancellationToken cancellationToken) =>
         ToDto(journal, (await accounts.ListAsync(journal.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Id));
 
-    private static JournalEntryDto ToDto(JournalEntry j, IReadOnlyDictionary<Guid, Account> accounts) => new(
+    internal static JournalEntryDto ToDto(JournalEntry j, IReadOnlyDictionary<Guid, Account> accounts) => new(
         j.Id, j.Name, j.CompanyId, j.PostingDate, j.Remark, j.Source.ToString(), j.SourceNumber, j.DocStatus.ToString(),
         j.Lines.Select(l => new JournalLineDto(accounts.GetValueOrDefault(l.AccountId)?.Code ?? "?", accounts.GetValueOrDefault(l.AccountId)?.Name ?? "?",
             l.Debit, l.Credit, l.Description)).ToList(),

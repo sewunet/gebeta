@@ -2,6 +2,7 @@ using Gebeta.Accounting.Application;
 using Gebeta.Accounting.Domain.Ledger;
 using Gebeta.Modularity;
 using Gebeta.Persistence;
+using Gebeta.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -152,12 +153,17 @@ internal sealed class JournalRepository(AccountingDbContext db) : IJournalReposi
         .Select(x => (x.AccountId, x.Debit, x.Credit)).ToList();
 
     public async Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsBetweenAsync(Guid companyId, DateOnly from, DateOnly to,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken, bool excludeYearEnd = false) =>
         (await db.GlEntries.AsNoTracking().Where(g => g.CompanyId == companyId && g.PostingDate >= from && g.PostingDate <= to)
+            .Where(g => !excludeYearEnd || !db.Journals.Any(j => j.Id == g.VoucherId && j.Source == JournalSource.YearEnd))
             .GroupBy(g => g.AccountId)
             .Select(g => new { AccountId = g.Key, Debit = g.Sum(x => x.Debit), Credit = g.Sum(x => x.Credit) })
             .ToListAsync(cancellationToken).ConfigureAwait(false))
         .Select(x => (x.AccountId, x.Debit, x.Credit)).ToList();
+
+    public Task<JournalEntry?> FindSubmittedAsync(Guid companyId, JournalSource source, DateOnly postingDate, CancellationToken cancellationToken) =>
+        db.Journals.FirstOrDefaultAsync(j => j.CompanyId == companyId && j.Source == source && j.PostingDate == postingDate && j.DocStatus == DocStatus.Submitted,
+            cancellationToken);
 
     public async Task<IReadOnlyList<GlEntry>> EntriesAsync(Guid companyId, Guid accountId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
         await db.GlEntries.AsNoTracking().Where(g => g.CompanyId == companyId && g.AccountId == accountId && g.PostingDate >= from && g.PostingDate <= to)

@@ -84,6 +84,12 @@ public static class AccountingEndpoints
         acc.MapPost("/periods/reopen", async (ReopenPeriodCommand command, ICommandHandler<ReopenPeriodCommand, PeriodClosingDto> h, CancellationToken ct) =>
                 (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
             .WithName("ReopenPeriod").RequirePermission(AccountingPermissions.PeriodsClose);
+        acc.MapPost("/opening-balances", async (PostOpeningBalancesCommand command, ICommandHandler<PostOpeningBalancesCommand, JournalEntryDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("PostOpeningBalances").RequirePermission(AccountingPermissions.PeriodsClose);
+        acc.MapPost("/years/close", async (CloseYearCommand command, ICommandHandler<CloseYearCommand, JournalEntryDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CloseYear").RequirePermission(AccountingPermissions.PeriodsClose);
         acc.MapGet("/reports/profit-and-loss", async (Guid companyId, DateOnly from, DateOnly to, IQueryHandler<ProfitAndLossQuery, ProfitAndLossDto> h, CancellationToken ct) =>
                 (await h.Handle(new ProfitAndLossQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
             .WithName("ProfitAndLoss").RequirePermission(AccountingPermissions.ReportsRead);

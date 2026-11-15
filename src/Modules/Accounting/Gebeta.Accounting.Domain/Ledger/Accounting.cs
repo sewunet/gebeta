@@ -110,6 +110,12 @@ public enum JournalSource
     SalesInvoice,
     PurchaseInvoice,
     Payment,
+
+    /// <summary>Balances brought in when a company starts its books in Gebeta.</summary>
+    Opening,
+
+    /// <summary>Year-end closing: income and expenses of the fiscal year moved to retained earnings.</summary>
+    YearEnd,
 }
 
 /// <summary>
@@ -248,7 +254,12 @@ public interface IJournalRepository
     Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsAsync(Guid companyId, DateOnly asOf, CancellationToken cancellationToken);
 
     /// <summary>Debit and credit totals per account posted from <paramref name="from"/> to <paramref name="to"/>.</summary>
-    Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsBetweenAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
+    /// <param name="excludeYearEnd">Leave out year-end closing journals (profit and loss shows the year's result, not its closing).</param>
+    Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsBetweenAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken,
+        bool excludeYearEnd = false);
+
+    /// <summary>The submitted journal of a source type posted on a date, if any (e.g. the year-end closing of a fiscal year).</summary>
+    Task<JournalEntry?> FindSubmittedAsync(Guid companyId, JournalSource source, DateOnly postingDate, CancellationToken cancellationToken);
 
     /// <summary>Ledger rows of one account in a date range, in posting order.</summary>
     Task<IReadOnlyList<GlEntry>> EntriesAsync(Guid companyId, Guid accountId, DateOnly from, DateOnly to, CancellationToken cancellationToken);

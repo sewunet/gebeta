@@ -16,3 +16,6 @@ web/dist/
 .idea/
 .vscode/
 .DS_Store
+
+# Build output
+artifacts/

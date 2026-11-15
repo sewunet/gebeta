@@ -1,0 +1,9 @@
+# Only what deploy/Dockerfile and deploy/Dockerfile.local need.
+**/bin/
+**/obj/
+**/node_modules/
+.git/
+tests/
+docs/
+deploy/.env
+*.user

@@ -19,7 +19,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         builder.Configuration.GetSection("Authentication").Bind(options);
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        // Keycloak is reached over plain HTTP inside the Docker network; HTTPS is required elsewhere unless configured.
+        options.RequireHttpsMetadata = builder.Configuration.GetValue("Authentication:RequireHttpsMetadata", !builder.Environment.IsDevelopment());
         options.MapInboundClaims = false; // keep Keycloak's claim names: sub, preferred_username, email, name
         options.TokenValidationParameters.NameClaimType = "preferred_username";
     });

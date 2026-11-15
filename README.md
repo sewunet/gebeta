@@ -122,6 +122,14 @@ Users see only the companies assigned to them (`PUT /api/core/users/{id}/compani
 unless a role grants `core.companies.access-all`; other modules filter their records the same way
 through `ICompanyAccess`.
 
-In Development the API applies every module's migrations at start-up. Elsewhere run
+In Development the API applies every module's migrations at start-up.
+
+Run the API in Docker too (port 5090):
+
+```bash
+dotnet publish src/Gebeta.Api -c Release -o artifacts/publish
+docker build -f deploy/Dockerfile.local -t abay/gebeta-server:dev .
+docker compose -f deploy/docker-compose.yml --profile app up -d
+``` Elsewhere run
 `dotnet Gebeta.Api.dll --migrate` (the migrate container) before starting the API.
 New migration for a module: `dotnet ef migrations add <Name> --project src/Modules/Core/Gebeta.Core.Infrastructure --startup-project src/Gebeta.Api --context CoreDbContext --output-dir Persistence/Migrations`.

@@ -9,7 +9,14 @@ Everything runs in **Docker** containers, from a developer laptop to production
 |---|---|
 | `abay/gebeta-server` | The .NET host with **all** module packages. Which modules run is set per container by configuration. |
 | `abay/gebeta-web` | The built React app served by Nginx; also proxies `/api` and `/hubs` to the server |
-| `abay/gebeta-migrate` | Runs database migrations for the enabled modules, then exits |
+
+The `migrate` container uses the server image with `--migrate`: it updates every enabled module's
+schema and exits.
+
+| File | Use |
+|---|---|
+| `deploy/Dockerfile` | CI build: SDK stage publishes, ASP.NET runtime stage runs (non-root `app` user, health check on `/health/live`) |
+| `deploy/Dockerfile.local` | Local build from `artifacts/publish` (no SDK image needed) |
 
 One server image keeps releases simple: every container runs the same tested build, and moving a
 module to its own container is only a configuration change.
@@ -25,8 +32,8 @@ module to its own container is only a configuration change.
 |---|---|---|
 | `web` | `abay/gebeta-web` | Port 80/443 (behind the customer's reverse proxy or with its own TLS) |
 | `server` | `abay/gebeta-server` | API + event consumers for the enabled modules; scale with replicas |
-| `jobs` | `abay/gebeta-server` with `Gebeta__Role=Jobs` | Hangfire background jobs (payroll runs, reposting, revaluation) |
-| `migrate` | `abay/gebeta-migrate` | Runs once before `server` starts |
+| `jobs` (planned) | `abay/gebeta-server` with `Gebeta__Role=Jobs` | Hangfire background jobs (payroll runs, reposting, revaluation) |
+| `migrate` | `abay/gebeta-server` with `--migrate` | Runs once before `server` starts |
 | `postgres` | `postgres:18` | One database, one schema per module |
 | `rabbitmq` | `rabbitmq:4-management` | Event bus, quorum queues |
 | `redis` | `redis:7` | Cache and distributed locks |

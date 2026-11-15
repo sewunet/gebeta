@@ -17,15 +17,14 @@ x-server-env: &server-env
   Redis__Configuration: redis:6379
   Authentication__Authority: http://keycloak:8080/realms/gebeta
   Authentication__Audience: gebeta-api
+  Authentication__RequireHttpsMetadata: "false"     # Keycloak over plain HTTP inside the Docker network
+  Security__BootstrapAdmins__0: ${GEBETA_BOOTSTRAP_ADMIN:-}
   Authentication__TokenValidationParameters__ValidIssuer: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8180}/realms/gebeta
   Serilog__WriteTo__0__Name: Seq
   Serilog__WriteTo__0__Args__serverUrl: http://seq:5341
   # Modules running in this container (see docs/plugin-architecture.md)
   Modules__Enabled__0: core
-  Modules__Enabled__1: hr
-  Modules__Enabled__2: payroll
-  Modules__Enabled__3: cash
-  Modules__Enabled__4: accounting
+  Modules__Enabled__1: payroll
 
 services:
   postgres:
@@ -114,7 +113,8 @@ services:
 
   migrate:
     profiles: ["app"]
-    image: abay/gebeta-migrate:${GEBETA_VERSION:-dev}
+    image: abay/gebeta-server:${GEBETA_VERSION:-dev}
+    command: ["--migrate"]          # update every enabled module's schema, then exit
     environment: *server-env
     depends_on:
       postgres:
@@ -124,9 +124,9 @@ services:
     profiles: ["app"]
     image: abay/gebeta-server:${GEBETA_VERSION:-dev}
     restart: unless-stopped
-    environment:
-      <<: *server-env
-      Gebeta__Role: Api
+    environment: *server-env
+    ports:
+      - "${SERVER_PORT:-5090}:8080"   # until the web container proxies /api
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -134,32 +134,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
 
-  jobs:
-    profiles: ["app"]
-    image: abay/gebeta-server:${GEBETA_VERSION:-dev}
-    restart: unless-stopped
-    environment:
-      <<: *server-env
-      Gebeta__Role: Jobs
-    depends_on:
-      server:
-        condition: service_healthy
-
+  # Planned: a "jobs" container (same image, background jobs) and "web" (React app behind Nginx).
   web:
-    profiles: ["app"]
+    profiles: ["web"]
     image: abay/gebeta-web:${GEBETA_VERSION:-dev}
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8080}:80"
     depends_on:
-      server:
-        condition: service_healthy
+      - server
 
 volumes:
   pgdata:

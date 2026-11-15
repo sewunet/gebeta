@@ -102,3 +102,11 @@ export type GeneralLedgerDto = {
   accountCode: string; accountName: string; from: string; to: string; opening: number; totalDebit: number; totalCredit: number; closing: number;
   rows: { date: string; voucher: string; description: string; debit: number; credit: number; balance: number; isReversal: boolean }[];
 };
+export type BankAccountDto = { id: string; companyId: string; name: string; bankName: string; accountNumber: string; ledgerAccountCode: string; bookBalance: number };
+export type StatementLineDto = { id: string; date: string; description: string; reference?: string; amount: number; balance?: number; matched: boolean; matchedVouchers: string[] };
+export type BookEntryDto = { glEntryId: string; date: string; voucher: string; description: string; amount: number; matched: boolean };
+export type ReconciliationDto = {
+  bankAccountId: string; from: string; to: string; statementLines: StatementLineDto[]; bookEntries: BookEntryDto[];
+  suggestions: { statementLineId: string; glEntryId: string }[]; bookBalance: number; unmatchedStatement: number; unmatchedBook: number;
+  expectedStatementBalance: number; statementBalance?: number; difference?: number;
+};

@@ -27,7 +27,8 @@
     "financialReports": "Financial reports",
     "taxReports": "VAT & withholding",
     "periods": "Closing",
-    "ageing": "Receivables & payables"
+    "ageing": "Receivables & payables",
+    "banking": "Banks"
   },
   "common": {
     "company": "Company",
@@ -341,5 +342,43 @@
     "preparedBy": "Prepared by",
     "signature": "Signature and stamp",
     "printedFor": "Printed by {{user}}"
+  },
+  "bank": {
+    "newAccount": "New bank account",
+    "namePlaceholder": "e.g. Main, Payroll",
+    "bank": "Bank",
+    "accountNumber": "Account no.",
+    "ledgerAccount": "Ledger account",
+    "ledgerAuto": "Leave empty to create one (1121…)",
+    "none": "No bank accounts yet.",
+    "importCsv": "Import statement (CSV)",
+    "autoMatch": "Match suggestions ({{count}})",
+    "mapHint": "{{rows}} rows read. Pick which column holds each field: either one amount column (money out negative) or separate withdrawal and deposit columns.",
+    "field": {
+      "date": "Date",
+      "description": "Description",
+      "reference": "Reference",
+      "amount": "Amount",
+      "withdrawal": "Withdrawal",
+      "deposit": "Deposit",
+      "balance": "Balance"
+    },
+    "importLines": "Import {{count}} lines",
+    "imported": "{{imported}} lines imported, {{duplicates}} already there.",
+    "autoMatched": "{{count}} lines matched.",
+    "bookBalance": "Balance in the books",
+    "notInBooks": "On the statement, not in the books",
+    "notOnStatement": "In the books, not on the statement",
+    "statementBalance": "Statement balance",
+    "expected": "Expected {{amount}}",
+    "reconciled": "Reconciled",
+    "difference": "Difference {{amount}}",
+    "selection": "Statement {{line}} · selected entries {{entries}}",
+    "match": "Match",
+    "unmatch": "Unmatch",
+    "statement": "Bank statement",
+    "books": "Books",
+    "noStatement": "No statement lines this month. Import the bank's CSV.",
+    "howTo": "Click a statement line, then the book entries that make it up (one cheque can pay several invoices), then Match. Gold marks a suggested pair. Bank charges and interest not yet booked stay unmatched until you post them."
   }
 }

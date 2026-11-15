@@ -49,6 +49,15 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<IPeriodClosingRepository, PeriodClosingRepository>();
         services.AddScoped<PeriodsAndReportsHandler>();
         services.AddScoped<OpeningAndYearEndHandler>();
+        services.AddScoped<Gebeta.Accounting.Domain.Banking.IBankRepository, BankRepository>();
+        services.AddScoped<BankingHandler>();
+        services.AddScoped<IQueryHandler<ListBankAccountsQuery, IReadOnlyList<BankAccountDto>>>(sp => sp.GetRequiredService<BankingHandler>());
+        services.AddScoped<ICommandHandler<CreateBankAccountCommand, BankAccountDto>>(sp => sp.GetRequiredService<BankingHandler>());
+        services.AddScoped<ICommandHandler<ImportStatementCommand, ImportResultDto>>(sp => sp.GetRequiredService<BankingHandler>());
+        services.AddScoped<IQueryHandler<ReconciliationQuery, ReconciliationDto>>(sp => sp.GetRequiredService<BankingHandler>());
+        services.AddScoped<ICommandHandler<MatchStatementLineCommand, ReconciliationDto>>(sp => sp.GetRequiredService<BankingHandler>());
+        services.AddScoped<ICommandHandler<UnmatchStatementLineCommand, int>>(sp => sp.GetRequiredService<BankingHandler>());
+        services.AddScoped<ICommandHandler<AutoMatchCommand, int>>(sp => sp.GetRequiredService<BankingHandler>());
         services.AddScoped<ICommandHandler<PostOpeningBalancesCommand, JournalEntryDto>>(sp => sp.GetRequiredService<OpeningAndYearEndHandler>());
         services.AddScoped<ICommandHandler<CloseYearCommand, JournalEntryDto>>(sp => sp.GetRequiredService<OpeningAndYearEndHandler>());
         services.AddScoped<ICommandHandler<ClosePeriodCommand, PeriodClosingDto>>(sp => sp.GetRequiredService<PeriodsAndReportsHandler>());

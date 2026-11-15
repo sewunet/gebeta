@@ -36,6 +36,18 @@
 > `/reports/withholding` downloads the monthly declaration files (UTF-8 with BOM, shared `CsvFile` helper with
 > Payroll). Column sets are a best reading of the MoR forms: **verify** before filing.
 >
+> **Banking** (step 23): bank accounts (`/bank-accounts`), each tied to its own ledger account (an existing asset
+> leaf, or a new one made under 1100 as 1121, 1122, …); payments can choose which bank they go through. The
+> bank's CSV is read in the browser (column mapping, day-first dates, amounts like `(8,000.00)`) and imported as
+> statement lines; the same line imported twice is skipped. Reconciliation (`/bank-accounts/{id}/reconciliation`)
+> shows statement lines and the ledger rows of the bank's account side by side; a line is matched to one or more
+> ledger rows that add up to it (one cheque, several invoices), by hand or by auto-match (same amount, within
+> three days, one candidate on each side). A voucher reversed on the same account (a cancelled payment) drops out.
+> Summary: book balance + statement lines not in the books − book rows not on the statement = statement balance,
+> compared with the balance printed on the last statement line. Unmatching removes the match only; the ledger is
+> never touched (replaces the old custom `bank_reconciliation_reversal_log`). Not yet: posting bank charges
+> straight from an unmatched line, bank-specific import presets.
+>
 > **Month close and reports** (step 18): `POST /api/accounting/periods/close` closes the month containing a date:
 > one of the 12 Ethiopian fiscal periods for companies on the Ethiopian fiscal year (Nehase takes Pagume), else the
 > calendar month. Months close in order, only with no draft journals or invoices left in them, and the closing

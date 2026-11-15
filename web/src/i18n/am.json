@@ -27,7 +27,8 @@
     "financialReports": "የሂሳብ ሪፖርቶች",
     "taxReports": "ተ.እ.ታ እና ተቀናሽ ግብር",
     "periods": "የሂሳብ መዝጊያ",
-    "ageing": "ተሰብሳቢና ተከፋይ ሂሳቦች"
+    "ageing": "ተሰብሳቢና ተከፋይ ሂሳቦች",
+    "banking": "ባንኮች"
   },
   "common": {
     "company": "ኩባንያ",
@@ -341,5 +342,43 @@
     "preparedBy": "ያዘጋጀው",
     "signature": "ፊርማና ማኅተም",
     "printedFor": "ያተመው {{user}}"
+  },
+  "bank": {
+    "newAccount": "አዲስ የባንክ ሂሳብ",
+    "namePlaceholder": "ለምሳሌ ዋና፣ ደመወዝ",
+    "bank": "ባንክ",
+    "accountNumber": "የሂሳብ ቁጥር",
+    "ledgerAccount": "የመዝገብ ሂሳብ",
+    "ledgerAuto": "አዲስ ለመፍጠር ባዶ ይተዉ (1121…)",
+    "none": "እስካሁን የባንክ ሂሳብ የለም።",
+    "importCsv": "የባንክ መግለጫ አስገባ (CSV)",
+    "autoMatch": "የተጠቆሙትን አዛምድ ({{count}})",
+    "mapHint": "{{rows}} ረድፎች ተነበዋል። እያንዳንዱ መረጃ ያለበትን ዓምድ ይምረጡ፤ አንድ የገንዘብ ዓምድ (ወጪ በአሉታዊ) ወይም የተለያዩ የወጪና የገቢ ዓምዶች።",
+    "field": {
+      "date": "ቀን",
+      "description": "ዝርዝር",
+      "reference": "ማጣቀሻ",
+      "amount": "ገንዘብ",
+      "withdrawal": "ወጪ",
+      "deposit": "ገቢ",
+      "balance": "ቀሪ"
+    },
+    "importLines": "{{count}} ረድፎችን አስገባ",
+    "imported": "{{imported}} ረድፎች ገብተዋል፣ {{duplicates}} ቀድመው ነበሩ።",
+    "autoMatched": "{{count}} ረድፎች ተዛምደዋል።",
+    "bookBalance": "በመዝገብ ያለው ቀሪ",
+    "notInBooks": "በመግለጫው ያለ፣ በመዝገብ የሌለ",
+    "notOnStatement": "በመዝገብ ያለ፣ በመግለጫው የሌለ",
+    "statementBalance": "የመግለጫው ቀሪ",
+    "expected": "የሚጠበቀው {{amount}}",
+    "reconciled": "ተስማምቷል",
+    "difference": "ልዩነት {{amount}}",
+    "selection": "መግለጫ {{line}} · የተመረጡ መዝገቦች {{entries}}",
+    "match": "አዛምድ",
+    "unmatch": "ማዛመዱን ሰርዝ",
+    "statement": "የባንክ መግለጫ",
+    "books": "መዝገብ",
+    "noStatement": "በዚህ ወር የመግለጫ ረድፍ የለም። የባንኩን CSV ያስገቡ።",
+    "howTo": "የመግለጫ ረድፍ ይጫኑ፣ ከዚያ የሚያካትቱትን የመዝገብ ረድፎች (አንድ ቼክ ብዙ ደረሰኞችን ሊከፍል ይችላል)፣ ከዚያ አዛምድ። ወርቃማ ምልክት የተጠቆመ ጥንድ ነው። ገና ያልተመዘገቡ የባንክ ክፍያዎችና ወለድ እስኪመዘገቡ ድረስ ሳይዛመዱ ይቆያሉ።"
   }
 }

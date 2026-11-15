@@ -8,6 +8,7 @@ import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
 import { can, type AccountDto, type InvoiceDto, type PaymentDto } from "../../lib/types";
 import { currentMonth, monthRange } from "../payroll/month";
 import { useParties } from "./Parties";
+import { useBankAccounts } from "./Banking";
 
 type Kind = "Sales" | "Purchase";
 type Line = { description: string; quantity: string; rate: string; accountCode: string; isService: boolean; vatApplicable: boolean };
@@ -27,6 +28,7 @@ export function Invoices() {
   const [lines, setLines] = useState<Line[]>([emptyLine("Sales")]);
   const { start, end } = monthRange(month);
   const parties = useParties();
+  const bankAccounts = useBankAccounts();
   const invoices = useQuery({
     queryKey: ["invoices", company?.id, kind, month],
     queryFn: () => api<InvoiceDto[]>(`/api/accounting/invoices?companyId=${company!.id}&kind=${kind}&from=${start}&to=${end}`),
@@ -65,7 +67,7 @@ export function Invoices() {
     onSuccess: (note) => { setReturning(null); setOpen(note.id); refresh(); },
   });
   const pay = useMutation({
-    mutationFn: (body: { invoiceId: string; amount: number; postingDate: string; reference: string }) => post<PaymentDto>("/api/accounting/payments", body),
+    mutationFn: (body: { invoiceId: string; amount: number; postingDate: string; reference: string; bankAccountCode: string | null }) => post<PaymentDto>("/api/accounting/payments", body),
     onSuccess: () => { setPaying(null); refresh(); },
   });
 
@@ -88,7 +90,8 @@ export function Invoices() {
   const onPay = (inv: InvoiceDto) => (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    pay.mutate({ invoiceId: inv.id, amount: Number(f.get("amount")), postingDate: String(f.get("postingDate")), reference: String(f.get("reference") ?? "") });
+    pay.mutate({ invoiceId: inv.id, amount: Number(f.get("amount")), postingDate: String(f.get("postingDate")), reference: String(f.get("reference") ?? ""),
+      bankAccountCode: String(f.get("bankAccountCode") ?? "") || null });
   };
   const error = act.error ?? pay.error ?? cancelPayment.error ?? makeReturn.error;
   const onReturn = (inv: InvoiceDto) => (e: FormEvent<HTMLFormElement>) => {
@@ -186,6 +189,13 @@ export function Invoices() {
                     <label className="field-inline"><span>{t("cash.amount")}</span><input name="amount" type="number" step="0.01" min="0.01" max={inv.outstanding} defaultValue={inv.outstanding} required /></label>
                     <label className="field-inline"><span>{t("attendance.date")}</span><input name="postingDate" type="date" defaultValue={todayIso()} required /></label>
                     <label className="field-inline"><span>{t("inv.reference")}</span><input name="reference" /></label>
+                    {!!bankAccounts.data?.length && (
+                      <label className="field-inline"><span>{t("bank.bank")}</span>
+                        <select name="bankAccountCode" defaultValue={bankAccounts.data[0]!.ledgerAccountCode}>
+                          {bankAccounts.data.map((b) => <option key={b.id} value={b.ledgerAccountCode}>{b.bankName} · {b.name}</option>)}
+                        </select>
+                      </label>
+                    )}
                     <button type="submit" disabled={pay.isPending}>{t("common.save")}</button>
                   </form>
                 </td></tr>

@@ -140,6 +140,29 @@ public static class AccountingEndpoints
                 (await h.Handle(new GeneralLedgerQuery(companyId, account, from, to), ct).ConfigureAwait(false)).ToHttp())
             .WithName("GeneralLedger").RequirePermission(AccountingPermissions.ReportsRead);
 
+        acc.MapGet("/bank-accounts", async (Guid companyId, IQueryHandler<ListBankAccountsQuery, IReadOnlyList<BankAccountDto>> h, CancellationToken ct) =>
+                (await h.Handle(new ListBankAccountsQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListBankAccounts").RequirePermission(BankingPermissions.Read);
+        acc.MapPost("/bank-accounts", async (CreateBankAccountCommand command, ICommandHandler<CreateBankAccountCommand, BankAccountDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateBankAccount").RequirePermission(BankingPermissions.Manage);
+        acc.MapPost("/bank-accounts/{id:guid}/statement", async (Guid id, StatementBody body, ICommandHandler<ImportStatementCommand, ImportResultDto> h, CancellationToken ct) =>
+                (await h.Handle(new ImportStatementCommand(id, body.Lines), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ImportBankStatement").RequirePermission(BankingPermissions.Manage);
+        acc.MapGet("/bank-accounts/{id:guid}/reconciliation", async (Guid id, DateOnly from, DateOnly to, IQueryHandler<ReconciliationQuery, ReconciliationDto> h,
+                CancellationToken ct) =>
+                (await h.Handle(new ReconciliationQuery(id, from, to), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("BankReconciliation").RequirePermission(BankingPermissions.Read);
+        acc.MapPost("/bank-accounts/{id:guid}/match", async (Guid id, MatchBody body, ICommandHandler<MatchStatementLineCommand, ReconciliationDto> h, CancellationToken ct) =>
+                (await h.Handle(new MatchStatementLineCommand(id, body.StatementLineId, body.GlEntryIds), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("MatchStatementLine").RequirePermission(BankingPermissions.Manage);
+        acc.MapPost("/bank-accounts/{id:guid}/unmatch/{lineId:guid}", async (Guid id, Guid lineId, ICommandHandler<UnmatchStatementLineCommand, int> h, CancellationToken ct) =>
+                (await h.Handle(new UnmatchStatementLineCommand(id, lineId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("UnmatchStatementLine").RequirePermission(BankingPermissions.Manage);
+        acc.MapPost("/bank-accounts/{id:guid}/auto-match", async (Guid id, DateOnly from, DateOnly to, ICommandHandler<AutoMatchCommand, int> h, CancellationToken ct) =>
+                (await h.Handle(new AutoMatchCommand(id, from, to), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("AutoMatchStatement").RequirePermission(BankingPermissions.Manage);
+
         acc.MapGet("/reports/trial-balance", async (Guid companyId, DateOnly asOf, IQueryHandler<TrialBalanceQuery, TrialBalanceDto> h, CancellationToken ct) =>
                 (await h.Handle(new TrialBalanceQuery(companyId, asOf), ct).ConfigureAwait(false)).ToHttp())
             .WithName("TrialBalance").RequirePermission(AccountingPermissions.ReportsRead);
@@ -148,3 +171,7 @@ public static class AccountingEndpoints
 
 /// <summary>Body of a credit or debit note: the date, and the lines to return (none = the whole invoice).</summary>
 public sealed record ReturnRequest(DateOnly PostingDate, IReadOnlyList<InvoiceLineInput>? Lines);
+
+public sealed record StatementBody(IReadOnlyList<StatementLineInput> Lines);
+
+public sealed record MatchBody(Guid StatementLineId, IReadOnlyList<Guid> GlEntryIds);

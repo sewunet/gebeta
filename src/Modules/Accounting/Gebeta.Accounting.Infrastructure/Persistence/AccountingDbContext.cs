@@ -317,3 +317,86 @@ internal sealed class InvoiceRepository(AccountingDbContext db) : Gebeta.Account
 
     public void Add(Gebeta.Accounting.Domain.Invoicing.Payment payment) => db.Set<Gebeta.Accounting.Domain.Invoicing.Payment>().Add(payment);
 }
+
+internal sealed class BankAccountConfiguration : IEntityTypeConfiguration<Gebeta.Accounting.Domain.Banking.BankAccount>
+{
+    public void Configure(EntityTypeBuilder<Gebeta.Accounting.Domain.Banking.BankAccount> builder)
+    {
+        builder.ToTable("bank_account");
+        builder.HasKey(b => b.Id);
+        builder.Property(b => b.Id).ValueGeneratedNever();
+        builder.Property(b => b.Name).HasMaxLength(140).IsRequired();
+        builder.Property(b => b.BankName).HasMaxLength(140).IsRequired();
+        builder.Property(b => b.AccountNumber).HasMaxLength(40).IsRequired();
+        builder.Property(b => b.LedgerAccountCode).HasMaxLength(20).IsRequired();
+        builder.HasIndex(b => b.LedgerAccountId).IsUnique();
+        builder.HasIndex(b => b.CompanyId);
+        builder.Property(b => b.CreatedBy).HasMaxLength(140);
+        builder.Property(b => b.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(b => b.DomainEvents);
+    }
+}
+
+internal sealed class BankStatementLineConfiguration : IEntityTypeConfiguration<Gebeta.Accounting.Domain.Banking.BankStatementLine>
+{
+    public void Configure(EntityTypeBuilder<Gebeta.Accounting.Domain.Banking.BankStatementLine> builder)
+    {
+        builder.ToTable("bank_statement_line");
+        builder.HasKey(l => l.Id);
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.HasIndex(l => new { l.BankAccountId, l.Date });
+        builder.Property(l => l.Description).HasMaxLength(300).IsRequired();
+        builder.Property(l => l.Reference).HasMaxLength(100);
+        builder.Property(l => l.Amount).HasPrecision(21, 2);
+        builder.Property(l => l.Balance).HasPrecision(21, 2);
+        builder.Property(l => l.CreatedBy).HasMaxLength(140);
+        builder.Property(l => l.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(l => l.DomainEvents);
+    }
+}
+
+internal sealed class BankMatchConfiguration : IEntityTypeConfiguration<Gebeta.Accounting.Domain.Banking.BankMatch>
+{
+    public void Configure(EntityTypeBuilder<Gebeta.Accounting.Domain.Banking.BankMatch> builder)
+    {
+        builder.ToTable("bank_match");
+        builder.HasKey(m => m.Id);
+        builder.Property(m => m.Id).ValueGeneratedNever();
+        builder.HasIndex(m => m.GlEntryId).IsUnique(); // a ledger row is matched to at most one statement line
+        builder.HasIndex(m => new { m.BankAccountId, m.StatementLineId });
+        builder.Property(m => m.Amount).HasPrecision(21, 2);
+        builder.Property(m => m.CreatedBy).HasMaxLength(140);
+        builder.Property(m => m.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(m => m.DomainEvents);
+    }
+}
+
+internal sealed class BankRepository(AccountingDbContext db) : Gebeta.Accounting.Domain.Banking.IBankRepository
+{
+    public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Banking.BankAccount>> ListAccountsAsync(Guid companyId, CancellationToken cancellationToken) =>
+        await db.Set<Gebeta.Accounting.Domain.Banking.BankAccount>().AsNoTracking().Where(b => b.CompanyId == companyId).OrderBy(b => b.Name)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<Gebeta.Accounting.Domain.Banking.BankAccount?> GetAccountAsync(Guid id, CancellationToken cancellationToken) =>
+        db.Set<Gebeta.Accounting.Domain.Banking.BankAccount>().FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+
+    public void Add(Gebeta.Accounting.Domain.Banking.BankAccount account) => db.Set<Gebeta.Accounting.Domain.Banking.BankAccount>().Add(account);
+
+    public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Banking.BankStatementLine>> LinesAsync(Guid bankAccountId, DateOnly from, DateOnly to,
+        CancellationToken cancellationToken) =>
+        await db.Set<Gebeta.Accounting.Domain.Banking.BankStatementLine>().AsNoTracking()
+            .Where(l => l.BankAccountId == bankAccountId && l.Date >= from && l.Date <= to)
+            .OrderBy(l => l.Date).ThenBy(l => l.CreatedAt).ThenBy(l => l.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<Gebeta.Accounting.Domain.Banking.BankStatementLine?> GetLineAsync(Guid id, CancellationToken cancellationToken) =>
+        db.Set<Gebeta.Accounting.Domain.Banking.BankStatementLine>().AsNoTracking().FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
+
+    public void Add(IEnumerable<Gebeta.Accounting.Domain.Banking.BankStatementLine> lines) => db.Set<Gebeta.Accounting.Domain.Banking.BankStatementLine>().AddRange(lines);
+
+    public async Task<IReadOnlyList<Gebeta.Accounting.Domain.Banking.BankMatch>> MatchesAsync(Guid bankAccountId, CancellationToken cancellationToken) =>
+        await db.Set<Gebeta.Accounting.Domain.Banking.BankMatch>().Where(m => m.BankAccountId == bankAccountId).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(IEnumerable<Gebeta.Accounting.Domain.Banking.BankMatch> matches) => db.Set<Gebeta.Accounting.Domain.Banking.BankMatch>().AddRange(matches);
+
+    public void Remove(IEnumerable<Gebeta.Accounting.Domain.Banking.BankMatch> matches) => db.Set<Gebeta.Accounting.Domain.Banking.BankMatch>().RemoveRange(matches);
+}

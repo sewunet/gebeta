@@ -92,12 +92,18 @@ public sealed class EmployeeHandler(
 }
 
 /// <summary>Core's employee facts for other modules.</summary>
-public sealed class EmployeeDirectory(IEmployeeRepository employees) : IEmployeeDirectory
+public sealed class EmployeeDirectory(IEmployeeRepository employees) : IEmployeeDirectory, IEmployeeList
 {
+    public async Task<IReadOnlyList<EmployeeInfo>> ListAsync(Guid companyId, CancellationToken cancellationToken) =>
+        (await employees.ListAsync(companyId, cancellationToken).ConfigureAwait(false)).Select(ToInfo).ToList();
+
+    private static EmployeeInfo ToInfo(Employee e) =>
+        new(e.Id, e.CompanyId, e.Number, e.FullName, e.Status.ToString(), e.DateOfJoining, e.DateOfLeaving, e.Tin?.Value);
+
     public async Task<EmployeeInfo?> GetAsync(Guid employeeId, CancellationToken cancellationToken)
     {
         var e = await employees.GetAsync(employeeId, cancellationToken).ConfigureAwait(false);
-        return e is null ? null : new EmployeeInfo(e.Id, e.CompanyId, e.Number, e.FullName, e.Status.ToString(), e.DateOfJoining, e.DateOfLeaving, e.Tin?.Value);
+        return e is null ? null : ToInfo(e);
     }
 }
 

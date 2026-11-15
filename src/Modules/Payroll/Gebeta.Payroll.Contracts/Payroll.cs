@@ -17,10 +17,14 @@ public static class PayrollPermissions
     public const string BackPaymentsCreate = "payroll.back-payments.create";
     public const string BackPaymentsSubmit = "payroll.back-payments.submit";
     public const string BackPaymentsCancel = "payroll.back-payments.cancel";
+    public const string ProfilesManage = "payroll.profiles.manage";
+    public const string RunsRead = "payroll.runs.read";
+    public const string RunsManage = "payroll.runs.manage";
+    public const string ReportsRead = "payroll.reports.read";
 
     public static IReadOnlyList<string> All { get; } =
         [CalculatorUse, TaxTablesRead, StructuresRead, StructuresManage, AssignmentsRead, AssignmentsManage, SlipsRead, SlipsCreate, SlipsSubmit, SlipsCancel,
-         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel];
+         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel, ProfilesManage, RunsRead, RunsManage, ReportsRead];
 }
 
 /// <summary>A salary component. Type: Earning, Deduction or EmployerContribution.</summary>
@@ -164,3 +168,38 @@ public sealed record SalaryBackPaymentSubmitted(Guid BackPaymentId, string Numbe
     decimal GrossArrears, decimal AdditionalTax, decimal NetArrears, DateTimeOffset OccurredAt);
 
 public sealed record SalaryBackPaymentCancelled(Guid BackPaymentId, string Number, Guid CompanyId, DateTimeOffset OccurredAt);
+
+public sealed record PayrollProfileDto(Guid EmployeeId, string PaymentMethod, string? BankName, string? BankAccountNumber, string? PensionNumber);
+
+public sealed record PayrollRunIssueDto(Guid EmployeeId, string EmployeeName, string Reason);
+
+public sealed record PayrollRunDto(
+    Guid Id,
+    string? Number,
+    Guid CompanyId,
+    DateOnly PeriodStart,
+    DateOnly PeriodEnd,
+    string Status,
+    bool SlipsGenerated,
+    int SlipCount,
+    decimal TotalGross,
+    decimal TotalNet,
+    IReadOnlyList<PayrollRunIssueDto> Issues);
+
+/// <summary>One employee in the monthly employment income tax declaration.</summary>
+public sealed record IncomeTaxRow(string EmployeeNumber, string EmployeeName, string? Tin, DateOnly DateOfJoining, decimal BasicSalary,
+    decimal TaxableEarnings, decimal NonTaxableEarnings, decimal TaxWithheld, decimal EmployeePension, decimal NetPay);
+
+public sealed record IncomeTaxDeclarationDto(string CompanyName, string CompanyTin, DateOnly PeriodStart, DateOnly PeriodEnd, string EthiopianMonth,
+    IReadOnlyList<IncomeTaxRow> Rows, decimal TotalTaxableEarnings, decimal TotalTaxWithheld, int Employees);
+
+public sealed record PensionRow(string EmployeeNumber, string EmployeeName, string? PensionNumber, string? Tin, decimal BasicSalary,
+    decimal EmployeeContribution, decimal EmployerContribution, decimal Total);
+
+public sealed record PensionScheduleDto(string CompanyName, string CompanyTin, DateOnly PeriodStart, DateOnly PeriodEnd, string EthiopianMonth,
+    IReadOnlyList<PensionRow> Rows, decimal TotalEmployee, decimal TotalEmployer, decimal Total);
+
+public sealed record BankTransferRow(string EmployeeNumber, string EmployeeName, string? BankName, string? AccountNumber, decimal NetPay);
+
+public sealed record BankTransferDto(string CompanyName, DateOnly PeriodStart, DateOnly PeriodEnd, IReadOnlyList<BankTransferRow> BankTransfers,
+    IReadOnlyList<BankTransferRow> Cash, IReadOnlyList<string> Issues, decimal TotalBank, decimal TotalCash);

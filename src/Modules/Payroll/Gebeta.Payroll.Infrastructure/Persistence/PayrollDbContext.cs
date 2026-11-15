@@ -25,6 +25,8 @@ public sealed class PayrollDbContext(DbContextOptions<PayrollDbContext> options,
     public DbSet<SalarySlip> SalarySlips => Set<SalarySlip>();
     public DbSet<SalaryBackPayment> BackPayments => Set<SalaryBackPayment>();
     public DbSet<AdditionalPayEntry> AdditionalPay => Set<AdditionalPayEntry>();
+    public DbSet<PayrollRun> Runs => Set<PayrollRun>();
+    public DbSet<EmployeePayrollProfile> Profiles => Set<EmployeePayrollProfile>();
 
     internal static void Configure(DbContextOptionsBuilder options, string connectionString) =>
         options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(MigrationsHistoryTable, SchemaName))
@@ -259,4 +261,66 @@ internal sealed class PayrollDbContextDesignTimeFactory : IDesignTimeDbContextFa
         PayrollDbContext.Configure(options, "Host=localhost;Port=5434;Database=gebeta;Username=gebeta");
         return new PayrollDbContext(options.Options);
     }
+}
+
+internal sealed class PayrollRunConfiguration : IEntityTypeConfiguration<PayrollRun>
+{
+    public void Configure(EntityTypeBuilder<PayrollRun> builder)
+    {
+        builder.ToTable("payroll_run");
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Id).ValueGeneratedNever();
+        builder.Property(r => r.Name).HasMaxLength(60);
+        builder.HasIndex(r => new { r.CompanyId, r.Name }).IsUnique();
+        builder.HasIndex(r => new { r.CompanyId, r.PeriodStart });
+        builder.Property(r => r.DocStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property<List<Guid>>("_slipIds").HasColumnName("slip_ids").IsRequired();
+        builder.Ignore(r => r.SlipIds);
+        builder.Property<List<PayrollRunIssue>>("_issues").HasColumnName("issues").IsJsonList();
+        builder.Ignore(r => r.Issues);
+        builder.Ignore(r => r.DocumentType);
+        builder.Property(r => r.CreatedBy).HasMaxLength(140);
+        builder.Property(r => r.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(r => r.DomainEvents);
+    }
+}
+
+internal sealed class PayrollProfileConfiguration : IEntityTypeConfiguration<EmployeePayrollProfile>
+{
+    public void Configure(EntityTypeBuilder<EmployeePayrollProfile> builder)
+    {
+        builder.ToTable("employee_payroll_profile");
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id).ValueGeneratedNever();
+        builder.HasIndex(p => p.EmployeeId).IsUnique();
+        builder.HasIndex(p => p.CompanyId);
+        builder.Property(p => p.PaymentMethod).HasConversion<string>().HasMaxLength(20);
+        builder.Property(p => p.BankName).HasMaxLength(100);
+        builder.Property(p => p.BankAccountNumber).HasMaxLength(30);
+        builder.Property(p => p.PensionNumber).HasMaxLength(40);
+        builder.Property(p => p.CreatedBy).HasMaxLength(140);
+        builder.Property(p => p.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(p => p.DomainEvents);
+    }
+}
+
+internal sealed class PayrollRunRepository(PayrollDbContext db) : IPayrollRunRepository
+{
+    public Task<PayrollRun?> GetAsync(Guid id, CancellationToken cancellationToken) => db.Runs.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<PayrollRun>> ListAsync(Guid companyId, CancellationToken cancellationToken) =>
+        await db.Runs.AsNoTracking().Where(r => r.CompanyId == companyId).OrderByDescending(r => r.PeriodStart).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(PayrollRun run) => db.Runs.Add(run);
+}
+
+internal sealed class PayrollProfileRepository(PayrollDbContext db) : IPayrollProfileRepository
+{
+    public Task<EmployeePayrollProfile?> GetAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        db.Profiles.FirstOrDefaultAsync(p => p.EmployeeId == employeeId, cancellationToken);
+
+    public async Task<IReadOnlyList<EmployeePayrollProfile>> ListAsync(Guid companyId, CancellationToken cancellationToken) =>
+        await db.Profiles.AsNoTracking().Where(p => p.CompanyId == companyId).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(EmployeePayrollProfile profile) => db.Profiles.Add(profile);
 }

@@ -74,6 +74,7 @@ public static class PayrollEndpoints
             .RequirePermission(PayrollPermissions.SlipsCancel);
 
         MapBackPayments(endpoints);
+        RunAndReportEndpoints.Map(endpoints);
     }
 
     public static void MapBackPayments(IEndpointRouteBuilder endpoints)

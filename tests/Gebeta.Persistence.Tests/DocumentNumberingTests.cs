@@ -97,7 +97,7 @@ public sealed class DocumentNumberingTests : IAsyncLifetime
     private sealed class FakeDirectory : ICompanyDirectory
     {
         public Task<CompanyInfo?> GetAsync(Guid companyId, CancellationToken cancellationToken) =>
-            Task.FromResult<CompanyInfo?>(new CompanyInfo(companyId, "Test PLC", "TST", "ETB", true));
+            Task.FromResult<CompanyInfo?>(new CompanyInfo(companyId, "Test PLC", "TST", "ETB", true, "0012345678"));
     }
 
     private sealed class FakeSettings(string? pattern) : INamingSeriesSettings

@@ -40,6 +40,8 @@ public sealed class PayrollModule : IErpModule
         services.AddScoped<ISalarySlipRepository, SalarySlipRepository>();
         services.AddScoped<IBackPaymentRepository, BackPaymentRepository>();
         services.AddScoped<IAdditionalPayRepository, AdditionalPayRepository>();
+        services.AddScoped<IPayrollRunRepository, PayrollRunRepository>();
+        services.AddScoped<IPayrollProfileRepository, PayrollProfileRepository>();
         var payrollOptions = new PayrollOptions();
         context.Configuration.GetSection(PayrollOptions.Section).Bind(payrollOptions);
         services.AddSingleton(payrollOptions);
@@ -74,6 +76,17 @@ public sealed class PayrollModule : IErpModule
         services.AddScoped<ICommandHandler<CancelBackPaymentCommand, SalaryBackPaymentDto>>(sp => sp.GetRequiredService<BackPaymentHandler>());
         services.AddScoped<IQueryHandler<GetBackPaymentQuery, SalaryBackPaymentDto>>(sp => sp.GetRequiredService<BackPaymentHandler>());
         services.AddScoped<IQueryHandler<ListBackPaymentsQuery, IReadOnlyList<SalaryBackPaymentDto>>>(sp => sp.GetRequiredService<BackPaymentHandler>());
+
+        services.AddScoped<ICommandHandler<UpdatePayrollProfileCommand, PayrollProfileDto>, PayrollProfileHandler>();
+        services.AddScoped<PayrollRunHandler>();
+        services.AddScoped<ICommandHandler<CreatePayrollRunCommand, PayrollRunDto>>(sp => sp.GetRequiredService<PayrollRunHandler>());
+        services.AddScoped<ICommandHandler<GeneratePayrollRunCommand, PayrollRunDto>>(sp => sp.GetRequiredService<PayrollRunHandler>());
+        services.AddScoped<ICommandHandler<SubmitPayrollRunCommand, PayrollRunDto>>(sp => sp.GetRequiredService<PayrollRunHandler>());
+        services.AddScoped<IQueryHandler<GetPayrollRunQuery, PayrollRunDto>>(sp => sp.GetRequiredService<PayrollRunHandler>());
+        services.AddScoped<PayrollReportsHandler>();
+        services.AddScoped<IQueryHandler<IncomeTaxDeclarationQuery, IncomeTaxDeclarationDto>>(sp => sp.GetRequiredService<PayrollReportsHandler>());
+        services.AddScoped<IQueryHandler<PensionScheduleQuery, PensionScheduleDto>>(sp => sp.GetRequiredService<PayrollReportsHandler>());
+        services.AddScoped<IQueryHandler<BankTransferQuery, BankTransferDto>>(sp => sp.GetRequiredService<PayrollReportsHandler>());
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints) => PayrollEndpoints.Map(endpoints);

@@ -64,7 +64,9 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<DocumentNumbering>();
         services.AddScoped<ICoreNumbers, CoreNumbers>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-        services.AddScoped<IEmployeeDirectory, EmployeeDirectory>();
+        services.AddScoped<EmployeeDirectory>();
+        services.AddScoped<IEmployeeDirectory>(sp => sp.GetRequiredService<EmployeeDirectory>());
+        services.AddScoped<IEmployeeList>(sp => sp.GetRequiredService<EmployeeDirectory>());
         services.AddScoped<EmployeeHandler>();
         services.AddScoped<ICommandHandler<CreateEmployeeCommand, EmployeeDto>>(sp => sp.GetRequiredService<EmployeeHandler>());
         services.AddScoped<IQueryHandler<ListEmployeesQuery, IReadOnlyList<EmployeeDto>>>(sp => sp.GetRequiredService<EmployeeHandler>());

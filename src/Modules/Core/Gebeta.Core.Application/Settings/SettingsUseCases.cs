@@ -16,7 +16,7 @@ public sealed class CompanyDirectory(ICompanyRepository companies) : ICompanyDir
     public async Task<CompanyInfo?> GetAsync(Guid companyId, CancellationToken cancellationToken)
     {
         var c = await companies.GetAsync(companyId, cancellationToken).ConfigureAwait(false);
-        return c is null ? null : new CompanyInfo(c.Id, c.Name, c.Abbreviation, c.DefaultCurrencyCode, c.FiscalYearType == FiscalYearType.Ethiopian);
+        return c is null ? null : new CompanyInfo(c.Id, c.Name, c.Abbreviation, c.DefaultCurrencyCode, c.FiscalYearType == FiscalYearType.Ethiopian, c.Tin.Value);
     }
 }
 

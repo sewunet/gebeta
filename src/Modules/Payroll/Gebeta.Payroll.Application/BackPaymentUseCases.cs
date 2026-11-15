@@ -14,6 +14,13 @@ public sealed class PayrollOptions
     public const string Section = "Payroll";
 
     public NegativeArrearsPolicy NegativeArrearsPolicy { get; set; } = NegativeArrearsPolicy.RecoverInPayroll;
+
+    /// <summary>Components reported as basic salary, income tax and pension (defaults: the standard Ethiopian structure).</summary>
+    public string BasicComponent { get; set; } = "BS";
+
+    public IList<string> IncomeTaxComponents { get; } = ["IT"];
+    public IList<string> EmployeePensionComponents { get; } = ["PE"];
+    public IList<string> EmployerPensionComponents { get; } = ["PER"];
 }
 
 /// <param name="AssignmentId">The revised salary structure assignment (the new salary).</param>

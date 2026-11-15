@@ -1,16 +1,21 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import { Companies } from "../pages/Companies";
-import { Dashboard } from "../pages/Dashboard";
+import { Home } from "../pages/Home";
 import { Employees } from "../pages/Employees";
 import { Calculator } from "../pages/payroll/Calculator";
 import { Run } from "../pages/payroll/Run";
 import { SlipDetail } from "../pages/payroll/SlipDetail";
 import { Slips } from "../pages/payroll/Slips";
 import { Accounts } from "../pages/accounting/Accounts";
-import { Journals } from "../pages/accounting/Journals";
+import { JournalList } from "../pages/accounting/journals/JournalList";
+import { JournalCreate } from "../pages/accounting/journals/JournalCreate";
+import { JournalDetail } from "../pages/accounting/journals/JournalDetail";
 import { TrialBalance } from "../pages/accounting/TrialBalance";
 import { Parties } from "../pages/accounting/Parties";
-import { Invoices } from "../pages/accounting/Invoices";
+import { InvoiceList } from "../pages/accounting/invoices/InvoiceList";
+import { InvoiceCreate } from "../pages/accounting/invoices/InvoiceCreate";
+import { InvoiceDetail } from "../pages/accounting/invoices/InvoiceDetail";
+import { validateKind } from "../pages/accounting/invoices/shared";
 import { TaxReports } from "../pages/accounting/TaxReports";
 import { Periods } from "../pages/accounting/Periods";
 import { FinancialReports } from "../pages/accounting/FinancialReports";
@@ -25,7 +30,7 @@ import { Layout } from "./Layout";
 
 const root = createRootRoute({ component: Layout });
 
-const dashboard = createRoute({ getParentRoute: () => root, path: "/", component: Dashboard });
+const dashboard = createRoute({ getParentRoute: () => root, path: "/", component: Home });
 const companies = createRoute({ getParentRoute: () => root, path: "/companies", component: Companies });
 const employees = createRoute({ getParentRoute: () => root, path: "/employees", component: Employees });
 const slips = createRoute({ getParentRoute: () => root, path: "/payroll/slips", component: Slips });
@@ -37,10 +42,14 @@ const attendance = createRoute({ getParentRoute: () => root, path: "/hr/attendan
 const cashiers = createRoute({ getParentRoute: () => root, path: "/cash/cashiers", component: Cashiers });
 const pettyCash = createRoute({ getParentRoute: () => root, path: "/cash/petty-cash", component: PettyCash });
 const accounts = createRoute({ getParentRoute: () => root, path: "/accounting/accounts", component: Accounts });
-const journals = createRoute({ getParentRoute: () => root, path: "/accounting/journals", component: Journals });
+const journals = createRoute({ getParentRoute: () => root, path: "/accounting/journals", component: JournalList });
+const journalNew = createRoute({ getParentRoute: () => root, path: "/accounting/journals/new", component: JournalCreate });
+const journal = createRoute({ getParentRoute: () => root, path: "/accounting/journals/$id", component: JournalDetail });
 const trialBalance = createRoute({ getParentRoute: () => root, path: "/accounting/trial-balance", component: TrialBalance });
 const parties = createRoute({ getParentRoute: () => root, path: "/accounting/parties", component: Parties });
-const invoices = createRoute({ getParentRoute: () => root, path: "/accounting/invoices", component: Invoices });
+const invoices = createRoute({ getParentRoute: () => root, path: "/accounting/invoices", component: InvoiceList, validateSearch: validateKind });
+const invoiceNew = createRoute({ getParentRoute: () => root, path: "/accounting/invoices/new", component: InvoiceCreate, validateSearch: validateKind });
+const invoice = createRoute({ getParentRoute: () => root, path: "/accounting/invoices/$id", component: InvoiceDetail });
 const taxReports = createRoute({ getParentRoute: () => root, path: "/accounting/tax", component: TaxReports });
 const periods = createRoute({ getParentRoute: () => root, path: "/accounting/periods", component: Periods });
 const financial = createRoute({ getParentRoute: () => root, path: "/accounting/reports", component: FinancialReports });
@@ -49,7 +58,7 @@ const banking = createRoute({ getParentRoute: () => root, path: "/accounting/ban
 const ageing = createRoute({ getParentRoute: () => root, path: "/accounting/ageing", component: Ageing });
 
 export const router = createRouter({
-  routeTree: root.addChildren([dashboard, companies, employees, slips, slip, run, calculator, leave, attendance, cashiers, pettyCash, accounts, journals, trialBalance, parties, invoices, taxReports, periods, financial, ageing, receipt, banking]),
+  routeTree: root.addChildren([dashboard, companies, employees, slips, slip, run, calculator, leave, attendance, cashiers, pettyCash, accounts, journals, journalNew, journal, trialBalance, parties, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
 });
 
 declare module "@tanstack/react-router" {

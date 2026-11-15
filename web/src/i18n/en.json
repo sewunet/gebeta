@@ -28,7 +28,8 @@
     "taxReports": "VAT & withholding",
     "periods": "Closing",
     "ageing": "Receivables & payables",
-    "banking": "Banks"
+    "banking": "Banks",
+    "home": "Home"
   },
   "common": {
     "company": "Company",
@@ -204,7 +205,35 @@
     "addLine": "Add line",
     "source": "Source",
     "setUpChart": "Set up chart of accounts",
-    "noChart": "This company has no chart of accounts yet."
+    "noChart": "This company has no chart of accounts yet.",
+    "journalSearchHint": "Number, remark or account",
+    "journalCancelled": "{{number}} is cancelled; its reversal is posted.",
+    "journalPosted": "{{number}} is posted.",
+    "fromSource": "This journal comes from {{source}} ({{number}}); cancel it there.",
+    "sourceDocument": "Source document",
+    "post": "Post",
+    "notBalanced": "Debits and credits differ by {{diff}}.",
+    "accountSearchHint": "Code or name",
+    "balanced": "Balanced",
+    "unbalanced": "Not balanced",
+    "sources": {
+      "Manual": "Manual",
+      "Payroll": "Payroll",
+      "Cash": "Cash",
+      "SalesInvoice": "Sales invoice",
+      "PurchaseInvoice": "Purchase invoice",
+      "Payment": "Payment",
+      "Opening": "Opening balances",
+      "YearEnd": "Year-end closing",
+      "Bank": "Bank statement"
+    },
+    "rootTypes": {
+      "Asset": "Asset",
+      "Liability": "Liability",
+      "Equity": "Equity",
+      "Income": "Income",
+      "Expense": "Expense"
+    }
   },
   "inv": {
     "newParty": "New customer or supplier",
@@ -262,7 +291,29 @@
     "paySelected": "Pay in one payment",
     "select": "Select",
     "ofPayment": "of a payment of",
-    "invoicesShort": "invoices"
+    "invoicesShort": "invoices",
+    "searchHint": "Number, name or TIN",
+    "open": "Open",
+    "overdue": "Overdue",
+    "salesInvoices": "Sales invoices",
+    "purchaseInvoices": "Purchase invoices",
+    "paymentSaved": "Payment {{number}} saved ({{amount}}).",
+    "noneFound": "No invoices match the filters.",
+    "paid": "Paid",
+    "partlyPaid": "Partly paid",
+    "due": "Due",
+    "salesInvoice": "Sales invoice",
+    "purchaseInvoice": "Purchase invoice",
+    "submitted": "{{number}} is submitted and posted.",
+    "cancelled": "{{number}} is cancelled.",
+    "paymentCancelled": "Payment {{number}} is cancelled.",
+    "draftHint": "This is a draft: nothing is posted until you submit it.",
+    "returnOf": "Return of",
+    "openingHint": "Brought in at cut-over; posts nothing",
+    "noPayments": "No payments yet.",
+    "partySaved": "{{name}} saved.",
+    "partySearchHint": "Name, TIN or phone",
+    "withheldToPay": "Withholding to pay"
   },
   "periods": {
     "closed": "{{label}} is closed.",
@@ -295,7 +346,10 @@
     "openingInvoices": "Open invoices at cut-over",
     "openingInvoicesHint": "Invoices still unpaid in the old system, so each can be paid here. They post nothing: the totals are already in the opening balances (1200 receivable, 2100 payable).",
     "addOpeningInvoice": "Add open invoice",
-    "openingInvoicePosted": "{{number}} added for {{party}}."
+    "openingInvoicePosted": "{{number}} added for {{party}}.",
+    "lockedShort": "Closed up to {{date}}",
+    "lockDate": "Lock date",
+    "lastClosed": "Last closed month"
   },
   "reports": {
     "pl": "Profit and loss",
@@ -388,6 +442,47 @@
     "howTo": "Click a statement line, then the book entries that make it up (one cheque can pay several invoices), then Match. Gold marks a suggested pair. Bank charges and interest not yet booked stay unmatched until you post them.",
     "book": "Book",
     "bookButton": "Book and match",
-    "bookHint": "For what the bank did that the books do not have yet: charges (6400), interest (4300), a standing order. A journal is posted on the line's date and matched to it."
+    "bookHint": "For what the bank did that the books do not have yet: charges (6400), interest (4300), a standing order. A journal is posted on the line's date and matched to it.",
+    "accountSaved": "{{name}} added."
+  },
+  "shell": {
+    "menu": "Menu"
+  },
+  "tiles": {
+    "companies": "Companies and settings",
+    "employees": "Employee records",
+    "invoices": "Sales and purchases",
+    "parties": "Customers and suppliers",
+    "ageing": "Who owes what",
+    "banking": "Statements and reconciliation",
+    "journals": "Journal entries",
+    "accounts": "Chart of accounts",
+    "trialBalance": "Debits and credits",
+    "reports": "P&L, balance sheet, ledger",
+    "tax": "VAT and withholding",
+    "periods": "Month and year end",
+    "slips": "Monthly pay",
+    "run": "Whole payroll",
+    "calculator": "Net pay and tax",
+    "leave": "Leave requests",
+    "attendance": "Daily attendance",
+    "cashiers": "Cash desks",
+    "pettyCash": "Small expenses",
+    "owedToUs": "owed by customers",
+    "weOwe": "owed to suppliers",
+    "closedUpTo": "closed up to",
+    "allOpen": "Open",
+    "noMonthClosed": "no month closed",
+    "bankAccounts": "bank accounts"
+  },
+  "ui": {
+    "search": "Search",
+    "all": "All",
+    "create": "Create",
+    "general": "General",
+    "lines": "Lines",
+    "taxes": "Taxes",
+    "payments": "Payments",
+    "remove": "Remove"
   }
 }

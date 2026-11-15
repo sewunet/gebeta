@@ -28,7 +28,8 @@
     "taxReports": "ተ.እ.ታ እና ተቀናሽ ግብር",
     "periods": "የሂሳብ መዝጊያ",
     "ageing": "ተሰብሳቢና ተከፋይ ሂሳቦች",
-    "banking": "ባንኮች"
+    "banking": "ባንኮች",
+    "home": "መነሻ"
   },
   "common": {
     "company": "ኩባንያ",
@@ -204,7 +205,35 @@
     "addLine": "መስመር ጨምር",
     "source": "ምንጭ",
     "setUpChart": "የሂሳብ መደቦችን አዘጋጅ",
-    "noChart": "ይህ ኩባንያ እስካሁን የሂሳብ መደቦች የሉትም።"
+    "noChart": "ይህ ኩባንያ እስካሁን የሂሳብ መደቦች የሉትም።",
+    "journalSearchHint": "ቁጥር፣ ማብራሪያ ወይም ሂሳብ",
+    "journalCancelled": "{{number}} ተሰርዟል፤ መቀልበሻው ተመዝግቧል።",
+    "journalPosted": "{{number}} ተመዝግቧል።",
+    "fromSource": "ይህ ምዝገባ ከ{{source}} ({{number}}) የመጣ ነው፤ እዚያው ይሰርዙት።",
+    "sourceDocument": "መነሻ ሰነድ",
+    "post": "መዝግብ",
+    "notBalanced": "ዴቢትና ክሬዲት በ{{diff}} ይለያያሉ።",
+    "accountSearchHint": "ኮድ ወይም ስም",
+    "balanced": "ተመጣጥኗል",
+    "unbalanced": "አልተመጣጠነም",
+    "sources": {
+      "Manual": "በእጅ",
+      "Payroll": "ደመወዝ",
+      "Cash": "ጥሬ ገንዘብ",
+      "SalesInvoice": "የሽያጭ ደረሰኝ",
+      "PurchaseInvoice": "የግዢ ደረሰኝ",
+      "Payment": "ክፍያ",
+      "Opening": "የመክፈቻ ሂሳቦች",
+      "YearEnd": "የዓመት መዝጊያ",
+      "Bank": "የባንክ መግለጫ"
+    },
+    "rootTypes": {
+      "Asset": "ሀብት",
+      "Liability": "ዕዳ",
+      "Equity": "ካፒታል",
+      "Income": "ገቢ",
+      "Expense": "ወጪ"
+    }
   },
   "inv": {
     "newParty": "አዲስ ደንበኛ ወይም አቅራቢ",
@@ -262,7 +291,29 @@
     "paySelected": "በአንድ ክፍያ ክፈል",
     "select": "ምረጥ",
     "ofPayment": "ከጠቅላላ ክፍያ",
-    "invoicesShort": "ደረሰኞች"
+    "invoicesShort": "ደረሰኞች",
+    "searchHint": "ቁጥር፣ ስም ወይም ግብር ከፋይ መለያ",
+    "open": "ያልተከፈለ",
+    "overdue": "ጊዜው ያለፈ",
+    "salesInvoices": "የሽያጭ ደረሰኞች",
+    "purchaseInvoices": "የግዢ ደረሰኞች",
+    "paymentSaved": "ክፍያ {{number}} ተቀምጧል ({{amount}})።",
+    "noneFound": "ከማጣሪያው ጋር የሚስማማ ደረሰኝ የለም።",
+    "paid": "ተከፍሏል",
+    "partlyPaid": "በከፊል ተከፍሏል",
+    "due": "የሚከፈል",
+    "salesInvoice": "የሽያጭ ደረሰኝ",
+    "purchaseInvoice": "የግዢ ደረሰኝ",
+    "submitted": "{{number}} ቀርቦ ተመዝግቧል።",
+    "cancelled": "{{number}} ተሰርዟል።",
+    "paymentCancelled": "ክፍያ {{number}} ተሰርዟል።",
+    "draftHint": "ይህ ረቂቅ ነው፤ እስኪያቀርቡት ድረስ ምንም አይመዘገብም።",
+    "returnOf": "የተመለሰው ከ",
+    "openingHint": "በሽግግር ጊዜ የገባ፤ ምንም አይመዘግብም",
+    "noPayments": "እስካሁን ክፍያ የለም።",
+    "partySaved": "{{name}} ተቀምጧል።",
+    "partySearchHint": "ስም፣ ግብር ከፋይ መለያ ወይም ስልክ",
+    "withheldToPay": "የሚከፈል ተቀናሽ ግብር"
   },
   "periods": {
     "closed": "{{label}} ተዘግቷል።",
@@ -295,7 +346,10 @@
     "openingInvoices": "በሽግግር ጊዜ ያልተከፈሉ ደረሰኞች",
     "openingInvoicesHint": "በቀድሞው ሥርዓት ያልተከፈሉ ደረሰኞች፣ እዚህ እንዲከፈሉ። ምንም አይመዘግቡም፤ ድምራቸው በመክፈቻ ሂሳቦች ውስጥ አለ (1200 ተሰብሳቢ፣ 2100 ተከፋይ)።",
     "addOpeningInvoice": "ያልተከፈለ ደረሰኝ ጨምር",
-    "openingInvoicePosted": "{{number}} ለ{{party}} ተጨምሯል።"
+    "openingInvoicePosted": "{{number}} ለ{{party}} ተጨምሯል።",
+    "lockedShort": "እስከ {{date}} ተዘግቷል",
+    "lockDate": "የመዝጊያ ቀን",
+    "lastClosed": "የመጨረሻው የተዘጋ ወር"
   },
   "reports": {
     "pl": "ትርፍና ኪሳራ",
@@ -388,6 +442,47 @@
     "howTo": "የመግለጫ ረድፍ ይጫኑ፣ ከዚያ የሚያካትቱትን የመዝገብ ረድፎች (አንድ ቼክ ብዙ ደረሰኞችን ሊከፍል ይችላል)፣ ከዚያ አዛምድ። ወርቃማ ምልክት የተጠቆመ ጥንድ ነው። ገና ያልተመዘገቡ የባንክ ክፍያዎችና ወለድ እስኪመዘገቡ ድረስ ሳይዛመዱ ይቆያሉ።",
     "book": "መዝግብ",
     "bookButton": "መዝግብና አዛምድ",
-    "bookHint": "ባንኩ ያደረገው ግን በመዝገብ ገና ያልገባ፡ የባንክ ክፍያ (6400)፣ ወለድ (4300)፣ ቋሚ ትዕዛዝ። በረድፉ ቀን መዝገብ ይገባና ይዛመዳል።"
+    "bookHint": "ባንኩ ያደረገው ግን በመዝገብ ገና ያልገባ፡ የባንክ ክፍያ (6400)፣ ወለድ (4300)፣ ቋሚ ትዕዛዝ። በረድፉ ቀን መዝገብ ይገባና ይዛመዳል።",
+    "accountSaved": "{{name}} ተጨምሯል።"
+  },
+  "shell": {
+    "menu": "ዝርዝር"
+  },
+  "tiles": {
+    "companies": "ድርጅቶችና ቅንብሮች",
+    "employees": "የሠራተኞች መዝገብ",
+    "invoices": "ሽያጭና ግዢ",
+    "parties": "ደንበኞችና አቅራቢዎች",
+    "ageing": "ማን ምን ያህል ዕዳ አለበት",
+    "banking": "መግለጫና ማስታረቅ",
+    "journals": "የሂሳብ ምዝገባዎች",
+    "accounts": "የሂሳብ ሠንጠረዥ",
+    "trialBalance": "ዴቢትና ክሬዲት",
+    "reports": "ትርፍና ኪሳራ፣ ሚዛን፣ መዝገብ",
+    "tax": "ተ.እ.ታ እና ተቀናሽ",
+    "periods": "የወርና የዓመት መዝጊያ",
+    "slips": "የወር ደመወዝ",
+    "run": "የሁሉም ደመወዝ",
+    "calculator": "የተጣራ ደመወዝና ግብር",
+    "leave": "የፈቃድ ጥያቄዎች",
+    "attendance": "የዕለት ተገኝነት",
+    "cashiers": "ገንዘብ ተቀባዮች",
+    "pettyCash": "አነስተኛ ወጪዎች",
+    "owedToUs": "ከደንበኞች የሚሰበሰብ",
+    "weOwe": "ለአቅራቢዎች የሚከፈል",
+    "closedUpTo": "ተዘግቷል እስከ",
+    "allOpen": "ክፍት",
+    "noMonthClosed": "የተዘጋ ወር የለም",
+    "bankAccounts": "የባንክ ሂሳቦች"
+  },
+  "ui": {
+    "search": "ፈልግ",
+    "all": "ሁሉም",
+    "create": "አዲስ",
+    "general": "አጠቃላይ",
+    "lines": "ዝርዝሮች",
+    "taxes": "ግብሮች",
+    "payments": "ክፍያዎች",
+    "remove": "አስወግድ"
   }
 }

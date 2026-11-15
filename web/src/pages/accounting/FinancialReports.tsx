@@ -5,6 +5,7 @@ import { useSession } from "../../app/context";
 import { api } from "../../lib/api";
 import { formatDate, formatEthiopian, formatMoney, todayIso } from "../../lib/ethiopian";
 import type { AccountDto, BalanceSheetDto, GeneralLedgerDto, ProfitAndLossDto, ReportRow } from "../../lib/types";
+import { DynamicPage, FilterBar, FilterField, MessageStrip, ObjectStatus } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
 
 type Tab = "pl" | "bs" | "gl";
@@ -52,23 +53,32 @@ export function FinancialReports() {
   );
 
   return (
-    <>
-      <div className="page-head">
-        <h1>{t("nav.financialReports")}</h1>
-        <div className="inline-fields">
-          {tab !== "bs" && <label className="field-inline"><span>{t("periods.from")}</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>}
-          <label className="field-inline"><span>{tab === "bs" ? t("acc.asOf") : t("periods.to")}</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+    <DynamicPage
+      title={t("nav.financialReports")}
+      subtitle={<>{company.name} · {tab === "bs" ? formatEthiopian(to, am) : `${formatEthiopian(from, am)} – ${formatEthiopian(to, am)}`}
+        {tab === "bs" && bs.data && <ObjectStatus tone={bs.data.balanced ? "positive" : "negative"}>{t(bs.data.balanced ? "acc.balanced" : "reports.notBalanced")}</ObjectStatus>}</>}
+      actions={
+        <div className="segmented" role="tablist">
+          {(["pl", "bs", "gl"] as const).map((k) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{t(`reports.${k}`)}</button>)}
         </div>
-      </div>
-      <div className="segmented" role="tablist">
-        {(["pl", "bs", "gl"] as const).map((k) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{t(`reports.${k}`)}</button>)}
-      </div>
-      <p className="muted">
-        {company.name} · {tab === "bs" ? formatEthiopian(to, am) : `${formatEthiopian(from, am)} – ${formatEthiopian(to, am)}`}
-      </p>
-
+      }
+      header={
+        <FilterBar>
+          {tab === "gl" && (
+            <FilterField label={t("reports.account")}>
+              <select value={account} onChange={(e) => setAccount(e.target.value)}>
+                {accounts.data?.filter((a) => !a.isGroup).map((a) => <option key={a.id} value={a.code}>{a.code} · {a.name}</option>)}
+              </select>
+            </FilterField>
+          )}
+          {tab !== "bs" && <FilterField label={t("periods.from")}><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></FilterField>}
+          <FilterField label={tab === "bs" ? t("acc.asOf") : t("periods.to")}><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></FilterField>
+        </FilterBar>
+      }
+    >
+      <section className="table-card report-card">
       {tab === "pl" && pl.data && (
-        <table className="table narrow">
+        <table className="table">
           <tbody>
             {section(t("reports.income"), pl.data.income, pl.data.totalIncome, t("reports.totalIncome"))}
             {section(t("reports.expenses"), pl.data.expenses, pl.data.totalExpenses, t("reports.totalExpenses"))}
@@ -80,8 +90,7 @@ export function FinancialReports() {
 
       {tab === "bs" && bs.data && (
         <>
-          {!bs.data.balanced && <div className="error">{t("reports.notBalanced")}</div>}
-          <table className="table narrow">
+          <table className="table">
             <tbody>
               {section(t("reports.assets"), bs.data.assets, bs.data.totalAssets, t("reports.totalAssets"))}
               {section(t("reports.liabilities"), bs.data.liabilities, bs.data.totalLiabilities, t("reports.totalLiabilities"))}
@@ -96,12 +105,6 @@ export function FinancialReports() {
 
       {tab === "gl" && (
         <>
-          <label className="field-inline">
-            <span>{t("reports.account")}</span>
-            <select value={account} onChange={(e) => setAccount(e.target.value)}>
-              {accounts.data?.filter((a) => !a.isGroup).map((a) => <option key={a.id} value={a.code}>{a.code} · {a.name}</option>)}
-            </select>
-          </label>
           {gl.data && (
             <table className="table">
               <thead><tr><th>{t("attendance.date")}</th><th>{t("reports.voucher")}</th><th>{t("cash.description")}</th>
@@ -122,7 +125,8 @@ export function FinancialReports() {
           )}
         </>
       )}
-      {(pl.isError || bs.isError || gl.isError) && <div className="error">{(pl.error ?? bs.error ?? gl.error)?.message}</div>}
-    </>
+      </section>
+      {(pl.isError || bs.isError || gl.isError) && <MessageStrip tone="negative">{(pl.error ?? bs.error ?? gl.error)?.message}</MessageStrip>}
+    </DynamicPage>
   );
 }

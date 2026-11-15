@@ -20,7 +20,7 @@ export function WithholdingReceipt() {
   return (
     <>
       <div className="no-print inline-fields">
-        <Link to="/accounting/invoices" className="back">← {t("nav.invoices")}</Link>
+        <Link to="/accounting/invoices/$id" params={{ id }} className="back">← {t("nav.invoices")}</Link>
         <button onClick={() => window.print()}>{t("receipt.print")}</button>
       </div>
       <article className="receipt">

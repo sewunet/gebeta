@@ -8,6 +8,7 @@ import { formatDate, formatMoney } from "../../lib/ethiopian";
 import { formData } from "../../lib/hooks";
 import { can, type AccountDto, type BankAccountDto, type ReconciliationDto } from "../../lib/types";
 import { currentMonth, monthRange } from "../payroll/month";
+import { Dialog, DynamicPage, FilterBar, FilterField, MessageStrip, ObjectStatus } from "../../ui/fiori";
 
 type Field = "date" | "description" | "reference" | "amount" | "withdrawal" | "deposit" | "balance";
 const FIELDS: Field[] = ["date", "description", "reference", "amount", "withdrawal", "deposit", "balance"];
@@ -56,7 +57,7 @@ export function Banking() {
   };
   const create = useMutation({
     mutationFn: (body: Record<string, string>) => post<BankAccountDto>("/api/accounting/bank-accounts", { companyId: company!.id, ...body, ledgerAccountCode: body.ledgerAccountCode || null }),
-    onSuccess: (b) => { setShowForm(false); setSelected(b.id); refresh(); },
+    onSuccess: (b) => { setShowForm(false); setSelected(b.id); setNotice(t("bank.accountSaved", { name: `${b.bankName} · ${b.name}` })); refresh(); },
   });
   const importLines = useMutation({
     mutationFn: (lines: object[]) => post<{ imported: number; duplicates: number }>(`/api/accounting/bank-accounts/${bankId}/statement`, { lines }),
@@ -101,7 +102,7 @@ export function Banking() {
   const lineAmount = r?.statementLines.find((l) => l.id === line)?.amount ?? 0;
   const entriesAmount = (r?.bookEntries ?? []).filter((e) => entries.includes(e.glEntryId)).reduce((a, e) => a + e.amount, 0);
   const balanced = !!line && entries.length > 0 && Math.round(lineAmount * 100) === Math.round(entriesAmount * 100);
-  const error = create.error ?? importLines.error ?? match.error ?? unmatch.error ?? autoMatch.error ?? book.error;
+  const error = importLines.error ?? match.error ?? unmatch.error ?? autoMatch.error ?? book.error;
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,50 +119,46 @@ export function Banking() {
     e.target.value = "";
   };
 
+  const current = accounts.data?.find((b) => b.id === bankId);
+  const recTone = !r ? "neutral" : r.difference == null ? "information" : r.difference === 0 ? "positive" : "negative";
+
   return (
-    <>
-      <div className="page-head">
-        <h1>{t("nav.banking")}</h1>
-        {manage && <button onClick={() => setShowForm((s) => !s)}>{t("bank.newAccount")}</button>}
-      </div>
-      {showForm && (
-        <form className="form-grid" onSubmit={(e: FormEvent<HTMLFormElement>) => { e.preventDefault(); create.mutate(formData(e.currentTarget)); }}>
-          <label>{t("fields.name")}<input name="name" required placeholder={t("bank.namePlaceholder")} /></label>
-          <label>{t("bank.bank")}<input name="bankName" required list="ethiopian-banks" /></label>
-          <label>{t("bank.accountNumber")}<input name="accountNumber" required inputMode="numeric" /></label>
-          <label>{t("bank.ledgerAccount")}<input name="ledgerAccountCode" placeholder={t("bank.ledgerAuto")} /></label>
-          <datalist id="ethiopian-banks">
-            {["Commercial Bank of Ethiopia", "Awash Bank", "Dashen Bank", "Bank of Abyssinia", "Wegagen Bank", "Hibret Bank", "Nib International Bank",
-              "Cooperative Bank of Oromia", "Lion International Bank", "Zemen Bank", "Bunna Bank", "Berhan Bank", "Abay Bank", "Oromia Bank", "Enat Bank"].map((b) => <option key={b} value={b} />)}
-          </datalist>
-          <div className="form-actions"><button type="submit" disabled={create.isPending}>{t("common.save")}</button></div>
-        </form>
-      )}
-      {error && <div className="error">{error.message}</div>}
-      {notice && <div className="notice">{notice}</div>}
-
-      {accounts.data?.length ? (
-        <div className="cards">
-          {accounts.data.map((b) => (
-            <button key={b.id} className={`card card-button ${b.id === bankId ? "selected" : ""}`} onClick={() => { setSelected(b.id); setLine(null); setEntries([]); }}>
-              <div className="card-label">{b.bankName}</div>
-              <div className="card-value">{formatMoney(b.bookBalance)}</div>
-              <div className="card-sub">{b.name} · <span className="mono">{b.accountNumber}</span> · {b.ledgerAccountCode}</div>
-            </button>
-          ))}
-        </div>
-      ) : <p className="muted">{t("bank.none")}</p>}
-
-      {bankId && (
-        <>
-          <div className="inline-fields toolbar">
-            <label className="field-inline"><span>{t("common.month")}</span><input type="month" value={month} onChange={(e) => { setMonth(e.target.value); setLine(null); setEntries([]); }} /></label>
-            {manage && <label className="button secondary file-button">{t("bank.importCsv")}<input type="file" accept=".csv,text/csv" onChange={(e) => void onFile(e)} hidden /></label>}
-            {manage && <button className="secondary" onClick={() => autoMatch.mutate()} disabled={autoMatch.isPending || !r?.suggestions.length}>{t("bank.autoMatch", { count: r?.suggestions.length ?? 0 })}</button>}
+    <DynamicPage
+      title={t("nav.banking")}
+      subtitle={current ? <>{current.bankName} · <span className="mono">{current.accountNumber}</span> · {current.ledgerAccountCode}
+        {r && <ObjectStatus tone={recTone}>{r.difference == null ? t("bank.expected", { amount: formatMoney(r.expectedStatementBalance) })
+          : r.difference === 0 ? t("bank.reconciled") : t("bank.difference", { amount: formatMoney(r.difference) })}</ObjectStatus>}</> : undefined}
+      actions={manage && <>
+        {bankId && <label className="button file-button">{t("bank.importCsv")}<input type="file" accept=".csv,text/csv" onChange={(e) => void onFile(e)} hidden /></label>}
+        {bankId && <button className="secondary" onClick={() => autoMatch.mutate()} disabled={autoMatch.isPending || !r?.suggestions.length}>{t("bank.autoMatch", { count: r?.suggestions.length ?? 0 })}</button>}
+        <button className="secondary" onClick={() => setShowForm(true)}>{t("bank.newAccount")}</button>
+      </>}
+      header={accounts.data?.length ? <>
+        <FilterBar>
+          <FilterField label={t("bank.bank")}>
+            <select value={bankId ?? ""} onChange={(e) => { setSelected(e.target.value); setLine(null); setEntries([]); }}>
+              {accounts.data.map((b) => <option key={b.id} value={b.id}>{b.bankName} · {b.name} · {formatMoney(b.bookBalance)}</option>)}
+            </select>
+          </FilterField>
+          <FilterField label={t("common.month")}><input type="month" value={month} onChange={(e) => { setMonth(e.target.value); setLine(null); setEntries([]); }} /></FilterField>
+        </FilterBar>
+        {r && (
+          <div className="kpis kpis-gap">
+            <div className="kpi"><div className="kpi-label">{t("bank.bookBalance")}</div><div className="kpi-value">{formatMoney(r.bookBalance)}</div></div>
+            <div className="kpi"><div className="kpi-label">{t("bank.notInBooks")}</div><div className="kpi-value">{formatMoney(r.unmatchedStatement)}</div></div>
+            <div className="kpi"><div className="kpi-label">{t("bank.notOnStatement")}</div><div className="kpi-value">{formatMoney(r.unmatchedBook)}</div></div>
+            <div className="kpi"><div className="kpi-label">{t("bank.statementBalance")}</div>
+              <div className={`kpi-value ${r.difference ? "negative" : ""}`}>{r.statementBalance != null ? formatMoney(r.statementBalance) : "—"}</div></div>
           </div>
-
+        )}
+      </> : undefined}
+    >
+      {error && <MessageStrip tone="negative">{error.message}</MessageStrip>}
+      {notice && <MessageStrip tone="positive" onClose={() => setNotice(null)}>{notice}</MessageStrip>}
+      {!accounts.data?.length && !accounts.isPending && <div className="empty">{t("bank.none")}</div>}
           {rows && (
-            <section className="form-grid">
+            <section className="object-section">
+              <h2>{t("bank.importCsv")}</h2>
               <div className="lines">
                 <p className="muted small">{t("bank.mapHint", { rows: rows.length - 1 })}</p>
                 <div className="inline-fields">
@@ -182,7 +179,7 @@ export function Banking() {
                   </table>
                 )}
               </div>
-              <div className="form-actions">
+              <div className="inline-fields toolbar">
                 <button onClick={() => importLines.mutate(parsed)} disabled={!parsed.length || importLines.isPending}>{t("bank.importLines", { count: parsed.length })}</button>
                 <button className="secondary" onClick={() => setRows(null)}>{t("common.cancel")}</button>
               </div>
@@ -191,18 +188,6 @@ export function Banking() {
 
           {r && (
             <>
-              <div className="cards">
-                <div className="card"><div className="card-label">{t("bank.bookBalance")}</div><div className="card-value">{formatMoney(r.bookBalance)}</div></div>
-                <div className="card"><div className="card-label">{t("bank.notInBooks")}</div><div className="card-value">{formatMoney(r.unmatchedStatement)}</div></div>
-                <div className="card"><div className="card-label">{t("bank.notOnStatement")}</div><div className="card-value">{formatMoney(r.unmatchedBook)}</div></div>
-                <div className="card">
-                  <div className="card-label">{t("bank.statementBalance")}</div>
-                  <div className="card-value">{r.statementBalance != null ? formatMoney(r.statementBalance) : "—"}</div>
-                  <div className={`card-sub ${r.difference ? "error" : "ok"}`}>
-                    {r.difference == null ? t("bank.expected", { amount: formatMoney(r.expectedStatementBalance) }) : r.difference === 0 ? t("bank.reconciled") : t("bank.difference", { amount: formatMoney(r.difference) })}
-                  </div>
-                </div>
-              </div>
               {manage && line && (
                 <div className="inline-fields toolbar">
                   <span className={balanced ? "ok" : "muted"}>{t("bank.selection", { line: formatMoney(lineAmount), entries: formatMoney(entriesAmount) })}</span>
@@ -211,8 +196,8 @@ export function Banking() {
                 </div>
               )}
               <div className="split">
-                <section>
-                  <h3>{t("bank.statement")}</h3>
+                <section className="table-card">
+                  <div className="table-toolbar"><h2>{t("bank.statement")}<span className="count"> ({r.statementLines.length})</span></h2></div>
                   <table className="table">
                     <tbody>{r.statementLines.flatMap((l) => [
                       <tr key={l.id} className={`${l.matched ? "muted" : ""} ${line === l.id ? "selected" : ""} ${suggestedLines.has(l.id) ? "suggested" : ""}`}
@@ -242,10 +227,10 @@ export function Banking() {
                       ) : null,
                     ])}</tbody>
                   </table>
-                  {!r.statementLines.length && <p className="muted">{t("bank.noStatement")}</p>}
+                  {!r.statementLines.length && <div className="empty">{t("bank.noStatement")}</div>}
                 </section>
-                <section>
-                  <h3>{t("bank.books")}</h3>
+                <section className="table-card">
+                  <div className="table-toolbar"><h2>{t("bank.books")}<span className="count"> ({r.bookEntries.length})</span></h2></div>
                   <table className="table">
                     <tbody>{r.bookEntries.map((e) => (
                       <tr key={e.glEntryId} className={`${e.matched ? "muted" : ""} ${entries.includes(e.glEntryId) ? "selected" : ""} ${suggestedEntries.has(e.glEntryId) ? "suggested" : ""}`}
@@ -256,14 +241,27 @@ export function Banking() {
                       </tr>
                     ))}</tbody>
                   </table>
-                  {!r.bookEntries.length && <p className="muted">{t("common.empty")}</p>}
+                  {!r.bookEntries.length && <div className="empty">{t("common.empty")}</div>}
                 </section>
               </div>
               <p className="muted small">{t("bank.howTo")}</p>
             </>
           )}
-        </>
-      )}
-    </>
+
+      <Dialog open={showForm} title={t("bank.newAccount")} onClose={() => setShowForm(false)}
+        footer={<><button type="submit" form="bank-form" disabled={create.isPending}>{t("common.save")}</button><button className="secondary" onClick={() => setShowForm(false)}>{t("common.cancel")}</button></>}>
+        <form id="bank-form" className="dialog-form" onSubmit={(e: FormEvent<HTMLFormElement>) => { e.preventDefault(); create.mutate(formData(e.currentTarget)); }}>
+          <label>{t("fields.name")}<span className="required" aria-hidden>*</span><input name="name" required placeholder={t("bank.namePlaceholder")} /></label>
+          <label>{t("bank.bank")}<span className="required" aria-hidden>*</span><input name="bankName" required list="ethiopian-banks" /></label>
+          <label>{t("bank.accountNumber")}<span className="required" aria-hidden>*</span><input name="accountNumber" required inputMode="numeric" /></label>
+          <label>{t("bank.ledgerAccount")}<input name="ledgerAccountCode" placeholder={t("bank.ledgerAuto")} /></label>
+          <datalist id="ethiopian-banks">
+            {["Commercial Bank of Ethiopia", "Awash Bank", "Dashen Bank", "Bank of Abyssinia", "Wegagen Bank", "Hibret Bank", "Nib International Bank",
+              "Cooperative Bank of Oromia", "Lion International Bank", "Zemen Bank", "Bunna Bank", "Berhan Bank", "Abay Bank", "Oromia Bank", "Enat Bank"].map((b) => <option key={b} value={b} />)}
+          </datalist>
+          {create.isError && <MessageStrip tone="negative">{create.error.message}</MessageStrip>}
+        </form>
+      </Dialog>
+    </DynamicPage>
   );
 }

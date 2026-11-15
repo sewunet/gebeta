@@ -1,14 +1,33 @@
 # Frontend
 
-> **Built so far** (`web/`): Keycloak sign-in (authorization code + PKCE, tokens in memory), layout with
-> sidebar from installed modules and permissions, company switcher, English/Amharic and calendar
-> preference saved on the user profile, Ethiopian dates and birr formatting, and screens for dashboard,
+> **Built so far** (`web/`): Keycloak sign-in (authorization code + PKCE, tokens in memory), Fiori-style shell (see
+> below) built from installed modules and permissions, company switcher, English/Amharic and calendar
+> preference saved on the user profile, Ethiopian dates and birr formatting, and screens for home,
 > companies, employees (list and add), salary slips (list by month, detail, submit/cancel), payroll run
 > with CSV report downloads, the salary calculator; HR leave (apply, approve, cancel, balances, annual
 > allocation) and attendance; Cash cashiers (balances, receipts, payments, transfers, ledger) and petty
 > cash approval; Accounting chart of accounts, journals (list, details, balanced entry form) and trial balance; customers and suppliers, sales and purchase invoices with VAT and withholding (submit, cancel, receive or pay, credit and debit notes, payment history with cancel), receivables and payables ageing, open invoices at cut-over, banks (accounts, CSV statement import, reconciliation, booking charges and interest from the statement), one payment for several invoices, VAT and withholding report, profit and loss, balance sheet, general ledger, and closing (month close and reopen, year-end closing, opening balances). Styling is plain CSS with the Gebeta palette for
 > now; shadcn/ui and Tailwind can come later. The OpenAPI client is hand-typed in `src/lib/types.ts`
 > until client generation is set up.
+>
+> **UI pattern: SAP Fiori floorplans** (chosen over Odoo and NetSuite styles; layout and interaction only, with
+> Gebeta's own colors, type and icons; no SAP fonts, icons or branding). Building blocks in `src/ui/fiori.tsx`:
+> - **Shell bar** across the top (menu, Gebeta, current app, company, user menu with language, calendar and
+>   sign-out) and a **navigation menu** that opens over the page; both, and the home tiles, come from the app
+>   registry `src/app/apps.ts`.
+> - **Launchpad** home: tiles grouped by area, key tiles with a live figure (receivables, payables, VAT this
+>   month, lock date, bank accounts, employees).
+> - **List report**: filter bar in the page header, a table card with its own toolbar (title with count,
+>   actions), rows that open the object page; tables collapse to label/value cards on phones.
+> - **Object page**: header with title, status and key figures, actions top right, an anchor bar jumping to
+>   sections; the header shrinks on scroll. Create and edit pages put Save and Cancel in a **footer bar**.
+> - **Dialogs** for short tasks (pay, credit note), **message strips** for results, **object status** colors
+>   (positive, critical, negative, information).
+>
+> Converted so far: shell, home and all of Accounting: invoices and journals (list report, create page, object
+> page), customers and suppliers (list report, create dialog), chart of accounts, trial balance, financial
+> reports, ageing, banks (dynamic page with reconciliation), VAT and withholding and closing (object pages with
+> dialogs). Payroll, HR, Cash and Core screens still use the earlier layout inside the new shell.
 
 React 19 + TypeScript (strict) + Vite, in `web/`.
 

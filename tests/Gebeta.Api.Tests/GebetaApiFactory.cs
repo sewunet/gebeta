@@ -32,6 +32,9 @@ public sealed class GebetaApiFactory : WebApplicationFactory<Program>, IAsyncLif
         _ = Server; // build the host once, before test classes start using it in parallel (it migrates and seeds on startup)
     }
 
+    /// <summary>The test database, for tools that run next to the API (the migration).</summary>
+    public string ConnectionString => _postgres.GetConnectionString();
+
     /// <summary>An HTTP client signed in as <paramref name="username"/>, or anonymous when null.</summary>
     public HttpClient ClientFor(string? username)
     {

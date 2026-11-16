@@ -1,6 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Gebeta.Api/Gebeta.Api.csproj" />
+    <Project Path="src/Gebeta.Composition/Gebeta.Composition.csproj" />
+  </Folder>
+  <Folder Name="/src/Tools/">
+    <Project Path="src/Tools/Gebeta.Migration/Gebeta.Migration.csproj" />
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/Gebeta.Application/Gebeta.Application.csproj" />

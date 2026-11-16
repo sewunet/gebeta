@@ -11,4 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gebeta.Api\Gebeta.Api.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Tools\Gebeta.Migration\Gebeta.Migration.csproj" />
+  </ItemGroup>
 </Project>

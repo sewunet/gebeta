@@ -1,5 +1,4 @@
 using Gebeta.Api;
-using Gebeta.Core.Infrastructure;
 using Gebeta.Messaging;
 using Gebeta.Modularity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -30,15 +29,7 @@ builder.Services.AddGebetaAuthorization();
 builder.Services.AddGebetaMessaging(builder.Configuration);
 
 // Every module the image contains. Which of them run is decided by Modules:Enabled.
-builder.AddGebetaModules(
-    new CoreModule(),
-    new Gebeta.Payroll.Infrastructure.PayrollModule(),
-    new Gebeta.Hr.Infrastructure.HrModule(),
-    new Gebeta.Accounting.Infrastructure.AccountingModule(),
-    new Gebeta.Cash.Infrastructure.CashModule(),
-    new Gebeta.Stock.Infrastructure.StockModule(),
-    new Gebeta.Buying.Infrastructure.BuyingModule(),
-    new Gebeta.Selling.Infrastructure.SellingModule());
+builder.AddGebetaModules(Gebeta.Composition.ModuleCatalogue.All());
 
 var app = builder.Build();
 

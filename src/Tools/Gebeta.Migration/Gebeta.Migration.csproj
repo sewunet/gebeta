@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Gebeta.Migration</RootNamespace>
+    <Description>Moves a company from ERPNext into Gebeta through Gebeta's application layer (docs/data-migration.md): repeatable, checked by counts, with a dry run.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MySqlConnector" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Gebeta.Composition\Gebeta.Composition.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
+  </ItemGroup>
+</Project>

@@ -64,6 +64,10 @@ Modules/Payroll/
 Dependencies point inwards (Presentation → Application → Domain → SharedKernel) and are checked by
 `tests/Gebeta.ArchitectureTests` on every build.
 
+The list of modules lives in one place, `src/Gebeta.Composition` (`ModuleCatalogue.All()`). The API
+and the tools under `src/Tools` (the ERPNext migration) load the same modules from it, so a tool
+can never run with a different set of rules than the API.
+
 ## 3. Documents and their lifecycle
 
 Most business records are **documents** with the same lifecycle that ERPNext users know:

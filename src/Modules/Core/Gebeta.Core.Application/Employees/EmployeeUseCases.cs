@@ -23,6 +23,12 @@ public sealed record ListEmployeesQuery(Guid CompanyId) : IQuery<IReadOnlyList<E
 
 public sealed record GetEmployeeQuery(Guid Id) : IQuery<EmployeeDto>;
 
+public sealed record UpdateEmployeeCommand(Guid Id, string FirstName, string FatherName, string? GrandfatherName, Gender Gender, DateOnly DateOfJoining, string? Tin)
+    : ICommand<EmployeeDto>;
+
+/// <summary>Records that the employee left (or, with no date, takes back a leaving recorded by mistake).</summary>
+public sealed record SetEmployeeLeavingCommand(Guid Id, DateOnly? DateOfLeaving) : ICommand<EmployeeDto>;
+
 public sealed class EmployeeHandler(
     IEmployeeRepository employees,
     ICompanyRepository companies,
@@ -30,8 +36,66 @@ public sealed class EmployeeHandler(
     ICoreNumbers numbers,
     ICoreUnitOfWork unitOfWork,
     TimeProvider clock)
-    : ICommandHandler<CreateEmployeeCommand, EmployeeDto>, IQueryHandler<ListEmployeesQuery, IReadOnlyList<EmployeeDto>>, IQueryHandler<GetEmployeeQuery, EmployeeDto>
+    : ICommandHandler<CreateEmployeeCommand, EmployeeDto>, IQueryHandler<ListEmployeesQuery, IReadOnlyList<EmployeeDto>>, IQueryHandler<GetEmployeeQuery, EmployeeDto>,
+      ICommandHandler<UpdateEmployeeCommand, EmployeeDto>, ICommandHandler<SetEmployeeLeavingCommand, EmployeeDto>
 {
+    public async Task<Result<EmployeeDto>> Handle(UpdateEmployeeCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var employee = await AccessibleAsync(command.Id, cancellationToken).ConfigureAwait(false);
+        if (employee is null)
+        {
+            return Error.NotFound("Employee", command.Id);
+        }
+
+        var previousTin = employee.Tin;
+        var updated = employee.Update(command.FirstName, command.FatherName, command.GrandfatherName, command.Gender, command.DateOfJoining, command.Tin);
+        if (updated.IsFailure)
+        {
+            return updated.Error!;
+        }
+
+        if (employee.Tin is { } tin && tin != previousTin && await employees.TinExistsAsync(employee.CompanyId, tin, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.Conflict($"An employee with TIN {tin} already exists in this company.");
+        }
+
+        employee.ModifiedAt = clock.GetUtcNow();
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return EmployeeMapping.ToDto(employee);
+    }
+
+    public async Task<Result<EmployeeDto>> Handle(SetEmployeeLeavingCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var employee = await AccessibleAsync(command.Id, cancellationToken).ConfigureAwait(false);
+        if (employee is null)
+        {
+            return Error.NotFound("Employee", command.Id);
+        }
+
+        var result = command.DateOfLeaving is { } date ? employee.Leave(date) : employee.Rejoin();
+        if (result.IsFailure)
+        {
+            return result.Error!;
+        }
+
+        employee.ModifiedAt = clock.GetUtcNow();
+        if (command.DateOfLeaving is { } left)
+        {
+            unitOfWork.Publish(new EmployeeLeft(employee.Id, employee.CompanyId, employee.Number, left, employee.ModifiedAt.Value));
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return EmployeeMapping.ToDto(employee);
+    }
+
+    private async Task<Employee?> AccessibleAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var employee = await employees.GetAsync(id, cancellationToken).ConfigureAwait(false);
+        return employee is not null && await access.CanAccessAsync(employee.CompanyId, cancellationToken).ConfigureAwait(false) ? employee : null;
+    }
+
     public const string DocumentType = "Employee";
     public const string DefaultPattern = "EMP-.#####";
 

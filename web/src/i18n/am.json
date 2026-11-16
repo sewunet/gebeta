@@ -104,7 +104,12 @@
     "added": "ሠራተኛ {{number}} ተጨምሯል።",
     "searchHint": "ቁጥር፣ ስም ወይም ግብር ከፋይ መለያ",
     "notFound": "ሠራተኛው አልተገኘም።",
-    "left": "የለቀቀበት ቀን"
+    "left": "የለቀቀበት ቀን",
+    "leftSaved": "{{name}} እንደለቀቀ ተመዝግቧል።",
+    "rejoined": "{{name}} እንደገና ንቁ ሆኗል።",
+    "takeBack": "መልቀቁን መልስ",
+    "recordLeaving": "መልቀቅ መዝግብ",
+    "leavingHint": "ከዚህ ቀን በኋላ ሠራተኛው የደመወዝ ወረቀትም ተገኝነትም አይኖረውም። ስህተት ከሆነ መልቀቁን መልስ ይጠቀሙ።"
   },
   "slips": {
     "submit": "አቅርብ",
@@ -343,7 +348,8 @@
     "noPayments": "እስካሁን ክፍያ የለም።",
     "partySaved": "{{name}} ተቀምጧል።",
     "partySearchHint": "ስም፣ ግብር ከፋይ መለያ ወይም ስልክ",
-    "withheldToPay": "የሚከፈል ተቀናሽ ግብር"
+    "withheldToPay": "የሚከፈል ተቀናሽ ግብር",
+    "partyEditHint": "ቀድመው የተሠሩ ደረሰኞች የወጡበትን ስምና ግብር ከፋይ መለያ ይይዛሉ።"
   },
   "periods": {
     "closed": "{{label}} ተዘግቷል።",
@@ -513,7 +519,9 @@
     "lines": "ዝርዝሮች",
     "taxes": "ግብሮች",
     "payments": "ክፍያዎች",
-    "remove": "አስወግድ"
+    "remove": "አስወግድ",
+    "edit": "አስተካክል",
+    "saved": "ለውጦቹ ተቀምጠዋል።"
   },
   "companies": {
     "current": "የአሁኑ",
@@ -522,6 +530,8 @@
     "notVatRegistered": "ለተ.እ.ታ ያልተመዘገበ",
     "useThis": "በዚህ ድርጅት ስራ",
     "isCurrent": "አሁን በዚህ ድርጅት እየሠሩ ነው።",
-    "timeZone": "የሰዓት ክልል"
+    "timeZone": "የሰዓት ክልል",
+    "tradeLicense": "የንግድ ፈቃድ ቁጥር",
+    "fixedFields": "ምህጻረ ቃሉ፣ ግብር ከፋይ መለያ፣ የሕግ ሰውነት፣ ገንዘብና የበጀት ዓመት እዚህ አይቀየሩም፤ ሰነዶችና ሂሳቦች በእነሱ ይሰየማሉ።"
   }
 }

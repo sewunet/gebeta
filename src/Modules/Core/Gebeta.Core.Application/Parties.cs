@@ -9,9 +9,45 @@ public sealed record CreatePartyCommand(Guid CompanyId, string Name, PartyType T
 
 public sealed record ListPartiesQuery(Guid CompanyId) : IQuery<IReadOnlyList<PartyDto>>;
 
+public sealed record GetPartyQuery(Guid Id) : IQuery<PartyDto>;
+
+public sealed record UpdatePartyCommand(Guid Id, string Name, PartyType Type, string? Tin, string? VatRegistrationNumber, string? Phone) : ICommand<PartyDto>;
+
 public sealed class PartyHandler(IPartyRepository parties, ICompanyAccess access, Companies.ICoreUnitOfWork unitOfWork, TimeProvider clock)
-    : ICommandHandler<CreatePartyCommand, PartyDto>, IQueryHandler<ListPartiesQuery, IReadOnlyList<PartyDto>>, IPartyDirectory
+    : ICommandHandler<CreatePartyCommand, PartyDto>, IQueryHandler<ListPartiesQuery, IReadOnlyList<PartyDto>>, IPartyDirectory,
+      IQueryHandler<GetPartyQuery, PartyDto>, ICommandHandler<UpdatePartyCommand, PartyDto>
 {
+    public async Task<Result<PartyDto>> Handle(GetPartyQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var party = await parties.GetAsync(query.Id, cancellationToken).ConfigureAwait(false);
+        return party is null || !await access.CanAccessAsync(party.CompanyId, cancellationToken).ConfigureAwait(false)
+            ? Error.NotFound("Party", query.Id)
+            : ToPartyDto(party);
+    }
+
+    public async Task<Result<PartyDto>> Handle(UpdatePartyCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var party = await parties.GetAsync(command.Id, cancellationToken).ConfigureAwait(false);
+        if (party is null || !await access.CanAccessAsync(party.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.NotFound("Party", command.Id);
+        }
+
+        var updated = party.Update(command.Name, command.Type, command.Tin, command.VatRegistrationNumber, command.Phone);
+        if (updated.IsFailure)
+        {
+            return updated.Error!;
+        }
+
+        party.ModifiedAt = clock.GetUtcNow();
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return ToPartyDto(party);
+    }
+
+    private static PartyDto ToPartyDto(Party p) => new(p.Id, p.CompanyId, p.Name, p.Type.ToString(), p.Tin?.Value, p.VatRegistrationNumber, p.Phone);
+
     public async Task<Result<PartyDto>> Handle(CreatePartyCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);

@@ -93,3 +93,31 @@ internal static class CompanyMapping
         c.Id, c.Name, c.Abbreviation, c.LegalForm.ToString(), c.Tin.Value, c.VatRegistrationNumber, c.TradeLicenseNumber,
         c.DefaultCurrencyCode, c.FiscalYearType.ToString(), c.TimeZone);
 }
+
+public sealed record UpdateCompanyCommand(Guid Id, string Name, string? VatRegistrationNumber, string? TradeLicenseNumber) : ICommand<CompanyDto>;
+
+public sealed class UpdateCompanyHandler(ICompanyRepository companies, ICompanyAccess access, ICoreUnitOfWork unitOfWork, TimeProvider clock)
+    : ICommandHandler<UpdateCompanyCommand, CompanyDto>
+{
+    public async Task<Result<CompanyDto>> Handle(UpdateCompanyCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var company = await access.CanAccessAsync(command.Id, cancellationToken).ConfigureAwait(false)
+            ? await companies.GetAsync(command.Id, cancellationToken).ConfigureAwait(false)
+            : null;
+        if (company is null)
+        {
+            return Error.NotFound("Company", command.Id);
+        }
+
+        var updated = company.Update(command.Name, command.VatRegistrationNumber, command.TradeLicenseNumber);
+        if (updated.IsFailure)
+        {
+            return updated.Error!;
+        }
+
+        company.ModifiedAt = clock.GetUtcNow();
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return CompanyMapping.ToDto(company);
+    }
+}

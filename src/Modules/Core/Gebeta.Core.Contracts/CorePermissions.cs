@@ -5,6 +5,7 @@ public static class CorePermissions
 {
     public const string CompaniesRead = "core.companies.read";
     public const string CompaniesCreate = "core.companies.create";
+    public const string CompaniesManage = "core.companies.manage";
 
     /// <summary>See and use every company, not only the ones assigned to the user.</summary>
     public const string CompaniesAccessAll = "core.companies.access-all";
@@ -22,5 +23,5 @@ public static class CorePermissions
     public const string PartiesManage = "core.parties.manage";
 
     public static IReadOnlyList<string> All { get; } =
-        [CompaniesRead, CompaniesCreate, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage];
+        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage];
 }

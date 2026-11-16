@@ -7,7 +7,7 @@ export type MeDto = {
   accessAllCompanies: boolean; companyIds: string[];
 };
 export type CompanyDto = {
-  id: string; name: string; abbreviation: string; legalForm: string; tin: string; vatRegistrationNumber?: string;
+  id: string; name: string; abbreviation: string; legalForm: string; tin: string; vatRegistrationNumber?: string; tradeLicenseNumber?: string;
   defaultCurrency: string; fiscalYearType: string; timeZone: string;
 };
 export type EmployeeDto = {

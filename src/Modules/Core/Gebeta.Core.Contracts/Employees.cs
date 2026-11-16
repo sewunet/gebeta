@@ -16,3 +16,5 @@ public sealed record EmployeeDto(
 
 /// <summary>Published when an employee is added, so Payroll, HR and others can set up their records.</summary>
 public sealed record EmployeeCreated(Guid EmployeeId, Guid CompanyId, string Number, string FullName, DateOnly DateOfJoining, DateTimeOffset OccurredAt);
+
+public sealed record EmployeeLeft(Guid EmployeeId, Guid CompanyId, string Number, DateOnly DateOfLeaving, DateTimeOffset OccurredAt);

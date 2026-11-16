@@ -104,7 +104,12 @@
     "added": "Employee {{number}} added.",
     "searchHint": "Number, name or TIN",
     "notFound": "Employee not found.",
-    "left": "Left on"
+    "left": "Left on",
+    "leftSaved": "{{name}} is recorded as having left.",
+    "rejoined": "{{name}} is active again.",
+    "takeBack": "Take back leaving",
+    "recordLeaving": "Record leaving",
+    "leavingHint": "From the day after this date the employee gets no salary slip or attendance. If it was a mistake, use Take back leaving."
   },
   "slips": {
     "submit": "Submit",
@@ -343,7 +348,8 @@
     "noPayments": "No payments yet.",
     "partySaved": "{{name}} saved.",
     "partySearchHint": "Name, TIN or phone",
-    "withheldToPay": "Withholding to pay"
+    "withheldToPay": "Withholding to pay",
+    "partyEditHint": "Invoices already made keep the name and TIN they were issued with."
   },
   "periods": {
     "closed": "{{label}} is closed.",
@@ -513,7 +519,9 @@
     "lines": "Lines",
     "taxes": "Taxes",
     "payments": "Payments",
-    "remove": "Remove"
+    "remove": "Remove",
+    "edit": "Edit",
+    "saved": "Changes saved."
   },
   "companies": {
     "current": "Current",
@@ -522,6 +530,8 @@
     "notVatRegistered": "Not VAT registered",
     "useThis": "Work in this company",
     "isCurrent": "You are working in this company.",
-    "timeZone": "Time zone"
+    "timeZone": "Time zone",
+    "tradeLicense": "Trade licence no.",
+    "fixedFields": "The abbreviation, TIN, legal form, currency and fiscal year cannot be changed here: documents and accounts are named after them."
   }
 }

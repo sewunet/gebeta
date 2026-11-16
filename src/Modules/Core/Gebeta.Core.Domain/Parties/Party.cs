@@ -30,6 +30,9 @@ public sealed class Party : Entity
 
     public bool IsVatRegistered => VatRegistrationNumber is not null;
 
+    internal void CopyFrom(Party other) =>
+        (Name, Type, Tin, VatRegistrationNumber, Phone) = (other.Name, other.Type, other.Tin, other.VatRegistrationNumber, other.Phone);
+
     public static Result<Party> Create(Guid companyId, string name, PartyType type, string? tin, string? vatRegistrationNumber, string? phone)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 140)
@@ -55,6 +58,23 @@ public sealed class Party : Entity
             VatRegistrationNumber = string.IsNullOrWhiteSpace(vatRegistrationNumber) ? null : vatRegistrationNumber.Trim(),
             Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
         };
+    }
+}
+
+public static class PartyEditing
+{
+    /// <summary>Changes a party's details; invoices keep the name and TIN they were issued with.</summary>
+    public static Result Update(this Party party, string name, PartyType type, string? tin, string? vatRegistrationNumber, string? phone)
+    {
+        ArgumentNullException.ThrowIfNull(party);
+        var check = Party.Create(party.CompanyId, name, type, tin, vatRegistrationNumber, phone);
+        if (check.IsFailure)
+        {
+            return Result.Failure(check.Error!);
+        }
+
+        party.CopyFrom(check.Value);
+        return Result.Success();
     }
 }
 

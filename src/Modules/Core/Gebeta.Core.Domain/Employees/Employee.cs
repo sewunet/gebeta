@@ -94,8 +94,45 @@ public sealed class Employee : Entity
         };
     }
 
+    /// <summary>Corrects the employee's names, gender, joining date or TIN (the number stays).</summary>
+    public Result Update(string firstName, string fatherName, string? grandfatherName, Gender gender, DateOnly dateOfJoining, string? tin)
+    {
+        var check = Create(CompanyId, Number, firstName, fatherName, grandfatherName, gender, dateOfJoining, tin);
+        if (check.IsFailure)
+        {
+            return Result.Failure(check.Error!);
+        }
+
+        if (DateOfLeaving is { } left && dateOfJoining > left)
+        {
+            return Result.Failure(Error.Validation("The joining date cannot be after the leaving date."));
+        }
+
+        var c = check.Value;
+        (FirstName, FatherName, GrandfatherName, Gender, DateOfJoining, Tin) = (c.FirstName, c.FatherName, c.GrandfatherName, c.Gender, c.DateOfJoining, c.Tin);
+        return Result.Success();
+    }
+
+    /// <summary>Takes back a leaving recorded by mistake.</summary>
+    public Result Rejoin()
+    {
+        if (Status != EmployeeStatus.Left)
+        {
+            return Result.Failure(Error.Validation("Only an employee who has left can be taken back."));
+        }
+
+        DateOfLeaving = null;
+        Status = EmployeeStatus.Active;
+        return Result.Success();
+    }
+
     public Result Leave(DateOnly dateOfLeaving)
     {
+        if (Status == EmployeeStatus.Left)
+        {
+            return Result.Failure(Error.Validation("This employee has already left."));
+        }
+
         if (dateOfLeaving < DateOfJoining)
         {
             return Result.Failure(Error.Validation("The leaving date cannot be before the joining date."));

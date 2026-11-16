@@ -1,6 +1,7 @@
 using Gebeta.Application;
 using Gebeta.Core.Application.Companies;
 using Gebeta.Core.Application.Employees;
+using Gebeta.Core.Application.Parties;
 using Gebeta.Core.Application.Security;
 using Gebeta.Core.Application.Settings;
 using Gebeta.Core.Contracts;
@@ -39,6 +40,12 @@ public static class CoreEndpoints
                 return result.IsSuccess ? Results.Created($"/api/core/parties/{result.Value.Id}", result.Value) : result.ToHttp();
             })
             .WithName("CreateParty").RequirePermission(CorePermissions.PartiesManage);
+        parties.MapGet("/{id:guid}", async (Guid id, IQueryHandler<GetPartyQuery, PartyDto> h, CancellationToken ct) =>
+                (await h.Handle(new GetPartyQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetParty").RequirePermission(CorePermissions.PartiesRead);
+        parties.MapPut("/{id:guid}", async (Guid id, PartyBody b, ICommandHandler<UpdatePartyCommand, PartyDto> h, CancellationToken ct) =>
+                (await h.Handle(new UpdatePartyCommand(id, b.Name, b.Type, b.Tin, b.VatRegistrationNumber, b.Phone), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("UpdateParty").RequirePermission(CorePermissions.PartiesManage);
     }
 
     private static void MapEmployees(IEndpointRouteBuilder endpoints)
@@ -61,6 +68,16 @@ public static class CoreEndpoints
                 return result.IsSuccess ? Results.Created($"/api/core/employees/{result.Value.Id}", result.Value) : result.ToHttp();
             })
             .WithName("CreateEmployee")
+            .RequirePermission(CorePermissions.EmployeesManage);
+
+        employees.MapPut("/{id:guid}", async (Guid id, EmployeeBody b, ICommandHandler<UpdateEmployeeCommand, EmployeeDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new UpdateEmployeeCommand(id, b.FirstName, b.FatherName, b.GrandfatherName, b.Gender, b.DateOfJoining, b.Tin), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("UpdateEmployee")
+            .RequirePermission(CorePermissions.EmployeesManage);
+
+        employees.MapPost("/{id:guid}/leaving", async (Guid id, LeavingBody b, ICommandHandler<SetEmployeeLeavingCommand, EmployeeDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new SetEmployeeLeavingCommand(id, b.DateOfLeaving), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("SetEmployeeLeaving")
             .RequirePermission(CorePermissions.EmployeesManage);
     }
 
@@ -131,6 +148,11 @@ public static class CoreEndpoints
             })
             .WithName("CreateCompany")
             .RequirePermission(CorePermissions.CompaniesCreate);
+
+        companies.MapPut("/{id:guid}", async (Guid id, CompanyBody b, ICommandHandler<UpdateCompanyCommand, CompanyDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new UpdateCompanyCommand(id, b.Name, b.VatRegistrationNumber, b.TradeLicenseNumber), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("UpdateCompany")
+            .RequirePermission(CorePermissions.CompaniesManage);
     }
 
     private static void MapUsersAndRoles(IEndpointRouteBuilder endpoints)
@@ -194,3 +216,11 @@ public sealed record ModulesResponse(IReadOnlyList<ModuleDto> Modules, IReadOnly
 public sealed record SetNamingSeriesBody(string DocumentType, string Pattern);
 
 public sealed record ModuleDto(string Id, string Name, string Version, IReadOnlyList<string> Enhances);
+
+public sealed record PartyBody(string Name, Gebeta.Core.Domain.Parties.PartyType Type, string? Tin, string? VatRegistrationNumber, string? Phone);
+
+public sealed record EmployeeBody(string FirstName, string FatherName, string? GrandfatherName, Gebeta.Core.Domain.Employees.Gender Gender, DateOnly DateOfJoining, string? Tin);
+
+public sealed record LeavingBody(DateOnly? DateOfLeaving);
+
+public sealed record CompanyBody(string Name, string? VatRegistrationNumber, string? TradeLicenseNumber);

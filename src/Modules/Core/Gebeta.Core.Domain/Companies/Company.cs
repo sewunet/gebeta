@@ -86,6 +86,23 @@ public sealed class Company : Entity
     }
 
     public void UseGregorianFiscalYear() => FiscalYearType = FiscalYearType.Gregorian;
+
+    /// <summary>
+    /// Changes the name, VAT registration and trade licence. The abbreviation (used in document and account names)
+    /// and the TIN do not change; a company with a new TIN is a new company.
+    /// </summary>
+    public Result Update(string name, string? vatRegistrationNumber, string? tradeLicenseNumber)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 140)
+        {
+            return Result.Failure(Error.Validation("The company name is required (at most 140 characters)."));
+        }
+
+        Name = name.Trim();
+        VatRegistrationNumber = string.IsNullOrWhiteSpace(vatRegistrationNumber) ? null : vatRegistrationNumber.Trim();
+        TradeLicenseNumber = string.IsNullOrWhiteSpace(tradeLicenseNumber) ? null : tradeLicenseNumber.Trim();
+        return Result.Success();
+    }
 }
 
 /// <summary>Business forms under the Commercial Code (Proclamation 1243/2021) and other Ethiopian laws.</summary>

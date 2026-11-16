@@ -29,6 +29,11 @@
 > Payroll (salary slips and slip object page, the payroll run as a three-step process, the calculator), HR (leave
 > and attendance with dialogs), Cash (cashiers with a cashier object page, petty cash approve and reject
 > dialogs) and Core (companies and employees with object pages). The withholding receipt keeps its print layout.
+>
+> **Edit mode** (step 27): companies (name, VAT registration, trade licence), employees (names, gender, joining
+> date, TIN; record or take back a leaving) and customers or suppliers (with their own object page listing their
+> invoices and open amounts) are edited in place: Edit in the header, fields become inputs, Save and Cancel in the
+> footer bar. Every page is loaded on first use (`lazyRouteComponent`), so the first download stays small.
 
 React 19 + TypeScript (strict) + Vite, in `web/`.
 

@@ -69,6 +69,8 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<IPartyDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.Parties.CreatePartyCommand, PartyDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
         services.AddScoped<IQueryHandler<Gebeta.Core.Application.Parties.ListPartiesQuery, IReadOnlyList<PartyDto>>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Parties.GetPartyQuery, PartyDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Parties.UpdatePartyCommand, PartyDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
         services.AddScoped<EmployeeDirectory>();
         services.AddScoped<IEmployeeDirectory>(sp => sp.GetRequiredService<EmployeeDirectory>());
         services.AddScoped<IEmployeeList>(sp => sp.GetRequiredService<EmployeeDirectory>());
@@ -76,6 +78,8 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<ICommandHandler<CreateEmployeeCommand, EmployeeDto>>(sp => sp.GetRequiredService<EmployeeHandler>());
         services.AddScoped<IQueryHandler<ListEmployeesQuery, IReadOnlyList<EmployeeDto>>>(sp => sp.GetRequiredService<EmployeeHandler>());
         services.AddScoped<IQueryHandler<GetEmployeeQuery, EmployeeDto>>(sp => sp.GetRequiredService<EmployeeHandler>());
+        services.AddScoped<ICommandHandler<UpdateEmployeeCommand, EmployeeDto>>(sp => sp.GetRequiredService<EmployeeHandler>());
+        services.AddScoped<ICommandHandler<SetEmployeeLeavingCommand, EmployeeDto>>(sp => sp.GetRequiredService<EmployeeHandler>());
         services.AddScoped<IModuleMigrator, CoreMigrator>();
         services.AddOutboxDispatcher<CoreDbContext>(Id, CoreDbContext.SchemaName);
         services.AddHealthChecks().AddCheck<CoreDatabaseHealthCheck>("core-database");
@@ -83,6 +87,7 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<ICommandHandler<CreateCompanyCommand, CompanyDto>, CreateCompanyHandler>();
         services.AddScoped<IQueryHandler<ListCompaniesQuery, IReadOnlyList<CompanyDto>>, ListCompaniesHandler>();
         services.AddScoped<IQueryHandler<GetCompanyQuery, CompanyDto>, GetCompanyHandler>();
+        services.AddScoped<ICommandHandler<UpdateCompanyCommand, CompanyDto>, UpdateCompanyHandler>();
 
         services.AddScoped<GetMeHandler>();
         services.AddScoped<IQueryHandler<GetMeQuery, MeDto>>(sp => sp.GetRequiredService<GetMeHandler>());

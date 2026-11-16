@@ -18,7 +18,7 @@ export function useParties() {
   });
 }
 
-/** List report of customers and suppliers; a row opens that party's invoices. */
+/** List report of customers and suppliers; a row opens the party's object page. */
 export function Parties() {
   const { t } = useTranslation();
   const { me, company } = useSession();
@@ -44,7 +44,7 @@ export function Parties() {
   }), [parties.data, search, type]);
   if (!company) return <p>{t("common.noCompany")}</p>;
   const onSubmit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); create.mutate(formData(e.currentTarget)); };
-  const open = (p: PartyDto) => void navigate({ to: "/accounting/invoices", search: { kind: p.type === "Supplier" ? "Purchase" : "Sales" } });
+  const open = (p: PartyDto) => void navigate({ to: "/accounting/parties/$id", params: { id: p.id } });
 
   return (
     <ListReport

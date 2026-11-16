@@ -203,3 +203,14 @@ export function Tile({ title, subtitle, value, unit, footer, tone, onOpen }: {
     </button>
   );
 }
+
+/** Save and Cancel for an object page in edit mode (Fiori footer bar). */
+export function EditFooter({ form, saving, error, onCancel, saveLabel, cancelLabel }: {
+  form: string; saving: boolean; error?: string; onCancel: () => void; saveLabel: string; cancelLabel: string;
+}) {
+  return <>
+    {error && <span className="error">{error}</span>}
+    <button type="submit" form={form} disabled={saving}>{saveLabel}</button>
+    <button className="secondary" onClick={onCancel}>{cancelLabel}</button>
+  </>;
+}

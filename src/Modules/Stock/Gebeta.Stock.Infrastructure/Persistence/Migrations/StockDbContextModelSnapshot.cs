@@ -160,6 +160,15 @@ namespace Gebeta.Stock.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(60)")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("PartyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("party_id");
+
+                    b.Property<string>("PartyName")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("party_name");
+
                     b.Property<DateOnly>("PostingDate")
                         .HasColumnType("date")
                         .HasColumnName("posting_date");
@@ -169,6 +178,11 @@ namespace Gebeta.Stock.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("purpose");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("reference");
 
                     b.Property<string>("Remark")
                         .HasMaxLength(300)
@@ -182,6 +196,10 @@ namespace Gebeta.Stock.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_stock_entry");
+
+                    b.HasIndex("PartyId")
+                        .HasDatabaseName("ix_stock_entry_party_id")
+                        .HasFilter("party_id IS NOT NULL");
 
                     b.HasIndex("CompanyId", "Name")
                         .IsUnique()

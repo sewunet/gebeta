@@ -22,7 +22,8 @@ public sealed class AccountingOptions
     public TaxRules Rules => new(VatRatePercent, WithholdingRatePercent, WithholdingGoodsThreshold, WithholdingServicesThreshold);
 }
 
-public sealed record InvoiceLineInput(string Description, decimal Quantity, decimal Rate, string AccountCode, bool IsService, bool VatApplicable = true);
+/// <param name="ItemId">Optional Core item; the line keeps its code. For purchases of stock items the account is usually 2150 (cleared against goods received).</param>
+public sealed record InvoiceLineInput(string Description, decimal Quantity, decimal Rate, string AccountCode, bool IsService, bool VatApplicable = true, Guid? ItemId = null);
 
 /// <param name="CustomerWithholds">Sales only: the customer is a withholding agent and deducts withholding tax.</param>
 public sealed record CreateInvoiceCommand(InvoiceKind Kind, Guid CompanyId, Guid PartyId, DateOnly PostingDate, DateOnly? DueDate,
@@ -67,6 +68,7 @@ public sealed class InvoicingHandler(
     IJournalRepository journals,
     ChartSetup chart,
     IPartyDirectory parties,
+    IItemDirectory items,
     ICompanyDirectory companies,
     ICompanyAccess access,
     ICurrentUser currentUser,
@@ -118,13 +120,25 @@ public sealed class InvoicingHandler(
             return Error.Validation($"Account {bad.AccountCode} is not a postable account of this company.");
         }
 
+        var itemCodes = new Dictionary<Guid, string>();
+        foreach (var itemId in (command.Lines ?? []).Where(l => l.ItemId is not null).Select(l => l.ItemId!.Value).Distinct())
+        {
+            if (await items.GetAsync(itemId, cancellationToken).ConfigureAwait(false) is not { } info || info.CompanyId != command.CompanyId)
+            {
+                return Error.Validation("An item on the invoice is not one of this company's items.");
+            }
+
+            itemCodes[itemId] = info.Code;
+        }
+
         Invoice invoice;
         try
         {
             var vatCharged = command.Kind == InvoiceKind.Sales ? company.IsVatRegistered : party.IsVatRegistered;
             var withholding = command.Kind == InvoiceKind.Purchase ? options.IsWithholdingAgent : command.CustomerWithholds;
             invoice = Invoice.Create(command.Kind, command.CompanyId, party.Id, party.Name, party.Tin, command.PostingDate, command.DueDate ?? command.PostingDate.AddDays(30),
-                (command.Lines ?? []).Select(l => new InvoiceLine(l.Description, l.Quantity, l.Rate, l.AccountCode, l.IsService, l.VatApplicable)).ToList(),
+                (command.Lines ?? []).Select(l => new InvoiceLine(l.Description, l.Quantity, l.Rate, l.AccountCode, l.IsService, l.VatApplicable, l.ItemId,
+                    l.ItemId is { } item ? itemCodes[item] : null)).ToList(),
                 options.Rules, vatCharged, withholding, command.SupplierInvoiceNumber);
         }
         catch (DomainException ex)
@@ -347,7 +361,7 @@ public sealed class InvoicingHandler(
 
     private static InvoiceDto ToDto(Invoice i) => new(i.Id, i.Name, i.Kind.ToString(), i.CompanyId, i.PartyId, i.PartyName, i.PartyTin, i.SupplierInvoiceNumber,
         i.PostingDate, i.DueDate, i.DocStatus.ToString(),
-        i.Lines.Select(l => new InvoiceLineDto(l.Description, l.Quantity, l.Rate, l.Amount, l.AccountCode, l.IsService, l.VatApplicable)).ToList(),
+        i.Lines.Select(l => new InvoiceLineDto(l.Description, l.Quantity, l.Rate, l.Amount, l.AccountCode, l.IsService, l.VatApplicable, l.ItemId, l.ItemCode)).ToList(),
         i.NetTotal, i.VatAmount, i.GrandTotal, i.WithholdingAmount, i.PayableAmount, i.Outstanding, i.IsReturn, i.ReturnAgainstNumber, i.IsOpening, i.WithholdingReceiptNumber);
 
     public async Task<Result<WithholdingReceiptDto>> Handle(GetWithholdingReceiptQuery query, CancellationToken cancellationToken)
@@ -391,7 +405,8 @@ public sealed class InvoicingHandler(
         }
 
         var lines = command.Lines is { Count: > 0 }
-            ? command.Lines.Select(l => new InvoiceLine(l.Description, l.Quantity, l.Rate, l.AccountCode, l.IsService, l.VatApplicable)).ToList()
+            ? command.Lines.Select(l => new InvoiceLine(l.Description, l.Quantity, l.Rate, l.AccountCode, l.IsService, l.VatApplicable, l.ItemId,
+                original.Lines.FirstOrDefault(o => o.ItemId == l.ItemId)?.ItemCode)).ToList()
             : original.Lines.ToList();
         var allowed = original.Lines.Select(l => l.AccountCode).ToHashSet(StringComparer.Ordinal);
         if (lines.FirstOrDefault(l => !allowed.Contains(l.AccountCode)) is { } stray)

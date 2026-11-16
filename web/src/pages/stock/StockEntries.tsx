@@ -9,6 +9,7 @@ import { can, type StockEntryDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useWarehouses } from "./hooks";
+import { useParties } from "../accounting/Parties";
 
 const refreshKeys = ["stock-entries", "stock-entry", "stock-balance", "stock-ledger", "item-setting"];
 
@@ -67,7 +68,7 @@ export function StockEntries() {
             <tr key={e.id} className="navigable" onClick={() => void navigate({ to: "/stock/entries/$id", params: { id: e.id } })}>
               <td data-label={t("fields.number")}><span className="mono strong-link">{e.number}</span></td>
               <td data-label={t("attendance.date")}>{formatDate(e.postingDate, me.calendar, am)}</td>
-              <td data-label={t("stock.purpose")}>{t(`stock.purposes.${e.purpose}`)}</td>
+              <td data-label={t("stock.purpose")}>{t(`stock.purposes.${e.purpose}`)}{e.partyName && <div className="muted small">{e.partyName}</div>}</td>
               <td data-label={t("nav.items")}>{e.lines.map((l) => `${l.itemCode} × ${l.qty}`).join(", ")}{e.remark && <div className="muted small">{e.remark}</div>}</td>
               <td data-label={t("stock.value")} className="num">{e.status === "Draft" ? "" : formatMoney(e.totalValue)}</td>
               <td data-label={t("fields.status")}><ObjectStatus tone={statusTone(e.status)}>{t(`status.${e.status}`)}</ObjectStatus></td>
@@ -90,6 +91,8 @@ export function StockEntryCreate() {
   const { purpose } = useSearch({ from: "/stock/entries/new" });
   const items = useItems();
   const warehouses = useWarehouses();
+  const parties = useParties();
+  const [partyId, setPartyId] = useState("");
   const first = warehouses.data?.[0]?.id ?? "";
   const second = warehouses.data?.[1]?.id ?? "";
   const empty = (): Line => ({ itemId: "", qty: "", rate: "", source: purpose === "Receipt" ? "" : first, target: purpose === "Issue" ? "" : purpose === "Transfer" ? second : first });
@@ -115,6 +118,7 @@ export function StockEntryCreate() {
       submit,
       body: {
         companyId: company.id, purpose, postingDate: f.get("postingDate"), remark: f.get("remark") || null, counterAccountCode: f.get("counterAccountCode") || null,
+        partyId: partyId || null, reference: f.get("reference") || null,
         lines: shown.filter((l) => l.itemId && Number(l.qty) > 0).map((l) => ({
           itemId: l.itemId, qty: Number(l.qty), rate: purpose === "Receipt" ? Number(l.rate || 0) : null,
           sourceWarehouseId: purpose === "Receipt" ? null : l.source, targetWarehouseId: purpose === "Issue" ? null : l.target,
@@ -145,7 +149,16 @@ export function StockEntryCreate() {
           <h2>{t("ui.general")}</h2>
           <div className="form-columns">
             <label>{t("attendance.date")}<span className="required" aria-hidden>*</span><input type="date" name="postingDate" defaultValue={todayIso()} max={todayIso()} required /></label>
-            {purpose !== "Transfer" && <label>{t("stock.counterAccount")}<input name="counterAccountCode" placeholder="5100" /></label>}
+            {purpose !== "Transfer" && <>
+              <label>{t(purpose === "Receipt" ? "inv.supplier" : "inv.customer")}
+                <select value={partyId} onChange={(e) => setPartyId(e.target.value)}>
+                  <option value="">{t("stock.noParty")}</option>
+                  {parties.data?.filter((p) => p.type === "Both" || p.type === (purpose === "Receipt" ? "Supplier" : "Customer")).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </label>
+              <label>{t("inv.reference")}<input name="reference" placeholder={purpose === "Receipt" ? "DN / GRN" : "SINV"} /></label>
+              <label>{t("stock.counterAccount")}<input name="counterAccountCode" key={partyId ? "p" : "n"} placeholder={partyId ? (purpose === "Receipt" ? "2150" : "5000") : "5100"} /></label>
+            </>}
             <label>{t("acc.remark")}<input name="remark" /></label>
           </div>
         </section>
@@ -170,7 +183,8 @@ export function StockEntryCreate() {
             <tfoot><tr><td colSpan={purpose === "Transfer" ? 4 : 3}><button type="button" className="secondary" onClick={() => setLines([...shown, empty()])}>{t("acc.addLine")}</button></td>
               {purpose === "Receipt" ? <td className="num">{formatMoney(total)}</td> : <td />}</tr></tfoot>
           </table>
-          <MessageStrip tone="information">{t(purpose === "Receipt" ? "stock.receiptHint" : "stock.rateHint")}</MessageStrip>
+          <MessageStrip tone="information">{t(purpose === "Receipt" ? "stock.receiptHint" : "stock.rateHint")}
+            {partyId && <> {t(purpose === "Receipt" ? "stock.receivedHint" : "stock.deliveredHint")}</>}</MessageStrip>
         </section>
       </form>
     </DynamicPage>
@@ -202,7 +216,7 @@ export function StockEntryDetail() {
     <ObjectPage
       breadcrumb={<Link to="/stock/entries">{t("nav.stockEntries")}</Link>}
       title={e.number ?? t("status.Draft")}
-      subtitle={<>{t(`stock.purposes.${e.purpose}`)}{e.remark && <> · {e.remark}</>}</>}
+      subtitle={<>{t(`stock.purposes.${e.purpose}`)}{e.partyName && <> · {e.partyName}</>}{e.remark && <> · {e.remark}</>}</>}
       status={<ObjectStatus tone={statusTone(e.status)}>{t(`status.${e.status}`)}</ObjectStatus>}
       kpis={[
         { label: t("stock.value"), value: e.status === "Draft" ? "—" : formatMoney(e.totalValue) },
@@ -238,6 +252,8 @@ export function StockEntryDetail() {
           <Fields items={[
             { label: t("stock.purpose"), value: t(`stock.purposes.${e.purpose}`) },
             { label: t("attendance.date"), value: formatDate(e.postingDate, me.calendar, am) },
+            { label: t(e.purpose === "Receipt" ? "inv.supplier" : "inv.customer"), value: e.partyName, hidden: !e.partyName },
+            { label: t("inv.reference"), value: e.reference, hidden: !e.reference },
             { label: t("stock.counterAccount"), value: <span className="mono">{e.counterAccountCode}</span>, hidden: e.purpose === "Transfer" },
             { label: t("acc.remark"), value: e.remark },
           ]} />

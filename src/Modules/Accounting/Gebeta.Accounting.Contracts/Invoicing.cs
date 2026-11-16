@@ -8,7 +8,8 @@ public static class InvoicingPermissions
     public const string PaymentsCreate = "accounting.payments.create";
 }
 
-public sealed record InvoiceLineDto(string Description, decimal Quantity, decimal Rate, decimal Amount, string AccountCode, bool IsService, bool VatApplicable);
+public sealed record InvoiceLineDto(string Description, decimal Quantity, decimal Rate, decimal Amount, string AccountCode, bool IsService, bool VatApplicable,
+    Guid? ItemId = null, string? ItemCode = null);
 
 public sealed record InvoiceDto(Guid Id, string? Number, string Kind, Guid CompanyId, Guid PartyId, string PartyName, string? PartyTin, string? SupplierInvoiceNumber,
     DateOnly PostingDate, DateOnly DueDate, string Status, IReadOnlyList<InvoiceLineDto> Lines, decimal NetTotal, decimal VatAmount, decimal GrandTotal,

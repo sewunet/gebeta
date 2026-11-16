@@ -78,6 +78,12 @@ public sealed class StockEntry : DocumentBase
 {
     public const string DefaultCounterAccount = "5100";
 
+    /// <summary>Goods received from a supplier, before or without the supplier's invoice; the invoice debits it back.</summary>
+    public const string StockReceivedNotBilled = "2150";
+
+    /// <summary>Goods delivered to a customer.</summary>
+    public const string CostOfSales = "5000";
+
     private List<StockEntryLine> _lines = [];
 
     private StockEntry()
@@ -96,15 +102,31 @@ public sealed class StockEntry : DocumentBase
     public StockEntryPurpose Purpose { get; private set; }
     public string? Remark { get; private set; }
 
+    /// <summary>The supplier the goods came from (receipt) or the customer they went to (issue), if any.</summary>
+    public Guid? PartyId { get; private set; }
+
+    public string? PartyName { get; private set; }
+
+    /// <summary>The supplier's delivery or invoice number, or our sales invoice number.</summary>
+    public string? Reference { get; private set; }
+
     /// <summary>The other side of the value journal for receipts and issues (default 5100 Stock Adjustment).</summary>
     public string CounterAccountCode { get; private set; }
 
     public IReadOnlyList<StockEntryLine> Lines => _lines;
     public decimal TotalValue => _lines.Sum(l => l.Value);
 
-    public static StockEntry Create(Guid companyId, StockEntryPurpose purpose, DateOnly postingDate, IReadOnlyList<StockEntryLine> lines, string? counterAccountCode, string? remark)
+    /// <param name="party">A supplier for goods received or a customer for goods delivered. The counter account then defaults to
+    /// 2150 Stock Received But Not Billed (receipts) or 5000 Cost of Sales (issues) instead of 5100 Stock Adjustment.</param>
+    public static StockEntry Create(Guid companyId, StockEntryPurpose purpose, DateOnly postingDate, IReadOnlyList<StockEntryLine> lines, string? counterAccountCode, string? remark,
+        (Guid Id, string Name)? party = null, string? reference = null)
     {
         ArgumentNullException.ThrowIfNull(lines);
+        if (party is not null && purpose == StockEntryPurpose.Transfer)
+        {
+            throw new DomainException("stock.entry_party", "A transfer between our own warehouses has no supplier or customer.");
+        }
+
         if (lines.Count == 0)
         {
             throw new DomainException("stock.entry_lines", "A stock entry needs at least one line.");
@@ -134,11 +156,14 @@ public sealed class StockEntry : DocumentBase
             }
         }
 
+        var defaultCounter = party is null ? DefaultCounterAccount : purpose == StockEntryPurpose.Receipt ? StockReceivedNotBilled : CostOfSales;
         return new StockEntry(companyId, postingDate)
         {
             Purpose = purpose, _lines = lines.Select(l => l with { Value = 0m }).ToList(),
-            CounterAccountCode = string.IsNullOrWhiteSpace(counterAccountCode) ? DefaultCounterAccount : counterAccountCode.Trim(),
+            CounterAccountCode = string.IsNullOrWhiteSpace(counterAccountCode) ? defaultCounter : counterAccountCode.Trim(),
             Remark = string.IsNullOrWhiteSpace(remark) ? null : remark.Trim(),
+            PartyId = party?.Id, PartyName = party?.Name,
+            Reference = string.IsNullOrWhiteSpace(reference) ? null : reference.Trim(),
         };
     }
 

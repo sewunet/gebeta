@@ -355,7 +355,8 @@
     "partySaved": "{{name}} saved.",
     "partySearchHint": "Name, TIN or phone",
     "withheldToPay": "Withholding to pay",
-    "partyEditHint": "Invoices already made keep the name and TIN they were issued with."
+    "partyEditHint": "Invoices already made keep the name and TIN they were issued with.",
+    "stockItemHint": "For goods already received into stock, use account 2150: the goods-received entry credited it, and this invoice clears it."
   },
   "periods": {
     "closed": "{{label}} is closed.",
@@ -594,6 +595,9 @@
     "draftHint": "This is a draft: no stock moves until you post it.",
     "valueChange": "Value change",
     "qtyAfter": "Qty after",
-    "valueAfter": "Value after"
+    "valueAfter": "Value after",
+    "noParty": "None (internal)",
+    "receivedHint": "With a supplier, the value is credited to 2150 Stock Received But Not Billed until the supplier's invoice clears it.",
+    "deliveredHint": "With a customer, the value is charged to 5000 Cost of Sales."
   }
 }

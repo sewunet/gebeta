@@ -20,7 +20,8 @@ public enum InvoiceKind
 }
 
 /// <summary>An invoice line. <see cref="AccountCode"/> is the income (sales) or expense/asset (purchase) account.</summary>
-public sealed record InvoiceLine(string Description, decimal Quantity, decimal Rate, string AccountCode, bool IsService, bool VatApplicable = true)
+public sealed record InvoiceLine(string Description, decimal Quantity, decimal Rate, string AccountCode, bool IsService, bool VatApplicable = true, Guid? ItemId = null,
+    string? ItemCode = null)
 {
     public decimal Amount => Rounding.ToCurrency(Quantity * Rate);
 }

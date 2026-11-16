@@ -65,4 +65,20 @@ public class PostingTests
         Assert.Throws<DomainException>(() => StockEntry.Create(Company, StockEntryPurpose.Transfer, Day, [Line(1m, from: Main, to: Main)], null, null));
         Assert.Throws<DomainException>(() => StockEntry.Create(Company, StockEntryPurpose.Receipt, Day, [Line(1.0005m, 1m, to: Main)], null, null));
     }
+
+    [Fact]
+    public void Goods_received_and_delivered_default_to_the_clearing_and_cost_of_sales_accounts()
+    {
+        var supplier = (Guid.CreateVersion7(), "Addis Cement Factory");
+        var received = StockEntry.Create(Company, StockEntryPurpose.Receipt, Day, [Line(10m, 1_000m, to: Main)], null, null, supplier, "GRN-001");
+        Assert.Equal("2150", received.CounterAccountCode);
+        Assert.Equal(("Addis Cement Factory", "GRN-001"), (received.PartyName, received.Reference));
+
+        var delivered = StockEntry.Create(Company, StockEntryPurpose.Issue, Day, [Line(1m, from: Main)], null, null, (Guid.CreateVersion7(), "Bole Builders"));
+        Assert.Equal("5000", delivered.CounterAccountCode);
+        Assert.Equal("6900", StockEntry.Create(Company, StockEntryPurpose.Issue, Day, [Line(1m, from: Main)], "6900", null, supplier).CounterAccountCode);
+        Assert.Equal("5100", StockEntry.Create(Company, StockEntryPurpose.Issue, Day, [Line(1m, from: Main)], null, null).CounterAccountCode);
+        Assert.Equal("stock.entry_party", Assert.Throws<DomainException>(() =>
+            StockEntry.Create(Company, StockEntryPurpose.Transfer, Day, [Line(1m, from: Main, to: Shop)], null, null, supplier)).Code);
+    }
 }

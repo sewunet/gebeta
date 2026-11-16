@@ -18,6 +18,8 @@
 > (bank 1120 by default); an invoice with payments cannot be cancelled. Reports: `/reports/vat` (output, input,
 > net payable) and `/reports/withholding` (withheld from suppliers, withheld by customers). Rates and thresholds
 > are configuration (`Accounting:*`). Not yet: advances (payments before an invoice), refunds, TOT.
+> Invoice lines may name a Core item (step 31); purchases of goods already received into stock use 2150 Stock
+> Received But Not Billed, which Stock's goods-received entries credit, so the invoice clears it.
 >
 > **Corrections and cut-over** (step 21): `POST /invoices/{id}/return` makes a credit note (`CN-`, sales) or debit
 > note (`DN-`, purchases) for some or all of a submitted invoice's lines: VAT as on the original, withholding at

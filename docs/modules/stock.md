@@ -18,8 +18,13 @@
 > (`StockJournalAdjusted`); cancelling sends one that takes the entry's value back out. Ledger rows carry their
 > movement kind. Running it inline (not as a background job) keeps it simple at today's volumes; a large history
 > would move it to a job with a reposting page, as designed below.
-> Not yet: batches and serial numbers, units of measure conversions, purchase receipts and delivery notes, stock
-> reconciliation.
+>
+> **Goods received and delivered** (step 31): a receipt or issue can name the supplier or customer and a reference
+> (their delivery note, our invoice). With a supplier the counter account defaults to 2150 Stock Received But Not
+> Billed; the supplier's invoice line for the item debits 2150, clearing it (any price difference stays there to be
+> reviewed). With a customer it defaults to 5000 Cost of Sales. Invoice lines can carry a Core item (kept as its code).
+> Not yet: purchase and sales orders, batches and serial numbers, units of measure conversions, stock reconciliation,
+> automatic matching of invoices to goods received.
 
 ## Scope
 

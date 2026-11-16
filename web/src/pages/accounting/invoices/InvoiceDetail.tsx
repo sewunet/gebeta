@@ -105,7 +105,7 @@ export function InvoiceDetail() {
             <table className="table">
               <thead><tr><th>{t("cash.description")}</th><th className="num">{t("inv.qty")}</th><th className="num">{t("inv.rate")}</th><th>{t("acc.code")}</th><th /><th className="num">{t("cash.amount")}</th></tr></thead>
               <tbody>{inv.lines.map((l, i) => (
-                <tr key={i}><td>{l.description}</td><td className="num">{l.quantity}</td><td className="num">{formatMoney(l.rate)}</td><td className="mono">{l.accountCode}</td>
+                <tr key={i}><td>{l.itemCode && <span className="mono muted">{l.itemCode} · </span>}{l.description}</td><td className="num">{l.quantity}</td><td className="num">{formatMoney(l.rate)}</td><td className="mono">{l.accountCode}</td>
                   <td className="muted small">{l.isService ? t("inv.service") : t("inv.goods")}{l.vatApplicable ? "" : ` · ${t("inv.exempt")}`}</td>
                   <td className="num">{formatMoney(l.amount)}</td></tr>
               ))}</tbody>

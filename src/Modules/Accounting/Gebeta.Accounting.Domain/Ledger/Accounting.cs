@@ -61,6 +61,8 @@ public static class EthiopianChartOfAccounts
     public const string EmployerPensionExpense = "6120";
     public const string RetainedEarnings = "3200";
     public const string BankCharges = "6400";
+    public const string StockReceivedNotBilled = "2150";
+    public const string CostOfSales = "5000";
     public const string InterestIncome = "4300";
 
     public static IReadOnlyList<AccountTemplate> Accounts { get; } =
@@ -77,6 +79,7 @@ public static class EthiopianChartOfAccounts
         new("1500", "Property, Plant and Equipment", RootType.Asset, false, "1000"),
         new("2000", "Liabilities", RootType.Liability, true, null),
         new("2100", "Accounts Payable", RootType.Liability, false, "2000"),
+        new(StockReceivedNotBilled, "Stock Received But Not Billed", RootType.Liability, false, "2000"),
         new("2200", "Payroll Liabilities", RootType.Liability, true, "2000"),
         new(SalaryPayable, "Salaries Payable", RootType.Liability, false, "2200"),
         new(IncomeTaxPayable, "Employment Income Tax Payable", RootType.Liability, false, "2200"),

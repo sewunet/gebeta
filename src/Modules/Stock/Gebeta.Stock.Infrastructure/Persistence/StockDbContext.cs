@@ -72,6 +72,9 @@ internal sealed class StockEntryConfiguration : IEntityTypeConfiguration<StockEn
         builder.Property(e => e.DocStatus).HasConversion<string>().HasMaxLength(20);
         builder.Property(e => e.CounterAccountCode).HasMaxLength(20).IsRequired();
         builder.Property(e => e.Remark).HasMaxLength(300);
+        builder.Property(e => e.PartyName).HasMaxLength(140);
+        builder.Property(e => e.Reference).HasMaxLength(60);
+        builder.HasIndex(e => e.PartyId).HasFilter("party_id IS NOT NULL");
         builder.Property<List<StockEntryLine>>("_lines").HasColumnName("lines").IsJsonList();
         builder.Ignore(e => e.Lines);
         builder.Ignore(e => e.TotalValue);

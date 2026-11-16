@@ -63,7 +63,7 @@ export type TrialBalanceDto = {
 };
 
 export type PartyDto = { id: string; companyId: string; name: string; type: "Customer" | "Supplier" | "Both"; tin?: string; vatRegistrationNumber?: string; phone?: string };
-export type InvoiceLineDto = { description: string; quantity: number; rate: number; amount: number; accountCode: string; isService: boolean; vatApplicable: boolean };
+export type InvoiceLineDto = { description: string; quantity: number; rate: number; amount: number; accountCode: string; isService: boolean; vatApplicable: boolean; itemId?: string; itemCode?: string };
 export type InvoiceDto = {
   id: string; number?: string; kind: "Sales" | "Purchase"; companyId: string; partyId: string; partyName: string; partyTin?: string; supplierInvoiceNumber?: string;
   postingDate: string; dueDate: string; status: string; lines: InvoiceLineDto[]; netTotal: number; vatAmount: number; grandTotal: number;
@@ -119,7 +119,7 @@ export type StockEntryLineDto = {
 };
 export type StockEntryDto = {
   id: string; number?: string; companyId: string; purpose: "Receipt" | "Issue" | "Transfer"; postingDate: string; status: string; counterAccountCode: string;
-  remark?: string; lines: StockEntryLineDto[]; totalValue: number;
+  remark?: string; lines: StockEntryLineDto[]; totalValue: number; partyId?: string; partyName?: string; reference?: string;
 };
 export type StockBalanceRow = { itemId: string; itemCode: string; itemName: string; uom: string; warehouseId: string; warehouse: string; qty: number; rate: number; value: number; method: string };
 export type StockBalanceDto = { companyId: string; asOf: string; rows: StockBalanceRow[]; totalValue: number };

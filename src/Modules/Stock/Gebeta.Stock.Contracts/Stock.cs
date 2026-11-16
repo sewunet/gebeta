@@ -18,7 +18,7 @@ public sealed record StockEntryLineDto(Guid ItemId, string ItemCode, string Item
     Guid? TargetWarehouseId, string? TargetWarehouse, decimal Value);
 
 public sealed record StockEntryDto(Guid Id, string? Number, Guid CompanyId, string Purpose, DateOnly PostingDate, string Status, string CounterAccountCode, string? Remark,
-    IReadOnlyList<StockEntryLineDto> Lines, decimal TotalValue);
+    IReadOnlyList<StockEntryLineDto> Lines, decimal TotalValue, Guid? PartyId = null, string? PartyName = null, string? Reference = null);
 
 public sealed record StockBalanceRow(Guid ItemId, string ItemCode, string ItemName, string Uom, Guid WarehouseId, string Warehouse, decimal Qty, decimal Rate, decimal Value,
     string Method);

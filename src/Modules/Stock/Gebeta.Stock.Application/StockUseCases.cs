@@ -19,8 +19,9 @@ public sealed record SetItemValuationCommand(Guid ItemId, ValuationMethod Method
 
 public sealed record StockEntryLineInput(Guid ItemId, decimal Qty, decimal? Rate, Guid? SourceWarehouseId, Guid? TargetWarehouseId);
 
+/// <param name="PartyId">Supplier (goods received) or customer (goods delivered); sets the counter account default to 2150 or 5000.</param>
 public sealed record CreateStockEntryCommand(Guid CompanyId, StockEntryPurpose Purpose, DateOnly PostingDate, IReadOnlyList<StockEntryLineInput> Lines,
-    string? CounterAccountCode, string? Remark) : ICommand<StockEntryDto>;
+    string? CounterAccountCode, string? Remark, Guid? PartyId = null, string? Reference = null) : ICommand<StockEntryDto>;
 
 public sealed record SubmitStockEntryCommand(Guid Id) : ICommand<StockEntryDto>;
 
@@ -37,6 +38,7 @@ public sealed record StockLedgerQuery(Guid CompanyId, Guid ItemId, Guid? Warehou
 public sealed class StockHandler(
     IStockRepository stock,
     IItemDirectory items,
+    IPartyDirectory parties,
     ICompanyAccess access,
     ICurrentUser currentUser,
     IStockNumbers numbers,
@@ -177,10 +179,21 @@ public sealed class StockHandler(
             lines.Add(new StockEntryLine(item.Id, item.Code, item.Name, item.Uom, l.Qty, l.Rate, l.SourceWarehouseId, l.TargetWarehouseId));
         }
 
+        (Guid, string)? party = null;
+        if (command.PartyId is { } partyId)
+        {
+            if (await parties.GetAsync(partyId, cancellationToken).ConfigureAwait(false) is not { } info || info.CompanyId != command.CompanyId)
+            {
+                return Error.NotFound("Party", partyId);
+            }
+
+            party = (info.Id, info.Name);
+        }
+
         StockEntry entry;
         try
         {
-            entry = StockEntry.Create(command.CompanyId, command.Purpose, command.PostingDate, lines, command.CounterAccountCode, command.Remark);
+            entry = StockEntry.Create(command.CompanyId, command.Purpose, command.PostingDate, lines, command.CounterAccountCode, command.Remark, party, command.Reference);
         }
         catch (DomainException ex)
         {
@@ -529,5 +542,5 @@ public sealed class StockHandler(
         e.Lines.Select(l => new StockEntryLineDto(l.ItemId, l.ItemCode, l.ItemName, l.Uom, l.Qty, l.Rate, l.SourceWarehouseId,
             l.SourceWarehouseId is { } s ? warehouses.GetValueOrDefault(s)?.Code : null, l.TargetWarehouseId,
             l.TargetWarehouseId is { } t ? warehouses.GetValueOrDefault(t)?.Code : null, l.Value)).ToList(),
-        e.TotalValue);
+        e.TotalValue, e.PartyId, e.PartyName, e.Reference);
 }

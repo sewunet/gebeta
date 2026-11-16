@@ -101,13 +101,26 @@
   },
   "employees": {
     "add": "ሠራተኛ ጨምር",
-    "added": "ሠራተኛ {{number}} ተጨምሯል።"
+    "added": "ሠራተኛ {{number}} ተጨምሯል።",
+    "searchHint": "ቁጥር፣ ስም ወይም ግብር ከፋይ መለያ",
+    "notFound": "ሠራተኛው አልተገኘም።",
+    "left": "የለቀቀበት ቀን"
   },
   "slips": {
     "submit": "አቅርብ",
     "cancelSlip": "ሰርዝ",
     "back": "ሁሉም የደመወዝ ወረቀቶች",
-    "lines": "ዝርዝሮች"
+    "lines": "ዝርዝሮች",
+    "searchHint": "ቁጥር ወይም ሠራተኛ",
+    "submitted": "{{number}} ቀርቧል።",
+    "cancelled": "{{number}} ተሰርዟል።",
+    "structure": "የደመወዝ መዋቅር",
+    "earnings": "ገቢዎች",
+    "lineType": {
+      "Earning": "ገቢ",
+      "Deduction": "ተቀናሽ",
+      "EmployerContribution": "የአሠሪ መዋጮ"
+    }
   },
   "run": {
     "create": "የወር ደመወዝ ክፍያ ጀምር",
@@ -119,11 +132,15 @@
     "pension": "የጡረታ መዋጮ ዝርዝር",
     "bank": "የባንክ ዝውውር ዝርዝር",
     "slips": "ወረቀቶች",
-    "explain": "በወሩ ለተቀጠሩ ሠራተኞች ሁሉ የደመወዝ ወረቀት ያዘጋጃል፣ ከዚያም በአንድ ላይ ያቀርባል።"
+    "explain": "በወሩ ለተቀጠሩ ሠራተኞች ሁሉ የደመወዝ ወረቀት ያዘጋጃል፣ ከዚያም በአንድ ላይ ያቀርባል።",
+    "process": "ደረጃዎች"
   },
   "calculator": {
     "calculate": "አስላ",
-    "explain": "መደበኛ የኢትዮጵያ መዋቅር፦ መሠረታዊ ደመወዝ፣ የገቢ ግብር፣ 7% የሠራተኛ እና 11% የአሠሪ ጡረታ።"
+    "explain": "መደበኛ የኢትዮጵያ መዋቅር፦ መሠረታዊ ደመወዝ፣ የገቢ ግብር፣ 7% የሠራተኛ እና 11% የአሠሪ ጡረታ።",
+    "breakdown": "ዝርዝር",
+    "formula": "ቀመር",
+    "prompt": "መሠረታዊ ደመወዝ ያስገቡና ያስሉ።"
   },
   "leave": {
     "apply": "ፈቃድ ጠይቅ",
@@ -148,7 +165,10 @@
       "Marriage": "የጋብቻ",
       "Bereavement": "የሐዘን",
       "Unpaid": "ያለ ክፍያ"
-    }
+    },
+    "applications": "የፈቃድ ማመልከቻዎች",
+    "applied": "{{number}} ተቀምጧል ({{days}} ቀናት)፤ ለማቅረብ ያጽድቁት።",
+    "allocateHint": "ለእያንዳንዱ ንቁ ሠራተኛ በአገልግሎት ዘመኑ መሠረት የበጀት ዓመቱን ዓመታዊ ፈቃድ ይሰጣል።"
   },
   "attendance": {
     "mark": "መገኘት መዝግብ",
@@ -156,7 +176,9 @@
     "Present": "ተገኝቷል",
     "Absent": "ቀርቷል",
     "HalfDay": "ግማሽ ቀን",
-    "explain": "የሚመዘገቡት ልዩ ሁኔታዎች ብቻ ናቸው፤ ሌሎች ቀናት እንደተገኙ ይቆጠራሉ።"
+    "explain": "የሚመዘገቡት ልዩ ሁኔታዎች ብቻ ናቸው፤ ሌሎች ቀናት እንደተገኙ ይቆጠራሉ።",
+    "records": "ተገኝነት",
+    "saved": "ተገኝነት ተቀምጧል።"
   },
   "cash": {
     "addCashier": "ገንዘብ ያዥ ጨምር",
@@ -191,7 +213,15 @@
       "Cancelled": "ተሰርዟል"
     },
     "topUp": "በራስ-ሰር የመሙላት ጥያቄ ቀርቧል፦ {{amount}}",
-    "autoTopUp": "በራስ-ሰር መሙላት"
+    "autoTopUp": "በራስ-ሰር መሙላት",
+    "searchHint": "ኮድ ወይም ስም",
+    "in": "ገቢ",
+    "out": "ወጪ",
+    "cashAccount": "የጥሬ ገንዘብ ሂሳብ",
+    "notFound": "ገንዘብ ተቀባዩ አልተገኘም።",
+    "requests": "የመሙያ ጥያቄዎች",
+    "approved": "{{number}} ጸድቋል።",
+    "rejected": "{{number}} ውድቅ ሆኗል።"
   },
   "acc": {
     "code": "ኮድ",
@@ -484,5 +514,14 @@
     "taxes": "ግብሮች",
     "payments": "ክፍያዎች",
     "remove": "አስወግድ"
+  },
+  "companies": {
+    "current": "የአሁኑ",
+    "notFound": "ድርጅቱ አልተገኘም።",
+    "vatRegistered": "ለተ.እ.ታ የተመዘገበ",
+    "notVatRegistered": "ለተ.እ.ታ ያልተመዘገበ",
+    "useThis": "በዚህ ድርጅት ስራ",
+    "isCurrent": "አሁን በዚህ ድርጅት እየሠሩ ነው።",
+    "timeZone": "የሰዓት ክልል"
   }
 }

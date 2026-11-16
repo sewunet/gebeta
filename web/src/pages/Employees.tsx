@@ -1,82 +1,124 @@
-import { useState, type FormEvent } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState, type FormEvent } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../app/context";
-import { api, post } from "../lib/api";
+import { post } from "../lib/api";
 import { formatDate } from "../lib/ethiopian";
+import { useEmployees } from "../lib/hooks";
 import { can, type EmployeeDto } from "../lib/types";
+import { Dialog, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../ui/fiori";
 
+/** List report of employees with search and filters; "Create" opens a dialog, a row opens the employee. */
 export function Employees() {
   const { t, i18n } = useTranslation();
   const { me, company } = useSession();
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const employees = useQuery({
-    queryKey: ["employees", company?.id],
-    queryFn: () => api<EmployeeDto[]>(`/api/core/employees?companyId=${company!.id}`),
-    enabled: !!company,
-  });
-
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("Active");
+  const [gender, setGender] = useState("");
+  const employees = useEmployees();
   const add = useMutation({
-    mutationFn: (body: Record<string, string>) => post<EmployeeDto>("/api/core/employees", { ...body, companyId: company!.id }),
-    onSuccess: (e) => {
-      setMessage(t("employees.added", { number: e.number }));
-      setShowForm(false);
-      void queryClient.invalidateQueries({ queryKey: ["employees", company?.id] });
-    },
+    mutationFn: (body: Record<string, string>) => post<EmployeeDto>("/api/core/employees", { ...body, companyId: company!.id, tin: body.tin || null, grandfatherName: body.grandfatherName || null }),
+    onSuccess: (e) => { setMessage(t("employees.added", { number: e.number })); setAdding(false); void queryClient.invalidateQueries({ queryKey: ["employees", company?.id] }); },
   });
-
+  const rows = useMemo(() => (employees.data ?? []).filter((e) => (!status || e.status === status) && (!gender || e.gender === gender)
+    && (!search.trim() || [e.number, e.fullName, e.tin].some((v) => v?.toLowerCase().includes(search.trim().toLowerCase())))), [employees.data, status, gender, search]);
   if (!company) return <p>{t("common.noCompany")}</p>;
-
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>;
-    add.mutate(data);
-  };
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); add.mutate(Object.fromEntries(new FormData(event.currentTarget)) as Record<string, string>); };
 
   return (
-    <>
-      <div className="page-head">
-        <h1>{t("nav.employees")}</h1>
-        {can(me, "core.employees.manage") && <button onClick={() => setShowForm((s) => !s)}>{t("employees.add")}</button>}
-      </div>
-      {message && <div className="notice">{message}</div>}
-      {showForm && (
-        <form className="form-grid" onSubmit={onSubmit}>
-          <label>{t("fields.firstName")}<input name="firstName" required /></label>
-          <label>{t("fields.fatherName")}<input name="fatherName" required /></label>
-          <label>{t("fields.grandfatherName")}<input name="grandfatherName" /></label>
-          <label>{t("fields.gender")}
-            <select name="gender"><option value="Female">{t("fields.female")}</option><option value="Male">{t("fields.male")}</option></select>
-          </label>
-          <label>{t("fields.joined")}<input name="dateOfJoining" type="date" required /></label>
-          <label>{t("fields.tin")}<input name="tin" inputMode="numeric" maxLength={12} /></label>
-          <div className="form-actions">
-            <button type="submit" disabled={add.isPending}>{t("common.save")}</button>
-            <button type="button" className="secondary" onClick={() => setShowForm(false)}>{t("common.cancel")}</button>
-            {add.isError && <span className="error">{add.error.message}</span>}
-          </div>
-        </form>
-      )}
-      {employees.isPending ? <p>{t("common.loading")}</p> : employees.data?.length ? (
-        <table className="table">
-          <thead>
-            <tr><th>{t("fields.number")}</th><th>{t("fields.name")}</th><th>{t("fields.gender")}</th><th>{t("fields.joined")}</th><th>{t("fields.tin")}</th><th>{t("fields.status")}</th></tr>
-          </thead>
+    <ListReport
+      title={t("nav.employees")}
+      filters={
+        <FilterBar>
+          <FilterField label={t("ui.search")}><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("employees.searchHint")} /></FilterField>
+          <FilterField label={t("fields.status")}>
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="">{t("ui.all")}</option>
+              {["Active", "Suspended", "Left"].map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
+            </select>
+          </FilterField>
+          <FilterField label={t("fields.gender")}>
+            <select value={gender} onChange={(e) => setGender(e.target.value)}>
+              <option value="">{t("ui.all")}</option><option value="Female">{t("fields.female")}</option><option value="Male">{t("fields.male")}</option>
+            </select>
+          </FilterField>
+        </FilterBar>
+      }
+      tableTitle={t("nav.employees")}
+      count={rows.length}
+      messages={message && <MessageStrip tone="positive" onClose={() => setMessage(null)}>{message}</MessageStrip>}
+      toolbar={can(me, "core.employees.manage") && <button onClick={() => setAdding(true)}>{t("ui.create")}</button>}
+    >
+      {rows.length ? (
+        <table className="table responsive">
+          <thead><tr><th>{t("fields.number")}</th><th>{t("fields.name")}</th><th>{t("fields.gender")}</th><th>{t("fields.joined")}</th><th>{t("fields.tin")}</th><th>{t("fields.status")}</th></tr></thead>
           <tbody>
-            {employees.data.map((e) => (
-              <tr key={e.id}>
-                <td className="mono">{e.number}</td><td>{e.fullName}</td>
-                <td>{t(`fields.${e.gender.toLowerCase()}`)}</td>
-                <td>{formatDate(e.dateOfJoining, me.calendar, i18n.language === "am")}</td>
-                <td className="mono">{e.tin ?? "—"}</td>
-                <td><span className={`badge ${e.status}`}>{t(`status.${e.status}`)}</span></td>
+            {rows.map((e) => (
+              <tr key={e.id} className="navigable" onClick={() => void navigate({ to: "/employees/$id", params: { id: e.id } })}>
+                <td data-label={t("fields.number")} className="mono">{e.number}</td>
+                <td data-label={t("fields.name")}><span className="strong-link">{e.fullName}</span></td>
+                <td data-label={t("fields.gender")}>{t(`fields.${e.gender.toLowerCase()}`)}</td>
+                <td data-label={t("fields.joined")}>{formatDate(e.dateOfJoining, me.calendar, i18n.language === "am")}</td>
+                <td data-label={t("fields.tin")} className="mono">{e.tin ?? "—"}</td>
+                <td data-label={t("fields.status")}><ObjectStatus tone={statusTone(e.status)}>{t(`status.${e.status}`)}</ObjectStatus></td>
               </tr>
             ))}
           </tbody>
         </table>
-      ) : <p className="muted">{t("common.empty")}</p>}
-    </>
+      ) : <div className="empty">{employees.isPending ? t("common.loading") : t("common.empty")}</div>}
+
+      <Dialog open={adding} title={t("employees.add")} onClose={() => setAdding(false)}
+        footer={<><button type="submit" form="employee-form" disabled={add.isPending}>{t("common.save")}</button><button className="secondary" onClick={() => setAdding(false)}>{t("common.cancel")}</button></>}>
+        <form id="employee-form" className="dialog-form" onSubmit={onSubmit}>
+          <label>{t("fields.firstName")}<span className="required" aria-hidden>*</span><input name="firstName" required /></label>
+          <label>{t("fields.fatherName")}<span className="required" aria-hidden>*</span><input name="fatherName" required /></label>
+          <label>{t("fields.grandfatherName")}<input name="grandfatherName" /></label>
+          <label>{t("fields.gender")}<select name="gender"><option value="Female">{t("fields.female")}</option><option value="Male">{t("fields.male")}</option></select></label>
+          <label>{t("fields.joined")}<span className="required" aria-hidden>*</span><input name="dateOfJoining" type="date" required /></label>
+          <label>{t("fields.tin")}<input name="tin" inputMode="numeric" maxLength={12} /></label>
+          {add.isError && <MessageStrip tone="negative">{add.error.message}</MessageStrip>}
+        </form>
+      </Dialog>
+    </ListReport>
+  );
+}
+
+/** Object page of one employee. */
+export function EmployeeDetail() {
+  const { t, i18n } = useTranslation();
+  const { me } = useSession();
+  const { id } = useParams({ from: "/employees/$id" });
+  const employees = useEmployees();
+  if (employees.isPending) return <p className="muted">{t("common.loading")}</p>;
+  const e = employees.data?.find((x) => x.id === id);
+  if (!e) return <MessageStrip tone="negative">{t("employees.notFound")}</MessageStrip>;
+  const am = i18n.language === "am";
+  return (
+    <ObjectPage
+      breadcrumb={<Link to="/employees">{t("nav.employees")}</Link>}
+      title={e.fullName}
+      subtitle={<span className="mono">{e.number}</span>}
+      status={<ObjectStatus tone={statusTone(e.status)}>{t(`status.${e.status}`)}</ObjectStatus>}
+      kpis={[
+        { label: t("fields.joined"), value: formatDate(e.dateOfJoining, me.calendar, am) },
+        { label: t("fields.gender"), value: t(`fields.${e.gender.toLowerCase()}`) },
+        { label: t("fields.tin"), value: e.tin ? <span className="mono">{e.tin}</span> : "—" },
+      ]}
+      sections={[{ id: "general", title: t("ui.general"), content: (
+        <Fields items={[
+          { label: t("fields.firstName"), value: e.firstName },
+          { label: t("fields.fatherName"), value: e.fatherName },
+          { label: t("fields.grandfatherName"), value: e.grandfatherName },
+          { label: t("fields.joined"), value: formatDate(e.dateOfJoining, me.calendar, am) },
+          { label: t("employees.left"), value: e.dateOfLeaving && formatDate(e.dateOfLeaving, me.calendar, am), hidden: !e.dateOfLeaving },
+          { label: t("fields.tin"), value: e.tin && <span className="mono">{e.tin}</span> },
+        ]} />
+      ) }]}
+    />
   );
 }

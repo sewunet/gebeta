@@ -24,10 +24,11 @@
 > - **Dialogs** for short tasks (pay, credit note), **message strips** for results, **object status** colors
 >   (positive, critical, negative, information).
 >
-> Converted so far: shell, home and all of Accounting: invoices and journals (list report, create page, object
-> page), customers and suppliers (list report, create dialog), chart of accounts, trial balance, financial
-> reports, ageing, banks (dynamic page with reconciliation), VAT and withholding and closing (object pages with
-> dialogs). Payroll, HR, Cash and Core screens still use the earlier layout inside the new shell.
+> Every screen uses it: Accounting (invoices and journals as list report, create page and object page; customers
+> and suppliers, chart of accounts, trial balance, financial reports, ageing, banks, VAT and withholding, closing),
+> Payroll (salary slips and slip object page, the payroll run as a three-step process, the calculator), HR (leave
+> and attendance with dialogs), Cash (cashiers with a cashier object page, petty cash approve and reject
+> dialogs) and Core (companies and employees with object pages). The withholding receipt keeps its print layout.
 
 React 19 + TypeScript (strict) + Vite, in `web/`.
 

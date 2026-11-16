@@ -101,13 +101,26 @@
   },
   "employees": {
     "add": "Add employee",
-    "added": "Employee {{number}} added."
+    "added": "Employee {{number}} added.",
+    "searchHint": "Number, name or TIN",
+    "notFound": "Employee not found.",
+    "left": "Left on"
   },
   "slips": {
     "submit": "Submit",
     "cancelSlip": "Cancel slip",
     "back": "All salary slips",
-    "lines": "Lines"
+    "lines": "Lines",
+    "searchHint": "Number or employee",
+    "submitted": "{{number}} is submitted.",
+    "cancelled": "{{number}} is cancelled.",
+    "structure": "Salary structure",
+    "earnings": "Earnings",
+    "lineType": {
+      "Earning": "Earning",
+      "Deduction": "Deduction",
+      "EmployerContribution": "Employer contribution"
+    }
   },
   "run": {
     "create": "Start payroll run",
@@ -119,11 +132,15 @@
     "pension": "Pension schedule",
     "bank": "Bank transfer list",
     "slips": "Slips",
-    "explain": "Prepares a salary slip for every employee employed in the month, then submits them together."
+    "explain": "Prepares a salary slip for every employee employed in the month, then submits them together.",
+    "process": "Steps"
   },
   "calculator": {
     "calculate": "Calculate",
-    "explain": "Standard Ethiopian structure: basic salary, income tax, 7% employee and 11% employer pension."
+    "explain": "Standard Ethiopian structure: basic salary, income tax, 7% employee and 11% employer pension.",
+    "breakdown": "Breakdown",
+    "formula": "Formula",
+    "prompt": "Enter a basic salary and calculate."
   },
   "leave": {
     "apply": "Apply for leave",
@@ -148,7 +165,10 @@
       "Marriage": "Marriage",
       "Bereavement": "Bereavement",
       "Unpaid": "Unpaid"
-    }
+    },
+    "applications": "Leave applications",
+    "applied": "{{number}} saved ({{days}} days); approve it to submit.",
+    "allocateHint": "Gives every active employee their annual leave for the fiscal year, by years of service."
   },
   "attendance": {
     "mark": "Record attendance",
@@ -156,7 +176,9 @@
     "Present": "Present",
     "Absent": "Absent",
     "HalfDay": "Half day",
-    "explain": "Only exceptions are recorded; other days count as present."
+    "explain": "Only exceptions are recorded; other days count as present.",
+    "records": "Attendance",
+    "saved": "Attendance saved."
   },
   "cash": {
     "addCashier": "Add cashier",
@@ -191,7 +213,15 @@
       "Cancelled": "Cancelled"
     },
     "topUp": "Automatic top-up requested: {{amount}}",
-    "autoTopUp": "Automatic top-up"
+    "autoTopUp": "Automatic top-up",
+    "searchHint": "Code or name",
+    "in": "Money in",
+    "out": "Money out",
+    "cashAccount": "Cash account",
+    "notFound": "Cashier not found.",
+    "requests": "Top-up requests",
+    "approved": "{{number}} approved.",
+    "rejected": "{{number}} rejected."
   },
   "acc": {
     "code": "Code",
@@ -484,5 +514,14 @@
     "taxes": "Taxes",
     "payments": "Payments",
     "remove": "Remove"
+  },
+  "companies": {
+    "current": "Current",
+    "notFound": "Company not found.",
+    "vatRegistered": "VAT registered",
+    "notVatRegistered": "Not VAT registered",
+    "useThis": "Work in this company",
+    "isCurrent": "You are working in this company.",
+    "timeZone": "Time zone"
   }
 }

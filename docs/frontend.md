@@ -39,6 +39,10 @@
 > valuation method), warehouses, stock entries (list report; create page per purpose with Save and post or Save as
 > draft; object page with post and cancel), stock balance (filter by warehouse, click through to the ledger) and
 > stock ledger per item. A Stock group on the home page shows the stock value.
+>
+> **Purchase orders** (step 32): list report with fulfilment percentages and state, create page, object page with
+> received and billed quantities per line; Receive goods and Record supplier invoice open the stock receipt and the
+> purchase invoice pre-filled from the order (`?po=<id>`).
 
 React 19 + TypeScript (strict) + Vite, in `web/`.
 

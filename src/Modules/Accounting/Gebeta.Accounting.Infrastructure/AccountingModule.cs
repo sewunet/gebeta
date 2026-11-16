@@ -25,7 +25,7 @@ public sealed class AccountingModule : IErpModule
 
     public ModuleInfo Info { get; } = new(Id, "Accounting", new Version(0, 1, 0));
     public IReadOnlyList<string> Requires { get; } = [ModuleLoader.CoreModuleId];
-    public IReadOnlyList<string> Enhances { get; } = ["payroll", "hr", "cash", "stock"];
+    public IReadOnlyList<string> Enhances { get; } = ["payroll", "hr", "cash", "stock", "buying"];
 
     public void Register(ModuleRegistrationContext context)
     {
@@ -41,6 +41,7 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<IJournalRepository, JournalRepository>();
         services.AddScoped<IModuleMigrator, AccountingMigrator>();
         services.AddScoped<ChartSetup>();
+        context.Capabilities.Provide<Gebeta.Buying.Contracts.IPurchaseBillingLookup, AccountingPurchaseBilling>();
         var accountingOptions = new AccountingOptions();
         context.Configuration.GetSection(AccountingOptions.Section).Bind(accountingOptions);
         services.AddSingleton(accountingOptions);

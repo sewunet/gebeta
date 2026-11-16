@@ -96,6 +96,7 @@ export function InvoiceDetail() {
               { label: t("attendance.date"), value: date(inv.postingDate) },
               { label: t("inv.dueDate"), value: date(inv.dueDate) },
               { label: t("inv.supplierInvoiceNumber"), value: inv.supplierInvoiceNumber, hidden: sales },
+              { label: t("buy.order"), value: inv.orderReference && <span className="mono">{inv.orderReference}</span>, hidden: !inv.orderReference },
               { label: t("inv.returnOf"), value: inv.returnAgainstNumber, hidden: !inv.isReturn },
               { label: t("inv.opening"), value: t("inv.openingHint"), hidden: !inv.isOpening },
               { label: t("receipt.short"), value: inv.withholdingReceiptNumber && <span className="mono">{inv.withholdingReceiptNumber}</span>, hidden: !inv.withholdingReceiptNumber },

@@ -35,7 +35,9 @@
     "stockBalance": "Stock balance",
     "stockLedger": "Stock ledger",
     "items": "Items",
-    "warehouses": "Warehouses"
+    "warehouses": "Warehouses",
+    "buying": "Buying",
+    "purchaseOrders": "Purchase orders"
   },
   "common": {
     "company": "Company",
@@ -522,7 +524,8 @@
     "stockLedger": "Every movement",
     "items": "Products and services",
     "warehouses": "Stores and locations",
-    "inStock": "in stock"
+    "inStock": "in stock",
+    "purchaseOrders": "Orders to suppliers"
   },
   "ui": {
     "search": "Search",
@@ -599,5 +602,29 @@
     "noParty": "None (internal)",
     "receivedHint": "With a supplier, the value is credited to 2150 Stock Received But Not Billed until the supplier's invoice clears it.",
     "deliveredHint": "With a customer, the value is charged to 5000 Cost of Sales."
+  },
+  "buy": {
+    "searchHint": "Number, supplier or item",
+    "requiredBy": "Required by",
+    "received": "Received",
+    "billed": "Billed",
+    "newOrder": "New purchase order",
+    "states": {
+      "Draft": "Draft",
+      "ToReceiveAndBill": "To receive and bill",
+      "ToReceive": "To receive",
+      "ToBill": "To bill",
+      "Completed": "Completed",
+      "Closed": "Closed",
+      "Cancelled": "Cancelled"
+    },
+    "receive": "Receive goods",
+    "bill": "Record supplier invoice",
+    "close": "Close",
+    "reopen": "Reopen",
+    "order": "Purchase order",
+    "draftHint": "This is a draft: submit it to place the order.",
+    "receivingAgainst": "Receiving against {{number}} from {{supplier}}: the lines show what is still to come.",
+    "billingAgainst": "Billing {{number}} from {{supplier}}: the lines show what is not billed yet."
   }
 }

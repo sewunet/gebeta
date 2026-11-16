@@ -183,6 +183,23 @@ internal sealed class StockRepository(StockDbContext db) : IStockRepository
     public void Add(StockEntry entry) => db.Entries.Add(entry);
 }
 
+/// <summary>Goods received against purchase orders: submitted stock receipts whose reference is the order number (for Buying).</summary>
+internal sealed class StockPurchaseReceipts(StockDbContext db) : Gebeta.Buying.Contracts.IPurchaseReceiptLookup
+{
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<Gebeta.Buying.Contracts.OrderedItemQty>>> ReceivedAsync(Guid companyId, IReadOnlyCollection<string> orderNumbers,
+        CancellationToken cancellationToken)
+    {
+        var names = orderNumbers.ToList();
+        var entries = await db.Entries.AsNoTracking()
+            .Where(e => e.CompanyId == companyId && e.Purpose == StockEntryPurpose.Receipt && e.DocStatus == Gebeta.SharedKernel.DocStatus.Submitted
+                && e.Reference != null && names.Contains(e.Reference))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return entries.GroupBy(e => e.Reference!).ToDictionary(g => g.Key,
+            g => (IReadOnlyList<Gebeta.Buying.Contracts.OrderedItemQty>)g.SelectMany(e => e.Lines)
+                .GroupBy(l => l.ItemId).Select(x => new Gebeta.Buying.Contracts.OrderedItemQty(x.Key, x.Sum(l => l.Qty))).ToList());
+    }
+}
+
 internal sealed class StockNumbers(StockDbContext db, DocumentNumbering numbering) : ModuleDocumentNumbers(db, numbering), IStockNumbers;
 
 internal sealed class StockMigrator(StockDbContext db) : IModuleMigrator

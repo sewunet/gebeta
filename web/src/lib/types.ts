@@ -67,7 +67,7 @@ export type InvoiceLineDto = { description: string; quantity: number; rate: numb
 export type InvoiceDto = {
   id: string; number?: string; kind: "Sales" | "Purchase"; companyId: string; partyId: string; partyName: string; partyTin?: string; supplierInvoiceNumber?: string;
   postingDate: string; dueDate: string; status: string; lines: InvoiceLineDto[]; netTotal: number; vatAmount: number; grandTotal: number;
-  withholdingAmount: number; payableAmount: number; outstanding: number; isReturn: boolean; returnAgainstNumber?: string; isOpening: boolean; withholdingReceiptNumber?: string;
+  withholdingAmount: number; payableAmount: number; outstanding: number; isReturn: boolean; returnAgainstNumber?: string; isOpening: boolean; withholdingReceiptNumber?: string; orderReference?: string;
 };
 export type PaymentDto = {
   id: string; number?: string; kind: string; partyName: string; invoiceId: string; invoiceNumber?: string; amount: number; postingDate: string;
@@ -126,4 +126,10 @@ export type StockBalanceDto = { companyId: string; asOf: string; rows: StockBala
 export type StockLedgerDto = {
   itemId: string; itemCode: string; itemName: string;
   rows: { date: string; voucher: string; warehouse: string; qty: number; rate: number; valueChange: number; qtyAfter: number; valueAfter: number }[];
+};
+export type PurchaseOrderLineDto = { itemId: string; itemCode: string; itemName: string; uom: string; qty: number; rate: number; amount: number; warehouseId?: string; receivedQty: number; billedQty: number };
+export type PurchaseOrderDto = {
+  id: string; number?: string; companyId: string; supplierId: string; supplierName: string; orderDate: string; requiredBy: string; status: string;
+  state: "Draft" | "ToReceiveAndBill" | "ToReceive" | "ToBill" | "Completed" | "Closed" | "Cancelled";
+  lines: PurchaseOrderLineDto[]; netTotal: number; percentReceived: number; percentBilled: number; remark?: string;
 };

@@ -35,7 +35,9 @@
     "stockBalance": "የክምችት ቀሪ",
     "stockLedger": "የክምችት መዝገብ",
     "items": "ዕቃዎች",
-    "warehouses": "መጋዘኖች"
+    "warehouses": "መጋዘኖች",
+    "buying": "ግዢ",
+    "purchaseOrders": "የግዢ ትዕዛዞች"
   },
   "common": {
     "company": "ኩባንያ",
@@ -522,7 +524,8 @@
     "stockLedger": "እያንዳንዱ እንቅስቃሴ",
     "items": "ምርቶችና አገልግሎቶች",
     "warehouses": "መጋዘኖችና ቦታዎች",
-    "inStock": "በክምችት"
+    "inStock": "በክምችት",
+    "purchaseOrders": "ለአቅራቢዎች የተሰጡ ትዕዛዞች"
   },
   "ui": {
     "search": "ፈልግ",
@@ -599,5 +602,29 @@
     "noParty": "የለም (የውስጥ)",
     "receivedHint": "ከአቅራቢ ሲሆን ዋጋው የአቅራቢው ደረሰኝ እስኪያወራርደው ድረስ በ2150 (የገባ ግን ያልተከፈለ ክምችት) ይያዛል።",
     "deliveredHint": "ለደንበኛ ሲሆን ዋጋው በ5000 (የሽያጭ ወጪ) ይመዘገባል።"
+  },
+  "buy": {
+    "searchHint": "ቁጥር፣ አቅራቢ ወይም ዕቃ",
+    "requiredBy": "የሚፈለግበት ቀን",
+    "received": "የገባ",
+    "billed": "የተከፈለበት ደረሰኝ",
+    "newOrder": "አዲስ የግዢ ትዕዛዝ",
+    "states": {
+      "Draft": "ረቂቅ",
+      "ToReceiveAndBill": "የሚገባና ደረሰኝ የሚጠበቅ",
+      "ToReceive": "የሚገባ",
+      "ToBill": "ደረሰኝ የሚጠበቅ",
+      "Completed": "የተጠናቀቀ",
+      "Closed": "የተዘጋ",
+      "Cancelled": "የተሰረዘ"
+    },
+    "receive": "ዕቃ ተቀበል",
+    "bill": "የአቅራቢ ደረሰኝ መዝግብ",
+    "close": "ዝጋ",
+    "reopen": "እንደገና ክፈት",
+    "order": "የግዢ ትዕዛዝ",
+    "draftHint": "ይህ ረቂቅ ነው፤ ትዕዛዙን ለመስጠት ያቅርቡት።",
+    "receivingAgainst": "ከ{{supplier}} በ{{number}} መሠረት እየተቀበሉ ነው፤ ዝርዝሮቹ ገና የሚመጣውን ያሳያሉ።",
+    "billingAgainst": "የ{{supplier}} ደረሰኝ ለ{{number}}፤ ዝርዝሮቹ ደረሰኝ ያልተቆረጠላቸውን ያሳያሉ።"
   }
 }

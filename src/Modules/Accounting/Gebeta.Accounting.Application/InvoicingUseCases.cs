@@ -27,7 +27,7 @@ public sealed record InvoiceLineInput(string Description, decimal Quantity, deci
 
 /// <param name="CustomerWithholds">Sales only: the customer is a withholding agent and deducts withholding tax.</param>
 public sealed record CreateInvoiceCommand(InvoiceKind Kind, Guid CompanyId, Guid PartyId, DateOnly PostingDate, DateOnly? DueDate,
-    IReadOnlyList<InvoiceLineInput> Lines, string? SupplierInvoiceNumber, bool CustomerWithholds = false) : ICommand<InvoiceDto>;
+    IReadOnlyList<InvoiceLineInput> Lines, string? SupplierInvoiceNumber, bool CustomerWithholds = false, string? OrderReference = null) : ICommand<InvoiceDto>;
 
 public sealed record SubmitInvoiceCommand(Guid InvoiceId) : ICommand<InvoiceDto>;
 
@@ -140,6 +140,7 @@ public sealed class InvoicingHandler(
                 (command.Lines ?? []).Select(l => new InvoiceLine(l.Description, l.Quantity, l.Rate, l.AccountCode, l.IsService, l.VatApplicable, l.ItemId,
                     l.ItemId is { } item ? itemCodes[item] : null)).ToList(),
                 options.Rules, vatCharged, withholding, command.SupplierInvoiceNumber);
+            invoice.SetOrderReference(command.OrderReference);
         }
         catch (DomainException ex)
         {
@@ -362,7 +363,7 @@ public sealed class InvoicingHandler(
     private static InvoiceDto ToDto(Invoice i) => new(i.Id, i.Name, i.Kind.ToString(), i.CompanyId, i.PartyId, i.PartyName, i.PartyTin, i.SupplierInvoiceNumber,
         i.PostingDate, i.DueDate, i.DocStatus.ToString(),
         i.Lines.Select(l => new InvoiceLineDto(l.Description, l.Quantity, l.Rate, l.Amount, l.AccountCode, l.IsService, l.VatApplicable, l.ItemId, l.ItemCode)).ToList(),
-        i.NetTotal, i.VatAmount, i.GrandTotal, i.WithholdingAmount, i.PayableAmount, i.Outstanding, i.IsReturn, i.ReturnAgainstNumber, i.IsOpening, i.WithholdingReceiptNumber);
+        i.NetTotal, i.VatAmount, i.GrandTotal, i.WithholdingAmount, i.PayableAmount, i.Outstanding, i.IsReturn, i.ReturnAgainstNumber, i.IsOpening, i.WithholdingReceiptNumber, i.OrderReference);
 
     public async Task<Result<WithholdingReceiptDto>> Handle(GetWithholdingReceiptQuery query, CancellationToken cancellationToken)
     {

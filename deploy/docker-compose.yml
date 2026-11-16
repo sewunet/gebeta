@@ -29,6 +29,7 @@ x-server-env: &server-env
   Modules__Enabled__3: accounting
   Modules__Enabled__4: cash
   Modules__Enabled__5: stock
+  Modules__Enabled__6: buying
 
 services:
   postgres:

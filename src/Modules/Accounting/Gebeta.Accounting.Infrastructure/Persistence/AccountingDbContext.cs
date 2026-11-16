@@ -242,6 +242,8 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Gebeta.Acc
         builder.Property(i => i.SupplierInvoiceNumber).HasMaxLength(60);
         builder.Property(i => i.ReturnAgainstNumber).HasMaxLength(60);
         builder.Property(i => i.WithholdingReceiptNumber).HasMaxLength(60);
+        builder.Property(i => i.OrderReference).HasMaxLength(60);
+        builder.HasIndex(i => new { i.CompanyId, i.OrderReference }).HasFilter("order_reference IS NOT NULL");
         builder.Property(i => i.WithholdingBase).HasPrecision(21, 2);
         builder.Property(i => i.WithholdingRatePercent).HasPrecision(5, 2);
         builder.Ignore(i => i.SupplyType);
@@ -412,4 +414,22 @@ internal sealed class BankRepository(AccountingDbContext db) : Gebeta.Accounting
     public void Add(IEnumerable<Gebeta.Accounting.Domain.Banking.BankMatch> matches) => db.Set<Gebeta.Accounting.Domain.Banking.BankMatch>().AddRange(matches);
 
     public void Remove(IEnumerable<Gebeta.Accounting.Domain.Banking.BankMatch> matches) => db.Set<Gebeta.Accounting.Domain.Banking.BankMatch>().RemoveRange(matches);
+}
+
+/// <summary>Quantities billed against purchase orders: submitted purchase invoices naming the order; debit notes count negative (for Buying).</summary>
+internal sealed class AccountingPurchaseBilling(AccountingDbContext db) : Gebeta.Buying.Contracts.IPurchaseBillingLookup
+{
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<Gebeta.Buying.Contracts.OrderedItemQty>>> BilledAsync(Guid companyId, IReadOnlyCollection<string> orderNumbers,
+        CancellationToken cancellationToken)
+    {
+        var names = orderNumbers.ToList();
+        var invoices = await db.Set<Gebeta.Accounting.Domain.Invoicing.Invoice>().AsNoTracking()
+            .Where(i => i.CompanyId == companyId && i.Kind == Gebeta.Accounting.Domain.Invoicing.InvoiceKind.Purchase && i.DocStatus == DocStatus.Submitted
+                && i.OrderReference != null && names.Contains(i.OrderReference))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return invoices.GroupBy(i => i.OrderReference!).ToDictionary(g => g.Key,
+            g => (IReadOnlyList<Gebeta.Buying.Contracts.OrderedItemQty>)g
+                .SelectMany(i => i.Lines.Where(l => l.ItemId is not null).Select(l => (l.ItemId!.Value, Qty: i.IsReturn ? -l.Quantity : l.Quantity)))
+                .GroupBy(x => x.Item1).Select(x => new Gebeta.Buying.Contracts.OrderedItemQty(x.Key, x.Sum(q => q.Qty))).ToList());
+    }
 }

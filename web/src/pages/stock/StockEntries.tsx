@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, 
 import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useWarehouses } from "./hooks";
 import { useParties } from "../accounting/Parties";
+import { usePurchaseOrder } from "../buying/PurchaseOrders";
 
 const refreshKeys = ["stock-entries", "stock-entry", "stock-balance", "stock-ledger", "item-setting"];
 
@@ -88,7 +89,8 @@ export function StockEntryCreate() {
   const { company } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { purpose } = useSearch({ from: "/stock/entries/new" });
+  const { purpose, po } = useSearch({ from: "/stock/entries/new" });
+  const order = usePurchaseOrder(po);
   const items = useItems();
   const warehouses = useWarehouses();
   const parties = useParties();
@@ -98,6 +100,14 @@ export function StockEntryCreate() {
   const empty = (): Line => ({ itemId: "", qty: "", rate: "", source: purpose === "Receipt" ? "" : first, target: purpose === "Issue" ? "" : purpose === "Transfer" ? second : first });
   const [lines, setLines] = useState<Line[]>([]);
   const shown = lines.length ? lines : [empty()];
+  useEffect(() => {
+    // Receiving against a purchase order: its supplier, its number as the reference, and what is still to come.
+    if (!order.data || purpose !== "Receipt") return;
+    setPartyId(order.data.supplierId);
+    setLines(order.data.lines.filter((l) => l.qty > l.receivedQty).map((l) => ({
+      itemId: l.itemId, qty: String(l.qty - l.receivedQty), rate: String(l.rate), source: "", target: l.warehouseId ?? first,
+    })));
+  }, [order.data, purpose, first]);
   const create = useMutation({
     mutationFn: async ({ body, submit }: { body: object; submit: boolean }) => {
       const draft = await post<StockEntryDto>("/api/stock/entries", body);
@@ -144,6 +154,7 @@ export function StockEntryCreate() {
       </>}
     >
       {!warehouses.data?.length && !warehouses.isPending && <MessageStrip tone="critical">{t("stock.noWarehouses")}</MessageStrip>}
+      {order.data && <MessageStrip tone="information">{t("buy.receivingAgainst", { number: order.data.number, supplier: order.data.supplierName })}</MessageStrip>}
       <form id="stock-entry" onSubmit={save(true)}>
         <section className="object-section">
           <h2>{t("ui.general")}</h2>
@@ -156,7 +167,7 @@ export function StockEntryCreate() {
                   {parties.data?.filter((p) => p.type === "Both" || p.type === (purpose === "Receipt" ? "Supplier" : "Customer")).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </label>
-              <label>{t("inv.reference")}<input name="reference" placeholder={purpose === "Receipt" ? "DN / GRN" : "SINV"} /></label>
+              <label>{t("inv.reference")}<input name="reference" key={order.data?.number ?? "none"} defaultValue={order.data?.number ?? ""} placeholder={purpose === "Receipt" ? "DN / GRN" : "SINV"} /></label>
               <label>{t("stock.counterAccount")}<input name="counterAccountCode" key={partyId ? "p" : "n"} placeholder={partyId ? (purpose === "Receipt" ? "2150" : "5000") : "5100"} /></label>
             </>}
             <label>{t("acc.remark")}<input name="remark" /></label>

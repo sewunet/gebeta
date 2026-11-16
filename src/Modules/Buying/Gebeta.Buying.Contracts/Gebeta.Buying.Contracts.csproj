@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Buying.Contracts</RootNamespace>
+    <Description>Buying's public contract: DTOs, permission names and the capabilities it needs (goods received, billed). No dependencies.</Description>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Buying.Presentation</RootNamespace>
+    <Description>Buying HTTP endpoints.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Modularity\Gebeta.Modularity.csproj" />
+    <ProjectReference Include="..\Gebeta.Buying.Application\Gebeta.Buying.Application.csproj" />
+  </ItemGroup>
+</Project>

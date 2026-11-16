@@ -22,7 +22,7 @@ public sealed class StockModule : IErpModule
 
     public ModuleInfo Info { get; } = new(Id, "Stock", new Version(0, 1, 0));
     public IReadOnlyList<string> Requires { get; } = [ModuleLoader.CoreModuleId];
-    public IReadOnlyList<string> Enhances { get; } = ["accounting"];
+    public IReadOnlyList<string> Enhances { get; } = ["accounting", "buying"];
 
     public void Register(ModuleRegistrationContext context)
     {
@@ -37,6 +37,7 @@ public sealed class StockModule : IErpModule
         services.AddScoped<IStockRepository, StockRepository>();
         services.AddScoped<IModuleMigrator, StockMigrator>();
         services.AddOutboxDispatcher<StockDbContext>(Id, StockDbContext.SchemaName);
+        context.Capabilities.Provide<Gebeta.Buying.Contracts.IPurchaseReceiptLookup, StockPurchaseReceipts>();
 
         services.AddScoped<StockHandler>();
         services.AddScoped<IQueryHandler<ListWarehousesQuery, IReadOnlyList<WarehouseDto>>>(sp => sp.GetRequiredService<StockHandler>());

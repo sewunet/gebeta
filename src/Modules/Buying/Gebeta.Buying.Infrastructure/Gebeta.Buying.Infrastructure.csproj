@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Buying.Infrastructure</RootNamespace>
+    <Description>Buying persistence (EF Core, PostgreSQL schema "buying") and the module composition root (BuyingModule).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
+    <ProjectReference Include="..\Gebeta.Buying.Application\Gebeta.Buying.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Buying.Presentation\Gebeta.Buying.Presentation.csproj" />
+  </ItemGroup>
+</Project>

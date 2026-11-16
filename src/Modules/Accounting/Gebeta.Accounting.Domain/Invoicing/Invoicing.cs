@@ -77,6 +77,19 @@ public sealed class Invoice : DocumentBase
     /// <summary>The supplier's own invoice number (purchases).</summary>
     public string? SupplierInvoiceNumber { get; private set; }
 
+    /// <summary>The purchase or sales order this invoice bills (its number), so the order can show what is billed.</summary>
+    public string? OrderReference { get; private set; }
+
+    public void SetOrderReference(string? orderReference)
+    {
+        if (DocStatus != DocStatus.Draft)
+        {
+            throw new DomainException("accounting.order_reference", "The order can only be set on a draft invoice.");
+        }
+
+        OrderReference = string.IsNullOrWhiteSpace(orderReference) ? null : orderReference.Trim();
+    }
+
     public DateOnly DueDate { get; private set; }
     public IReadOnlyList<InvoiceLine> Lines => _lines;
     public decimal NetTotal { get; private set; }
@@ -140,6 +153,7 @@ public sealed class Invoice : DocumentBase
         }
 
         note.IsReturn = true;
+        note.OrderReference = original.OrderReference;
         note.ReturnAgainstId = original.Id;
         note.ReturnAgainstNumber = original.Name;
         note.Outstanding = 0m;

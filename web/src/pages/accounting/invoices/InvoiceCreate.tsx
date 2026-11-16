@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import type { AccountDto, InvoiceDto } from "../../../lib/types";
 import { DynamicPage, MessageStrip } from "../../../ui/fiori";
 import { useParties } from "../Parties";
 import { useItems } from "../../stock/hooks";
+import { usePurchaseOrder } from "../../buying/PurchaseOrders";
 import { useInvoiceRefresh, type Kind } from "./shared";
 
 type Line = { itemId: string; description: string; quantity: string; rate: string; accountCode: string; isService: boolean; vatApplicable: boolean };
@@ -19,11 +20,23 @@ export function InvoiceCreate() {
   const { t } = useTranslation();
   const { company } = useSession();
   const navigate = useNavigate();
-  const { kind } = useSearch({ from: "/accounting/invoices/new" });
+  const { kind, po } = useSearch({ from: "/accounting/invoices/new" });
+  const order = usePurchaseOrder(po);
+  const [partyId, setPartyId] = useState("");
   const sales = kind === "Sales";
   const [lines, setLines] = useState<Line[]>([emptyLine(kind)]);
   const parties = useParties();
   const items = useItems();
+  useEffect(() => {
+    // Billing a purchase order: its supplier and what is not billed yet, on 2150 for stock items (cleared against the goods received).
+    if (!order.data || !items.data) return;
+    setPartyId(order.data.supplierId);
+    setLines(order.data.lines.filter((l) => l.qty > l.billedQty).map((l) => {
+      const item = items.data!.find((x) => x.id === l.itemId);
+      return { itemId: l.itemId, description: l.itemName, quantity: String(l.qty - l.billedQty), rate: String(l.rate),
+        accountCode: item?.isStockItem ? "2150" : "", isService: !item?.isStockItem, vatApplicable: true };
+    }));
+  }, [order.data, items.data]);
   const refresh = useInvoiceRefresh();
   const accounts = useQuery({
     queryKey: ["accounts", company?.id],
@@ -53,7 +66,7 @@ export function InvoiceCreate() {
     const f = new FormData(e.currentTarget);
     create.mutate({
       kind, companyId: company.id, partyId: f.get("partyId"), postingDate: f.get("postingDate"), dueDate: f.get("dueDate") || null,
-      supplierInvoiceNumber: f.get("supplierInvoiceNumber") || null, customerWithholds: f.get("customerWithholds") === "on",
+      supplierInvoiceNumber: f.get("supplierInvoiceNumber") || null, customerWithholds: f.get("customerWithholds") === "on", orderReference: order.data?.number ?? null,
       lines: lines.filter((l) => l.description && l.accountCode).map((l) => ({ ...l, itemId: l.itemId || null, quantity: Number(l.quantity), rate: Number(l.rate || 0) })),
     });
   };
@@ -68,12 +81,13 @@ export function InvoiceCreate() {
         <button className="secondary" onClick={back}>{t("common.cancel")}</button>
       </>}
     >
+      {order.data && <MessageStrip tone="information">{t("buy.billingAgainst", { number: order.data.number, supplier: order.data.supplierName })}</MessageStrip>}
       <form id="invoice-create" onSubmit={onSubmit}>
         <section className="object-section">
           <h2>{t("ui.general")}</h2>
           <div className="form-columns">
             <label>{t(sales ? "inv.customer" : "inv.supplier")}<span className="required" aria-hidden>*</span>
-              <select name="partyId" required defaultValue="">
+              <select name="partyId" required value={partyId} onChange={(e) => setPartyId(e.target.value)}>
                 <option value="" disabled>—</option>
                 {partyList.map((p) => <option key={p.id} value={p.id}>{p.name}{p.tin ? ` · ${p.tin}` : ""}</option>)}
               </select>

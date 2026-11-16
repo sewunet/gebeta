@@ -286,6 +286,11 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(21,2)")
                         .HasColumnName("net_total");
 
+                    b.Property<string>("OrderReference")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("order_reference");
+
                     b.Property<decimal>("Outstanding")
                         .HasPrecision(21, 2)
                         .HasColumnType("numeric(21,2)")
@@ -364,6 +369,10 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                     b.HasIndex("CompanyId", "Name")
                         .IsUnique()
                         .HasDatabaseName("ix_invoice_company_id_name");
+
+                    b.HasIndex("CompanyId", "OrderReference")
+                        .HasDatabaseName("ix_invoice_company_id_order_reference")
+                        .HasFilter("order_reference IS NOT NULL");
 
                     b.HasIndex("CompanyId", "Kind", "PostingDate")
                         .HasDatabaseName("ix_invoice_company_id_kind_posting_date");

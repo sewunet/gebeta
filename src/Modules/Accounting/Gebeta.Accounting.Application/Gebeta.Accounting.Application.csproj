@@ -10,5 +10,6 @@
     <ProjectReference Include="..\..\Core\Gebeta.Core.Contracts\Gebeta.Core.Contracts.csproj" />
     <ProjectReference Include="..\..\Payroll\Gebeta.Payroll.Contracts\Gebeta.Payroll.Contracts.csproj" />
     <ProjectReference Include="..\..\Cash\Gebeta.Cash.Contracts\Gebeta.Cash.Contracts.csproj" />
+    <ProjectReference Include="..\..\Stock\Gebeta.Stock.Contracts\Gebeta.Stock.Contracts.csproj" />
   </ItemGroup>
 </Project>

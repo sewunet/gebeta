@@ -17,6 +17,13 @@
     <Project Path="src/Modules/Accounting/Gebeta.Accounting.Infrastructure/Gebeta.Accounting.Infrastructure.csproj" />
     <Project Path="src/Modules/Accounting/Gebeta.Accounting.Presentation/Gebeta.Accounting.Presentation.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Stock/">
+    <Project Path="src/Modules/Stock/Gebeta.Stock.Application/Gebeta.Stock.Application.csproj" />
+    <Project Path="src/Modules/Stock/Gebeta.Stock.Contracts/Gebeta.Stock.Contracts.csproj" />
+    <Project Path="src/Modules/Stock/Gebeta.Stock.Domain/Gebeta.Stock.Domain.csproj" />
+    <Project Path="src/Modules/Stock/Gebeta.Stock.Infrastructure/Gebeta.Stock.Infrastructure.csproj" />
+    <Project Path="src/Modules/Stock/Gebeta.Stock.Presentation/Gebeta.Stock.Presentation.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Cash/">
     <Project Path="src/Modules/Cash/Gebeta.Cash.Application/Gebeta.Cash.Application.csproj" />
     <Project Path="src/Modules/Cash/Gebeta.Cash.Contracts/Gebeta.Cash.Contracts.csproj" />
@@ -50,6 +57,7 @@
     <Project Path="tests/Gebeta.Api.Tests/Gebeta.Api.Tests.csproj" />
     <Project Path="tests/Gebeta.ArchitectureTests/Gebeta.ArchitectureTests.csproj" />
     <Project Path="tests/Gebeta.Cash.Tests/Gebeta.Cash.Tests.csproj" />
+    <Project Path="tests/Gebeta.Stock.Tests/Gebeta.Stock.Tests.csproj" />
     <Project Path="tests/Gebeta.Core.Tests/Gebeta.Core.Tests.csproj" />
     <Project Path="tests/Gebeta.Hr.Tests/Gebeta.Hr.Tests.csproj" />
     <Project Path="tests/Gebeta.Messaging.Tests/Gebeta.Messaging.Tests.csproj" />

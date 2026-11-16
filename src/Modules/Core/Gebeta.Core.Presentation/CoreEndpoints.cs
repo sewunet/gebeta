@@ -28,6 +28,7 @@ public static class CoreEndpoints
         MapCompanies(endpoints);
         MapUsersAndRoles(endpoints);
         MapSettings(endpoints);
+        MapItems(endpoints);
         MapEmployees(endpoints);
 
         var parties = endpoints.MapGroup("/api/core/parties").WithTags("Core: Customers and suppliers");
@@ -46,6 +47,23 @@ public static class CoreEndpoints
         parties.MapPut("/{id:guid}", async (Guid id, PartyBody b, ICommandHandler<UpdatePartyCommand, PartyDto> h, CancellationToken ct) =>
                 (await h.Handle(new UpdatePartyCommand(id, b.Name, b.Type, b.Tin, b.VatRegistrationNumber, b.Phone), ct).ConfigureAwait(false)).ToHttp())
             .WithName("UpdateParty").RequirePermission(CorePermissions.PartiesManage);
+    }
+
+    private static void MapItems(IEndpointRouteBuilder endpoints)
+    {
+        var items = endpoints.MapGroup("/api/core/items").WithTags("Core: Items");
+        items.MapGet("/", async (Guid companyId, IQueryHandler<Gebeta.Core.Application.Items.ListItemsQuery, IReadOnlyList<ItemDto>> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Items.ListItemsQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListItems").RequirePermission(CorePermissions.ItemsRead);
+        items.MapGet("/{id:guid}", async (Guid id, IQueryHandler<Gebeta.Core.Application.Items.GetItemQuery, ItemDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Items.GetItemQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetItem").RequirePermission(CorePermissions.ItemsRead);
+        items.MapPost("/", async (Gebeta.Core.Application.Items.CreateItemCommand command, ICommandHandler<Gebeta.Core.Application.Items.CreateItemCommand, ItemDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateItem").RequirePermission(CorePermissions.ItemsManage);
+        items.MapPut("/{id:guid}", async (Guid id, ItemBody b, ICommandHandler<Gebeta.Core.Application.Items.UpdateItemCommand, ItemDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Items.UpdateItemCommand(id, b.Name, b.Uom, b.Group, b.IsStockItem, b.IsActive), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("UpdateItem").RequirePermission(CorePermissions.ItemsManage);
     }
 
     private static void MapEmployees(IEndpointRouteBuilder endpoints)
@@ -224,3 +242,5 @@ public sealed record EmployeeBody(string FirstName, string FatherName, string? G
 public sealed record LeavingBody(DateOnly? DateOfLeaving);
 
 public sealed record CompanyBody(string Name, string? VatRegistrationNumber, string? TradeLicenseNumber);
+
+public sealed record ItemBody(string Name, string Uom, string? Group, bool IsStockItem, bool IsActive = true);

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Stock.Infrastructure</RootNamespace>
+    <Description>Stock persistence (EF Core, PostgreSQL schema "stock") and the module composition root (StockModule).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
+    <ProjectReference Include="..\Gebeta.Stock.Application\Gebeta.Stock.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Stock.Presentation\Gebeta.Stock.Presentation.csproj" />
+  </ItemGroup>
+</Project>

@@ -65,6 +65,13 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<ICoreNumbers, CoreNumbers>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<Gebeta.Core.Domain.Parties.IPartyRepository, PartyRepository>();
+        services.AddScoped<Gebeta.Core.Domain.Items.IItemRepository, ItemRepository>();
+        services.AddScoped<Gebeta.Core.Application.Items.ItemHandler>();
+        services.AddScoped<IItemDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.Items.ItemHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Items.CreateItemCommand, ItemDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Items.ItemHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Items.UpdateItemCommand, ItemDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Items.ItemHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Items.ListItemsQuery, IReadOnlyList<ItemDto>>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Items.ItemHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Items.GetItemQuery, ItemDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Items.ItemHandler>());
         services.AddScoped<Gebeta.Core.Application.Parties.PartyHandler>();
         services.AddScoped<IPartyDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.Parties.CreatePartyCommand, PartyDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Parties.PartyHandler>());

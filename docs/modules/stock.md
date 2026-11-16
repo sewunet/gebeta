@@ -1,5 +1,17 @@
 # Stock module
 
+> **Built so far** (step 28, `src/Modules/Stock`; items in Core): items (`/api/core/items`: code, name, unit,
+> group, stock or not), warehouses each carrying stock on a stock account (default 1300), and stock entries
+> (`STE-<FY>-#####`: receipt, issue, transfer) that write the append-only stock ledger through the valuation
+> engine, moving average or FIFO per item (fixed from the first movement; golden tests in `Gebeta.Stock.Tests`).
+> Rates of outgoing stock come from the engine; stock never goes negative; postings are serialised per item and
+> warehouse with PostgreSQL advisory locks. Each entry asks Accounting for its value journal (`StockJournalRequested`:
+> stock account against the counter account, default 5100 Stock Adjustment, or between stock accounts for
+> transfers); cancelling posts the reversal. Reports: stock balance as of a date, stock ledger per item.
+> Not yet: **backdated entries and reposting** (an entry may not be dated before the latest movement of its item
+> and warehouse, and can be cancelled only while it is still the latest), batches and serial numbers, units of
+> measure conversions, purchase receipts and delivery notes, stock reconciliation, the web screens.
+
 ## Scope
 
 | Area | Contents |

@@ -171,6 +171,63 @@ public sealed class CashJournalRequestedConsumer(
     }
 }
 
+/// <summary>
+/// A stock entry's value journal (perpetual inventory): stock accounts against the counter account or each other.
+/// An unknown account fails the message, which is retried and then dead-lettered.
+/// </summary>
+public sealed class StockJournalRequestedConsumer(
+    ChartSetup chart,
+    IAccountRepository accounts,
+    IJournalRepository journals,
+    IAccountingNumbers numbers,
+    IAccountingUnitOfWork unitOfWork,
+    TimeProvider clock) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockJournalRequested>
+{
+    public async Task HandleAsync(Gebeta.Stock.Contracts.StockJournalRequested request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (await journals.FindBySourceAsync(request.SourceId, cancellationToken).ConfigureAwait(false) is not null)
+        {
+            return;
+        }
+
+        if (await chart.EnsureAsync(request.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var byCode = (await accounts.ListAsync(request.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
+        var lines = request.Lines.Select(l => byCode.TryGetValue(l.AccountCode, out var account) && !account.IsGroup
+                ? new JournalLine(account.Id, l.Debit, l.Credit, request.Remark)
+                : throw new DomainException("accounting.unknown_account", $"Account {l.AccountCode} from {request.SourceNumber} is not a postable account."))
+            .ToList();
+        var journal = JournalEntry.Create(request.CompanyId, request.PostingDate, request.Remark, lines, JournalSource.Stock, request.SourceId, request.SourceNumber);
+        journal.AssignName(await numbers.NextAsync(request.CompanyId, journal.DocumentType, JournalHandler.DefaultPattern, request.PostingDate, cancellationToken).ConfigureAwait(false));
+        journal.CreatedAt = clock.GetUtcNow();
+        journal.CreatedBy = "stock";
+        journals.Add(journal);
+        journals.Add(journal.Post());
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>A cancelled stock entry reverses its value journal.</summary>
+public sealed class StockEntryCancelledConsumer(IJournalRepository journals, IAccountingUnitOfWork unitOfWork) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockEntryCancelled>
+{
+    public async Task HandleAsync(Gebeta.Stock.Contracts.StockEntryCancelled cancelled, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(cancelled);
+        var journal = await journals.FindBySourceAsync(cancelled.SourceId, cancellationToken).ConfigureAwait(false);
+        if (journal is null || journal.DocStatus != DocStatus.Submitted)
+        {
+            return;
+        }
+
+        journals.Add(journal.Reverse());
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+}
+
 /// <summary>A cancelled salary slip reverses its payroll journal.</summary>
 public sealed class SalarySlipCancelledConsumer(IJournalRepository journals, IAccountingUnitOfWork unitOfWork) : IIntegrationEventConsumer<SalarySlipCancelled>
 {

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Stock.Application</RootNamespace>
+    <Description>Stock use cases (warehouses, stock entries, stock reports).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Application\Gebeta.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Stock.Domain\Gebeta.Stock.Domain.csproj" />
+    <ProjectReference Include="..\Gebeta.Stock.Contracts\Gebeta.Stock.Contracts.csproj" />
+  </ItemGroup>
+</Project>

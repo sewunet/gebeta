@@ -46,3 +46,12 @@ public interface IPartyDirectory
 {
     Task<PartyInfo?> GetAsync(Guid partyId, CancellationToken cancellationToken);
 }
+
+/// <summary>The item facts every module needs (provided by Core).</summary>
+public sealed record ItemInfo(Guid Id, Guid CompanyId, string Code, string Name, string Uom, bool IsStockItem, bool IsActive);
+
+public interface IItemDirectory
+{
+    Task<ItemInfo?> GetAsync(Guid itemId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ItemInfo>> ListAsync(Guid companyId, CancellationToken cancellationToken);
+}

@@ -92,6 +92,7 @@ public static class EthiopianChartOfAccounts
         new("4200", "Other Income", RootType.Income, false, "4000"),
         new(InterestIncome, "Interest Income", RootType.Income, false, "4000"),
         new("5000", "Cost of Sales", RootType.Expense, false, null),
+        new("5100", "Stock Adjustment", RootType.Expense, false, null),
         new("6000", "Operating Expenses", RootType.Expense, true, null),
         new("6100", "Employee Costs", RootType.Expense, true, "6000"),
         new(SalaryExpense, "Salaries and Wages", RootType.Expense, false, "6100"),
@@ -123,6 +124,9 @@ public enum JournalSource
 
     /// <summary>Posted from a bank statement line (bank charges, interest); the source is the statement line.</summary>
     Bank,
+
+    /// <summary>The value of a stock entry (perpetual inventory), requested by Stock.</summary>
+    Stock,
 }
 
 /// <summary>

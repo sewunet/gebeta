@@ -34,6 +34,48 @@ public class PayrollFlowTests(GebetaApiFactory factory)
     }
 
     [Fact]
+    public async Task A_structure_with_pay_values_takes_them_from_each_assignment()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var company = await (await admin.PostAsJsonAsync(U("/api/core/companies"),
+            new { name = "Payroll Test PVA", abbreviation = "PVA", legalForm = "PrivateLimitedCompany", tin = "0300000011" }, Ct)).Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        var created = await admin.PostAsJsonAsync(U("/api/payroll/structures"), new
+        {
+            companyId = company!.Id,
+            name = "Contract staff",
+            variables = new[] { "ctc", "fuel_payment" },
+            components = new object[]
+            {
+                new { name = "Basic Salary", abbreviation = "BS", type = "Earning", formula = "ctc", dependsOnPaymentDays = true },
+                new { name = "Fuel Allowance", abbreviation = "FA", type = "Earning", formula = "fuel_payment", isTaxable = false },
+                new { name = "Income Tax", abbreviation = "IT", type = "Deduction", formula = "income_tax(taxable_earnings)" },
+            },
+        }, Ct);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var structure = (await created.Content.ReadFromJsonAsync<SalaryStructureDto>(Ct))!;
+        Assert.Equal(["ctc", "fuel_payment"], structure.Variables);
+
+        var employee = await (await admin.PostAsJsonAsync(U("/api/core/employees"),
+            new { companyId = company.Id, firstName = "Hana", fatherName = "Mulugeta", gender = "Female", dateOfJoining = "2026-07-08" }, Ct)).Content.ReadFromJsonAsync<EmployeeDto>(Ct);
+        var missing = await admin.PostAsJsonAsync(U("/api/payroll/assignments"),
+            new { employeeId = employee!.Id, structureId = structure.Id, @base = 0m, fromDate = "2026-07-08", values = new { ctc = 12_000m } }, Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, missing.StatusCode);
+        Assert.Contains("needs these pay values: fuel_payment", await missing.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+
+        var assigned = await admin.PostAsJsonAsync(U("/api/payroll/assignments"),
+            new { employeeId = employee.Id, structureId = structure.Id, @base = 0m, fromDate = "2026-07-08", values = new { ctc = 12_000m, fuel_payment = 2_000m } }, Ct);
+        Assert.Equal(HttpStatusCode.Created, assigned.StatusCode);
+        Assert.Equal(2_000m, (await assigned.Content.ReadFromJsonAsync<SalaryStructureAssignmentDto>(Ct))!.Values!["fuel_payment"]);
+
+        var slip = (await (await admin.PostAsJsonAsync(U("/api/payroll/salary-slips"),
+            new { employeeId = employee.Id, periodStart = "2026-10-01", periodEnd = "2026-10-31" }, Ct)).Content.ReadFromJsonAsync<SalarySlipDto>(Ct))!;
+        // BS 12,000 (taxable) + FA 2,000 (not taxable); tax on 12,000 = 30% - 1,350 = 2,250.
+        Assert.Equal((12_000m, 2_000m, 2_250m), (slip.Lines.Single(l => l.Abbreviation == "BS").Amount, slip.Lines.Single(l => l.Abbreviation == "FA").Amount,
+            slip.Lines.Single(l => l.Abbreviation == "IT").Amount));
+        Assert.Equal(11_750m, slip.NetPay);
+    }
+
+    [Fact]
     public async Task A_monthly_payroll_from_employee_to_submitted_slip()
     {
         var (admin, company, structure) = await SetUpAsync("PFT", "0300000001");

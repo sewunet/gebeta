@@ -575,6 +575,11 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("structure_id");
 
+                    b.Property<string>("_values")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("pay_values");
+
                     b.HasKey("Id")
                         .HasName("pk_salary_structure_assignment");
 
@@ -627,6 +632,11 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("components");
+
+                    b.Property<string>("_variables")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("variables");
 
                     b.HasKey("Id")
                         .HasName("pk_salary_structure");

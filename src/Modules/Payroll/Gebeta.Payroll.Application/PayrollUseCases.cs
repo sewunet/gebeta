@@ -20,7 +20,9 @@ public interface IPayrollPaymentDays
 
 // ---------------------------------------------------------------- salary structures
 
-public sealed record CreateSalaryStructureCommand(Guid CompanyId, string Name, IReadOnlyList<SalaryComponentDto>? Components) : ICommand<SalaryStructureDto>;
+/// <param name="Variables">Pay values the formulas use besides the base (e.g. ctc, fuel_payment); every assignment then gives them.</param>
+public sealed record CreateSalaryStructureCommand(Guid CompanyId, string Name, IReadOnlyList<SalaryComponentDto>? Components, IReadOnlyList<string>? Variables = null)
+    : ICommand<SalaryStructureDto>;
 
 public sealed record ListSalaryStructuresQuery(Guid CompanyId) : IQuery<IReadOnlyList<SalaryStructureDto>>;
 
@@ -50,7 +52,7 @@ public sealed class SalaryStructureHandler(ISalaryStructureRepository structures
             lines.Add(new SalaryComponentLine(c.Name, c.Abbreviation, type, c.Formula, c.Amount, c.Condition, c.IsTaxable, c.DependsOnPaymentDays));
         }
 
-        var created = SalaryStructureDefinition.Create(command.CompanyId, command.Name, lines);
+        var created = SalaryStructureDefinition.Create(command.CompanyId, command.Name, lines, command.Variables);
         if (created.IsFailure)
         {
             return created.Error!;
@@ -82,7 +84,9 @@ public sealed class SalaryStructureHandler(ISalaryStructureRepository structures
 
 // ---------------------------------------------------------------- assignments
 
-public sealed record AssignSalaryStructureCommand(Guid EmployeeId, Guid StructureId, decimal Base, DateOnly FromDate) : ICommand<SalaryStructureAssignmentDto>;
+/// <param name="Values">The structure's pay values for this employee (all of them, nothing else).</param>
+public sealed record AssignSalaryStructureCommand(Guid EmployeeId, Guid StructureId, decimal Base, DateOnly FromDate, IReadOnlyDictionary<string, decimal>? Values = null)
+    : ICommand<SalaryStructureAssignmentDto>;
 
 public sealed record ListAssignmentsQuery(Guid EmployeeId) : IQuery<IReadOnlyList<SalaryStructureAssignmentDto>>;
 
@@ -111,7 +115,13 @@ public sealed class AssignmentHandler(ISalaryStructureAssignmentRepository assig
             return Error.Conflict($"{employee.FullName} already has an assignment from {command.FromDate:yyyy-MM-dd}.");
         }
 
-        var created = SalaryStructureAssignment.Create(employee.CompanyId, employee.Id, structure.Id, command.Base, command.FromDate);
+        var values = structure.CheckValues(command.Values);
+        if (values.IsFailure)
+        {
+            return values.Error!;
+        }
+
+        var created = SalaryStructureAssignment.Create(employee.CompanyId, employee.Id, structure.Id, command.Base, command.FromDate, command.Values);
         if (created.IsFailure)
         {
             return created.Error!;
@@ -345,9 +355,10 @@ public sealed class SalarySlipHandler(
 internal static class PayrollMapping
 {
     public static SalaryStructureDto ToDto(SalaryStructureDefinition s) => new(s.Id, s.CompanyId, s.Name, s.IsActive,
-        s.Components.Select(c => new SalaryComponentDto(c.Name, c.Abbreviation, c.Type.ToString(), c.Formula, c.Amount, c.Condition, c.IsTaxable, c.DependsOnPaymentDays)).ToList());
+        s.Components.Select(c => new SalaryComponentDto(c.Name, c.Abbreviation, c.Type.ToString(), c.Formula, c.Amount, c.Condition, c.IsTaxable, c.DependsOnPaymentDays)).ToList(),
+        s.Variables);
 
-    public static SalaryStructureAssignmentDto ToDto(SalaryStructureAssignment a) => new(a.Id, a.EmployeeId, a.StructureId, a.Base, a.FromDate);
+    public static SalaryStructureAssignmentDto ToDto(SalaryStructureAssignment a) => new(a.Id, a.EmployeeId, a.StructureId, a.Base, a.FromDate, a.Values);
 
     public static SalarySlipDto ToDto(SalarySlip s)
     {

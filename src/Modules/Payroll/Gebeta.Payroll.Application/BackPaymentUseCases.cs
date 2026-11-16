@@ -107,7 +107,7 @@ public sealed class BackPaymentHandler(
         SalaryBackPayment backPayment;
         try
         {
-            var months = BackPaymentCalculator.Calculate(structure, assignment.Base, baselines, EthiopianIncomeTax.ValidOn);
+            var months = BackPaymentCalculator.Calculate(structure, assignment.Base, baselines, EthiopianIncomeTax.ValidOn, assignment.Values);
             backPayment = SalaryBackPayment.Create(employee.CompanyId, employee.Id, employee.Number, employee.FullName, assignment.Id, assignment.Base,
                 command.EffectiveFrom, command.EffectiveTo, command.PayrollDate, command.Reason, command.Reference, months);
         }

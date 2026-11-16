@@ -37,7 +37,19 @@ public sealed record ErpSalaryDetail(string Parent, bool IsDeduction, string Com
 public sealed record ErpSalaryStructure(string Name, IReadOnlyList<ErpSalaryDetail> Rows);
 
 /// <param name="Created">When it was entered: a raise entered after a slip was made did not count for that slip (it is back pay).</param>
-public sealed record ErpAssignment(string Employee, string Structure, decimal Base, DateOnly FromDate, DateTime? Created = null);
+/// <param name="Name">ERPNext's id of the assignment, to read its other fields (formulas may use them).</param>
+public sealed record ErpAssignment(string Employee, string Structure, decimal Base, DateOnly FromDate, DateTime? Created = null, string? Name = null);
+
+/// <summary>
+/// What an ERPNext salary formula can read besides the structure's own components (hrms, salary_slip.get_data_for_eval): every field
+/// of the salary structure assignment, the slip and the employee, and every salary component abbreviation in the system (0 when the
+/// component is not in the structure).
+/// </summary>
+public sealed record ErpFormulaScope(IReadOnlySet<string> AssignmentFields, IReadOnlySet<string> EmployeeFields, IReadOnlySet<string> SlipFields,
+    IReadOnlySet<string> ComponentAbbreviations)
+{
+    public static ErpFormulaScope Empty { get; } = new(new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>());
+}
 
 public sealed record ErpSalarySlip(string Name, string Employee, string Structure, DateOnly StartDate, DateOnly EndDate, decimal PaymentDays, decimal TotalWorkingDays,
     decimal GrossPay, decimal NetPay, IReadOnlyList<ErpSalaryDetail> Rows, DateTime? Created = null);
@@ -72,6 +84,12 @@ public interface IErpNextSource
 
     /// <summary>Every submitted salary structure assignment (the history, not only the latest).</summary>
     Task<IReadOnlyList<ErpAssignment>> AssignmentsAsync(string company, CancellationToken cancellationToken);
+
+    Task<ErpFormulaScope> FormulaScopeAsync(CancellationToken cancellationToken);
+
+    /// <summary>Fields of ERPNext records by name (doctype "Employee" or "Salary Structure Assignment"), as text; null where empty.</summary>
+    Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string?>>> FieldValuesAsync(string doctype, string company, IReadOnlyCollection<string> fields,
+        CancellationToken cancellationToken);
 
     /// <summary>The submitted salary slips of the latest payroll period ending on or before <paramref name="asOf"/> (any, when null).</summary>
     Task<IReadOnlyList<ErpSalarySlip>> LatestSlipsAsync(string company, DateOnly? asOf, CancellationToken cancellationToken);
@@ -186,10 +204,53 @@ public sealed class MariaDbErpNextSource(string connectionString) : IErpNextSour
 
     public Task<IReadOnlyList<ErpAssignment>> AssignmentsAsync(string company, CancellationToken cancellationToken) =>
         QueryAsync("""
-            SELECT employee, salary_structure, base, from_date, creation FROM `tabSalary Structure Assignment`
+            SELECT employee, salary_structure, base, from_date, creation, name FROM `tabSalary Structure Assignment`
             WHERE company = @p AND docstatus = 1 ORDER BY employee, from_date, creation
             """, company,
-            r => new ErpAssignment(r.GetString(0), r.GetString(1), r.GetDecimal(2), DateOnly.FromDateTime(r.GetDateTime(3)), r.GetDateTime(4)), cancellationToken);
+            r => new ErpAssignment(r.GetString(0), r.GetString(1), r.GetDecimal(2), DateOnly.FromDateTime(r.GetDateTime(3)), r.GetDateTime(4), r.GetString(5)), cancellationToken);
+
+    public async Task<ErpFormulaScope> FormulaScopeAsync(CancellationToken cancellationToken)
+    {
+        async Task<IReadOnlySet<string>> Columns(string table) =>
+            (await QueryAsync("SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = @p", table,
+                r => r.GetString(0), cancellationToken).ConfigureAwait(false)).ToHashSet(StringComparer.Ordinal);
+        var abbreviations = (await QueryAsync("SELECT salary_component_abbr FROM `tabSalary Component` WHERE salary_component_abbr IS NOT NULL", null,
+            r => r.GetString(0), cancellationToken).ConfigureAwait(false)).ToHashSet(StringComparer.Ordinal);
+        return new ErpFormulaScope(await Columns("tabSalary Structure Assignment").ConfigureAwait(false), await Columns("tabEmployee").ConfigureAwait(false),
+            await Columns("tabSalary Slip").ConfigureAwait(false), abbreviations);
+    }
+
+    public async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string?>>> FieldValuesAsync(string doctype, string company, IReadOnlyCollection<string> fields,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+        var result = new Dictionary<string, IReadOnlyDictionary<string, string?>>(StringComparer.Ordinal);
+        if (fields.Count == 0)
+        {
+            return result;
+        }
+
+        var table = doctype switch
+        {
+            "Employee" => "tabEmployee",
+            "Salary Structure Assignment" => "`tabSalary Structure Assignment`",
+            _ => throw new ArgumentOutOfRangeException(nameof(doctype), doctype, null),
+        };
+        if (fields.Any(f => !f.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')))
+        {
+            throw new ArgumentException("Field names are identifiers taken from formulas and checked against the table's columns.", nameof(fields));
+        }
+
+        var list = fields.ToList();
+        var rows = await QueryAsync($"SELECT name, {string.Join(", ", list.Select(f => $"CAST(`{f}` AS CHAR)"))} FROM {table} WHERE company = @p", company,
+            r => (r.GetString(0), Enumerable.Range(0, list.Count).ToDictionary(i => list[i], i => Text(r, i + 1), StringComparer.Ordinal)), cancellationToken).ConfigureAwait(false);
+        foreach (var (name, values) in rows)
+        {
+            result[name] = values;
+        }
+
+        return result;
+    }
 
     public async Task<IReadOnlyList<ErpSalarySlip>> LatestSlipsAsync(string company, DateOnly? asOf, CancellationToken cancellationToken)
     {

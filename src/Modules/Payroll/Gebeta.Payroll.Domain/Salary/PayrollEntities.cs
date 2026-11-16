@@ -3,40 +3,84 @@ using Gebeta.SharedKernel;
 
 namespace Gebeta.Payroll.Domain.Salary;
 
-/// <summary>A company's saved salary structure. Its components are validated every time it is saved.</summary>
+/// <summary>An amount an assignment gives a salary structure's formulas, beside the base (e.g. ctc, fuel_payment).</summary>
+public sealed record PayValue(string Name, decimal Amount);
+
+/// <summary>
+/// A company's saved salary structure. Its components are validated every time it is saved. <see cref="Variables"/> are the
+/// pay values its formulas use besides the base (an allowance agreed per employee, a contract amount); each assignment gives them.
+/// </summary>
 public sealed class SalaryStructureDefinition : Entity
 {
     private List<SalaryComponentLine> _components = [];
+    private List<string> _variables = [];
 
     private SalaryStructureDefinition()
     {
         Name = string.Empty;
     }
 
-    private SalaryStructureDefinition(Guid companyId, string name, List<SalaryComponentLine> components)
+    private SalaryStructureDefinition(Guid companyId, string name, List<SalaryComponentLine> components, List<string> variables)
     {
         CompanyId = companyId;
         Name = name;
         _components = components;
+        _variables = variables;
     }
 
     public Guid CompanyId { get; private set; }
     public string Name { get; private set; }
     public bool IsActive { get; private set; } = true;
     public IReadOnlyList<SalaryComponentLine> Components => _components;
+    public IReadOnlyList<string> Variables => _variables;
 
-    public static Result<SalaryStructureDefinition> Create(Guid companyId, string name, IReadOnlyList<SalaryComponentLine> components)
+    public static Result<SalaryStructureDefinition> Create(Guid companyId, string name, IReadOnlyList<SalaryComponentLine> components, IReadOnlyList<string>? variables = null)
     {
+        ArgumentNullException.ThrowIfNull(components);
         if (companyId == Guid.Empty)
         {
             return Error.Validation("A salary structure belongs to a company.");
         }
 
-        var compiled = SalaryStructure.Create(name, components);
-        return compiled.IsFailure ? compiled.Error! : new SalaryStructureDefinition(companyId, compiled.Value.Name, components.ToList());
+        var names = (variables ?? []).Select(v => v?.Trim() ?? string.Empty).ToList();
+        foreach (var v in names)
+        {
+            if (v.Length is 0 or > 40 || !(char.IsAsciiLetter(v[0]) || v[0] == '_') || !v.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
+            {
+                return Error.Validation($"The pay value '{v}' must be a name of letters, digits and _ (e.g. ctc, fuel_payment).");
+            }
+
+            if (SalaryStructure.StandardVariables.Contains(v) || SalaryStructure.TotalVariables.Contains(v) || SalaryStructure.Functions.Contains(v)
+                || components.Any(c => string.Equals(c.Abbreviation?.Trim(), v, StringComparison.Ordinal)))
+            {
+                return Error.Validation($"The pay value '{v}' has the name of a component or of something Gebeta already provides.");
+            }
+        }
+
+        if (names.Distinct(StringComparer.Ordinal).Count() != names.Count)
+        {
+            return Error.Validation("A pay value is listed twice.");
+        }
+
+        var compiled = SalaryStructure.Create(name, components, names);
+        return compiled.IsFailure ? compiled.Error! : new SalaryStructureDefinition(companyId, compiled.Value.Name, components.ToList(), names);
     }
 
-    public SalaryStructure Compile() => SalaryStructure.Create(Name, _components).Value;
+    public SalaryStructure Compile() => SalaryStructure.Create(Name, _components, _variables).Value;
+
+    /// <summary>An assignment must give every pay value this structure uses, and nothing else.</summary>
+    public Result CheckValues(IReadOnlyDictionary<string, decimal>? values)
+    {
+        var given = values ?? new Dictionary<string, decimal>();
+        var missing = _variables.Where(v => !given.ContainsKey(v)).ToList();
+        if (missing.Count > 0)
+        {
+            return Result.Failure(Error.Validation($"{Name} needs these pay values: {string.Join(", ", missing)}."));
+        }
+
+        var extra = given.Keys.Where(k => !_variables.Contains(k)).ToList();
+        return extra.Count > 0 ? Result.Failure(Error.Validation($"{Name} does not use these pay values: {string.Join(", ", extra)}.")) : Result.Success();
+    }
 
     public void Deactivate() => IsActive = false;
 }
@@ -47,6 +91,8 @@ public sealed class SalaryStructureAssignment : Entity
     private SalaryStructureAssignment()
     {
     }
+
+    private List<PayValue> _values = [];
 
     private SalaryStructureAssignment(Guid companyId, Guid employeeId, Guid structureId, decimal baseAmount, DateOnly fromDate)
     {
@@ -63,7 +109,11 @@ public sealed class SalaryStructureAssignment : Entity
     public decimal Base { get; private set; }
     public DateOnly FromDate { get; private set; }
 
-    public static Result<SalaryStructureAssignment> Create(Guid companyId, Guid employeeId, Guid structureId, decimal baseAmount, DateOnly fromDate)
+    /// <summary>The structure's pay values for this employee from <see cref="FromDate"/>; a change is a new assignment, like a raise.</summary>
+    public IReadOnlyDictionary<string, decimal> Values => _values.ToDictionary(v => v.Name, v => v.Amount, StringComparer.Ordinal);
+
+    public static Result<SalaryStructureAssignment> Create(Guid companyId, Guid employeeId, Guid structureId, decimal baseAmount, DateOnly fromDate,
+        IReadOnlyDictionary<string, decimal>? values = null)
     {
         if (baseAmount < 0m)
         {
@@ -75,7 +125,10 @@ public sealed class SalaryStructureAssignment : Entity
             return Error.Validation("The base salary has at most 2 decimals (santim).");
         }
 
-        return new SalaryStructureAssignment(companyId, employeeId, structureId, baseAmount, fromDate);
+        return new SalaryStructureAssignment(companyId, employeeId, structureId, baseAmount, fromDate)
+        {
+            _values = (values ?? new Dictionary<string, decimal>()).OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new PayValue(v.Key, v.Value)).ToList(),
+        };
     }
 }
 
@@ -162,7 +215,7 @@ public sealed class SalarySlip : DocumentBase
         }
 
         var result = SalaryCalculator.Calculate(structure.Compile(),
-            new SalaryInput(assignment.Base, paymentDays, totalWorkingDays, periodEnd, additional), taxTable);
+            new SalaryInput(assignment.Base, paymentDays, totalWorkingDays, periodEnd, additional, assignment.Values), taxTable);
         var extras = extraLines ?? [];
         var extraEarnings = extras.Where(l => l.Type == ComponentType.Earning).Sum(l => l.Amount);
         var extraDeductions = extras.Where(l => l.Type == ComponentType.Deduction).Sum(l => l.Amount);

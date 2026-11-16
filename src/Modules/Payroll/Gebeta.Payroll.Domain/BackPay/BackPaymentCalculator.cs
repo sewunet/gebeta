@@ -54,8 +54,9 @@ public sealed record BackPaymentMonth(
 /// </summary>
 public static class BackPaymentCalculator
 {
+    /// <param name="values">The revised assignment's pay values (a raise may change those instead of, or with, the base).</param>
     public static IReadOnlyList<BackPaymentMonth> Calculate(SalaryStructure structure, decimal newBase, IReadOnlyList<MonthBaseline> months,
-        Func<DateOnly, IncomeTaxTable> taxTableFor)
+        Func<DateOnly, IncomeTaxTable> taxTableFor, IReadOnlyDictionary<string, decimal>? values = null)
     {
         ArgumentNullException.ThrowIfNull(structure);
         ArgumentNullException.ThrowIfNull(months);
@@ -70,7 +71,7 @@ public static class BackPaymentCalculator
         foreach (var month in months.OrderBy(m => m.PeriodStart))
         {
             var table = taxTableFor(month.PeriodEnd);
-            var slip = SalaryCalculator.Calculate(structure, new SalaryInput(newBase, month.PaymentDays, month.TotalWorkingDays, month.PeriodEnd), table);
+            var slip = SalaryCalculator.Calculate(structure, new SalaryInput(newBase, month.PaymentDays, month.TotalWorkingDays, month.PeriodEnd, Variables: values), table);
             var (tax, other) = SplitDeductions(slip.Lines.Select(l => (l.Abbreviation, l.Type, l.Amount)), taxComponents);
 
             result.Add(new BackPaymentMonth(month.PeriodStart, month.PeriodEnd, month.Source, table.Code,

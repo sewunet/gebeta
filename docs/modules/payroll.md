@@ -106,3 +106,15 @@ payslips, bank file, and the payroll journal as an export.
 - Tax slab boundaries (2000, 2000.01, 4000, ...).
 - Back payment: increase, decrease, partial month, run twice, cancel after payroll.
 - Formula engine: cycles, unknown variables, division by zero, injection attempts.
+
+## Pay values
+
+A salary structure can declare **pay values** besides the base, for example `ctc` (a contract
+amount) or `fuel_payment` (an allowance agreed per employee). Its formulas use them like `base`.
+
+- Each salary structure assignment gives the amounts, and must give all of them and nothing
+  else.
+- A change to a pay value is a new assignment, like a raise. Back pay therefore recalculates past
+  months with the new values.
+- API: `variables` on `POST /api/payroll/structures`, `values` on `POST /api/payroll/assignments`.
+- Debt: there are no setup screens for structures and assignments yet (API only).

@@ -45,7 +45,17 @@ dedicated opening-balance import.
 >   keeps them: first name, father's name (`middle_name`), grandfather's name (`last_name`). When
 >   those are blank, they come from the second and third words of the full name. The TIN comes from
 >   the `tin_number` custom field when the site has it. A leaving date already set comes along.
-> - **Salary structures** keep their formulas and conditions unchanged. The income tax row (worked
+> - **Names in formulas** are resolved the way ERPNext resolves them (hrms
+>   `salary_slip.get_data_for_eval`):
+>   - the structure's own components come first;
+>   - a component abbreviation from outside the structure counts as 0, so it is written as `0`
+>     with a warning;
+>   - a field of the salary structure assignment, the employee or the slip becomes a **pay value**
+>     of the structure (`ctc`, `custom_fuel_payment`).
+>
+>   Each assignment then carries the amounts. Values from the employee record are its current
+>   ones, because ERPNext keeps no history of them; slip fields become 0. Both cases are reported.
+> - **Salary structures** keep their formulas and conditions unchanged otherwise. The income tax row (worked
 >   out from tax slabs in ERPNext) becomes `income_tax(taxable_earnings)`, using Gebeta's legal
 >   tables. A deduction kept out of the totals becomes an employer contribution, with a warning to
 >   confirm it. A statistical earning has no Gebeta equivalent yet, and is listed for rewriting
@@ -100,11 +110,10 @@ dedicated opening-balance import.
 >   - Abbreviations Gebeta cannot read (`P7%`) are renamed; no formula can name them.
 >   - The payroll check uses the base valid when each slip was made. A raise entered later is
 >     reported as back pay due, or an overpayment to recover.
-> - Open, needing a Gebeta feature (step 38b): ERPNext formulas read names Gebeta formulas don't
->   have.
->   - Employee fields such as `ctc` and `custom_fuel_payment`; 16 structures in use need them.
->   - Slip fields such as `salary_slip_based_on_timesheet`.
->   - Abbreviations of components outside the structure, which ERPNext counts as 0.
+> - Done in step 38b: Gebeta structures got pay values, so formulas reading `ctc` and the like come
+>   over. Structures went from 2 of 32 to 31 of 32; the last one uses a statistical earning.
+>   Assignments: 45 of 50; the other 5 name structures that are empty or not submitted in
+>   ERPNext.
 > - Open, data to fix in ERPNext: 36 employees with a single name (Gebeta needs the father's
 >   name); 10 balance-sheet accounts the accountant has to map.
 

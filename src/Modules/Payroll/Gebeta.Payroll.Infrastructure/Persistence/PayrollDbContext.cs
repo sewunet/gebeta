@@ -44,6 +44,8 @@ internal sealed class SalaryStructureConfiguration : IEntityTypeConfiguration<Sa
         builder.HasIndex(s => new { s.CompanyId, s.Name }).IsUnique();
         builder.Property<List<SalaryComponentLine>>("_components").HasColumnName("components").IsJsonList();
         builder.Ignore(s => s.Components);
+        builder.Property<List<string>>("_variables").HasColumnName("variables").IsJsonList();
+        builder.Ignore(s => s.Variables);
         builder.Property(s => s.CreatedBy).HasMaxLength(140);
         builder.Property(s => s.ModifiedBy).HasMaxLength(140);
         builder.Ignore(s => s.DomainEvents);
@@ -58,6 +60,8 @@ internal sealed class AssignmentConfiguration : IEntityTypeConfiguration<SalaryS
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Id).ValueGeneratedNever();
         builder.Property(a => a.Base).HasPrecision(21, 2);
+        builder.Property<List<PayValue>>("_values").HasColumnName("pay_values").IsJsonList();
+        builder.Ignore(a => a.Values);
         builder.HasIndex(a => new { a.EmployeeId, a.FromDate }).IsUnique();
         builder.Property(a => a.CreatedBy).HasMaxLength(140);
         builder.Property(a => a.ModifiedBy).HasMaxLength(140);

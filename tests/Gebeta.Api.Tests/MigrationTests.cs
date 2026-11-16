@@ -58,6 +58,15 @@ public class MigrationTests(GebetaApiFactory factory)
         public List<ErpSalaryStructure> Structures { get; } = [];
         public List<ErpAssignment> Assignments { get; } = [];
         public List<ErpSalarySlip> Slips { get; } = [];
+        public ErpFormulaScope Scope { get; set; } = ErpFormulaScope.Empty;
+        public Dictionary<string, Dictionary<string, Dictionary<string, string?>>> Fields { get; } = new(); // doctype → record → field → value
+
+        public Task<ErpFormulaScope> FormulaScopeAsync(CancellationToken cancellationToken) => Task.FromResult(Scope);
+
+        public Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string?>>> FieldValuesAsync(string doctype, string c, IReadOnlyCollection<string> fields,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string?>>>(
+                Fields.GetValueOrDefault(doctype, []).ToDictionary(r => r.Key, r => (IReadOnlyDictionary<string, string?>)r.Value));
 
         public Task<IReadOnlyList<ErpEmployee>> EmployeesAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpEmployee>>(Employees);
         public Task<IReadOnlyList<ErpSalaryStructure>> SalaryStructuresAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpSalaryStructure>>(Structures);
@@ -341,12 +350,23 @@ public class MigrationTests(GebetaApiFactory factory)
             Row(p, true, "Employer Pension", "EPC", "BS * 0.11", notInTotal: true),
         ];
         erp.Structures.AddRange([new("Staff 2018", Staff("Staff 2018")), new("Old Grade", [Row("Old Grade", false, "Basic Salary", "BS", "base"), Row("Old Grade", true, "Income Tax", "IT", null, tax: true)])]);
+
+        // A structure whose formulas read the employee's ctc field, and a component (OLD) from another structure, which ERPNext counts as 0.
+        erp.Structures.Add(new("Contract 2018",
+        [
+            Row("Contract 2018", false, "Basic Salary", "BS", "ctc", days: true),
+            Row("Contract 2018", false, "Old Bonus", "XB", "OLD * 2"),
+            Row("Contract 2018", true, "Income Tax", "IT", null, tax: true),
+        ]));
+        erp.Scope = new ErpFormulaScope(new HashSet<string>(), new HashSet<string>(["ctc", "first_name"]), new HashSet<string>(), new HashSet<string>(["OLD", "BS", "IT"]));
+        erp.Fields["Employee"] = new() { ["HR-EMP-0002"] = new() { ["ctc"] = "7000.000000000" } };
         erp.Assignments.AddRange(
         [
             new("HR-EMP-0001", "Old Grade", 8_000m, new(2024, 7, 8)),
             new("HR-EMP-0001", "Staff 2018", 10_000m, new(2025, 7, 8)),
             new("HR-EMP-0002", "Staff 2018", 6_000m, new(2025, 7, 8)),
             new("HR-EMP-0001", "Staff 2018", 11_000m, new(2026, 6, 8), Created: new(2026, 8, 3, 9, 0, 0)), // a raise for Sene, entered after Sene was paid
+            new("HR-EMP-0002", "Contract 2018", 0m, new(2026, 7, 8)),
             new("HR-EMP-0003", "Old Grade", 5_000m, new(2024, 1, 1)),
         ]);
 
@@ -377,9 +397,12 @@ public class MigrationTests(GebetaApiFactory factory)
 
         var reports = await Run(erp, new MigrationOptions(name));
         Assert.All(reports, r => Assert.True(r.Ok, r.Name + ": " + string.Join("; ", r.Failures)));
-        Assert.Equal((2, 2, 4), (reports.Single(r => r.Name == "employees").Created, reports.Single(r => r.Name == "structures").Created, reports.Single(r => r.Name == "assignments").Created));
+        Assert.Equal((2, 3, 5), (reports.Single(r => r.Name == "employees").Created, reports.Single(r => r.Name == "structures").Created, reports.Single(r => r.Name == "assignments").Created));
         Assert.Contains(reports.Single(r => r.Name == "employees").Warnings, w => w.Contains("1 employees who left", StringComparison.Ordinal));
-        Assert.Contains(reports.Single(r => r.Name == "structures").Warnings, w => w.Contains("Employer Pension (EPC)", StringComparison.Ordinal));
+        var structureWarnings = reports.Single(r => r.Name == "structures").Warnings;
+        Assert.Contains(structureWarnings, w => w.Contains("Employer Pension (EPC)", StringComparison.Ordinal));
+        Assert.Contains(structureWarnings, w => w.Contains("Old Bonus (XB): 'OLD' is a salary component outside this structure", StringComparison.Ordinal));
+        Assert.Contains(structureWarnings, w => w.Contains("\"Contract 2018\": 'ctc' is read from the employee record", StringComparison.Ordinal));
         Assert.Equal("payroll 2026-06-08 – 2026-07-07: 2 of 2 slips recalculated by Gebeta equal ERPNext to the cent", reports.Single(r => r.Name == "payroll").Check);
 
         using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
@@ -387,6 +410,11 @@ public class MigrationTests(GebetaApiFactory factory)
         var employees = (await admin.GetFromJsonAsync<List<EmployeeDto>>(U($"/api/core/employees?companyId={company.Id}"), Ct))!;
         var almaz = employees.Single(e => e.FirstName == "Almaz");
         Assert.Equal(("Tadesse", "Bekele"), (almaz.FatherName, almaz.GrandfatherName)); // from the full name
+        var contract = (await admin.GetFromJsonAsync<List<SalaryStructureDto>>(U($"/api/payroll/structures?companyId={company.Id}"), Ct))!.Single(s => s.Name == "Contract 2018");
+        Assert.Equal(["ctc"], contract.Variables);
+        Assert.Equal("0 * 2", contract.Components.Single(c => c.Abbreviation == "XB").Formula);
+        var almazNow = (await admin.GetFromJsonAsync<List<SalaryStructureAssignmentDto>>(U($"/api/payroll/employees/{almaz.Id}/assignments"), Ct))!.MaxBy(a => a.FromDate)!;
+        Assert.Equal(7_000m, almazNow.Values!["ctc"]);
         var history = (await admin.GetFromJsonAsync<List<SalaryStructureAssignmentDto>>(U($"/api/payroll/employees/{employees.Single(e => e.FirstName == "Abebe").Id}/assignments"), Ct))!;
         Assert.Equal([8_000m, 10_000m, 11_000m], history.OrderBy(a => a.FromDate).Select(a => a.Base));
         Assert.Contains(reports.Single(r => r.Name == "payroll").Warnings,

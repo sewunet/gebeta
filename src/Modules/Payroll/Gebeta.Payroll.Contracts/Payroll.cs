@@ -66,9 +66,10 @@ public sealed record TaxSlabDto(decimal Over, decimal? UpTo, decimal RatePercent
 
 public sealed record TaxTableDto(string Code, string Name, DateOnly ValidFrom, DateOnly? ValidTo, string LegalSource, IReadOnlyList<TaxSlabDto> Slabs);
 
-public sealed record SalaryStructureDto(Guid Id, Guid CompanyId, string Name, bool IsActive, IReadOnlyList<SalaryComponentDto> Components);
+/// <param name="Variables">Pay values the formulas use besides the base; every assignment gives them.</param>
+public sealed record SalaryStructureDto(Guid Id, Guid CompanyId, string Name, bool IsActive, IReadOnlyList<SalaryComponentDto> Components, IReadOnlyList<string>? Variables = null);
 
-public sealed record SalaryStructureAssignmentDto(Guid Id, Guid EmployeeId, Guid StructureId, decimal Base, DateOnly FromDate);
+public sealed record SalaryStructureAssignmentDto(Guid Id, Guid EmployeeId, Guid StructureId, decimal Base, DateOnly FromDate, IReadOnlyDictionary<string, decimal>? Values = null);
 
 public sealed record SalarySlipDto(
     Guid Id,

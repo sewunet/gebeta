@@ -16,7 +16,30 @@ namespace Gebeta.Migration;
 /// </summary>
 public sealed partial class MigrationRun
 {
-    private const string IncomeTaxFormula = "income_tax(taxable_earnings)";
+    private PayContext? _pay;
+
+    /// <summary>The structures as Gebeta will hold them and the ERPNext fields their pay values come from; read once per run.</summary>
+    private sealed record PayContext(
+        IReadOnlyDictionary<string, MappedStructure> Structures,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, string?>> AssignmentFields,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, string?>> EmployeeFields);
+
+    private async Task<PayContext> PayAsync(CancellationToken cancellationToken)
+    {
+        if (_pay is not null)
+        {
+            return _pay;
+        }
+
+        var scope = await source.FormulaScopeAsync(cancellationToken).ConfigureAwait(false);
+        var structures = (await source.SalaryStructuresAsync(options.Company, cancellationToken).ConfigureAwait(false))
+            .ToDictionary(s => s.Name, s => PayValues.Map(s, scope), StringComparer.Ordinal);
+        string[] Fields(string from) => structures.Values.SelectMany(m => m.Sources).Where(s => s.Value == from).Select(s => s.Key).Distinct(StringComparer.Ordinal).ToArray();
+        _pay = new PayContext(structures,
+            await source.FieldValuesAsync(PayValues.FromAssignment, options.Company, Fields(PayValues.FromAssignment), cancellationToken).ConfigureAwait(false),
+            await source.FieldValuesAsync(PayValues.FromEmployee, options.Company, Fields(PayValues.FromEmployee), cancellationToken).ConfigureAwait(false));
+        return _pay;
+    }
 
     /// <summary>Everyone still employed (status other than Left). The father's name falls back to the second word of the full name.</summary>
     private async Task<StepReport> EmployeesAsync(CancellationToken cancellationToken)
@@ -100,17 +123,17 @@ public sealed partial class MigrationRun
     private async Task<StepReport> SalaryStructuresAsync(CancellationToken cancellationToken)
     {
         var report = new StepReport("structures");
-        var structures = await source.SalaryStructuresAsync(options.Company, cancellationToken).ConfigureAwait(false);
+        var structures = (await PayAsync(cancellationToken).ConfigureAwait(false)).Structures.Values.ToList();
         var known = await KnownAsync("Salary Structure", cancellationToken).ConfigureAwait(false);
-        foreach (var s in structures)
+        foreach (var mapped in structures)
         {
+            var s = mapped;
             if (known.ContainsKey(s.Name))
             {
                 report.AlreadyMigrated++;
                 continue;
             }
 
-            var mapped = MapStructure(s);
             report.Warnings.AddRange(mapped.Warnings);
             if (mapped.Problems.Count > 0)
             {
@@ -122,7 +145,7 @@ public sealed partial class MigrationRun
             {
                 var lines = mapped.Components.Select(c => new SalaryComponentLine(c.Name, c.Abbreviation, Enum.Parse<ComponentType>(c.Type), c.Formula, c.Amount, c.Condition,
                     c.IsTaxable, c.DependsOnPaymentDays)).ToList();
-                var check = SalaryStructure.Create(s.Name, lines);
+                var check = SalaryStructure.Create(s.Name, lines, mapped.Variables.ToList());
                 if (check.IsFailure)
                 {
                     report.Failures.Add($"Salary structure \"{s.Name}\": {check.Error!.Message}");
@@ -133,7 +156,7 @@ public sealed partial class MigrationRun
                 continue;
             }
 
-            var created = await Handle<CreateSalaryStructureCommand, SalaryStructureDto>(new CreateSalaryStructureCommand(_companyId, s.Name, mapped.Components), cancellationToken)
+            var created = await Handle<CreateSalaryStructureCommand, SalaryStructureDto>(new CreateSalaryStructureCommand(_companyId, s.Name, mapped.Components, mapped.Variables), cancellationToken)
                 .ConfigureAwait(false);
             if (created.IsFailure)
             {
@@ -149,51 +172,6 @@ public sealed partial class MigrationRun
         return report;
     }
 
-    /// <summary>ERPNext earnings and deductions as Gebeta components; problems are what Gebeta has no equivalent for.</summary>
-    public static (List<SalaryComponentDto> Components, List<string> Problems, List<string> Warnings, Dictionary<string, string> Renamed) MapStructure(ErpSalaryStructure structure)
-    {
-        ArgumentNullException.ThrowIfNull(structure);
-        var components = new List<SalaryComponentDto>();
-        var problems = new List<string>();
-        var warnings = new List<string>();
-        var taken = structure.Rows.Select(r => r.Abbreviation).Where(Codes.IsValidAbbreviation).ToHashSet(StringComparer.Ordinal);
-        var renamed = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var d in structure.Rows)
-        {
-            var label = $"Salary structure \"{structure.Name}\", {d.Component} ({d.Abbreviation})";
-            ComponentType type;
-            if (!d.Statistical && !d.NotInTotal)
-            {
-                type = d.IsDeduction ? ComponentType.Deduction : ComponentType.Earning;
-            }
-            else if (d.IsDeduction)
-            {
-                // A deduction kept out of the totals is how ERPNext setups usually carry the employer's pension (11%).
-                type = ComponentType.EmployerContribution;
-                warnings.Add($"{label}: kept out of the totals in ERPNext, so it becomes an employer contribution (posted as the employer's cost). Check that is what it is.");
-            }
-            else
-            {
-                problems.Add($"{label}: a statistical earning (worked out, never paid) has no Gebeta equivalent yet; rewrite the formulas that use it.");
-                continue;
-            }
-
-            var abbreviation = d.Abbreviation;
-            if (!Codes.IsValidAbbreviation(abbreviation))
-            {
-                abbreviation = renamed.TryGetValue(d.Abbreviation, out var done) ? done : Codes.Abbreviation(d.Abbreviation, taken);
-                renamed[d.Abbreviation] = abbreviation;
-                warnings.Add($"{label}: abbreviation becomes {abbreviation} (Gebeta abbreviations are letters, digits and _; no formula can name the old one).");
-            }
-
-            var formula = d.TaxSlabBased ? IncomeTaxFormula : d.Formula?.Trim();
-            components.Add(new SalaryComponentDto(d.Component, abbreviation, type.ToString(), formula, formula is null ? d.Amount : null, d.Condition?.Trim(),
-                d.IsTaxable, d.DependsOnPaymentDays));
-        }
-
-        return (components, problems, warnings, renamed);
-    }
-
     /// <summary>The whole assignment history, oldest first, so back pay across the cut-over has the earlier bases.</summary>
     private async Task<StepReport> AssignmentsAsync(CancellationToken cancellationToken)
     {
@@ -202,6 +180,7 @@ public sealed partial class MigrationRun
         var employee = await ResolverAsync("Employee", cancellationToken).ConfigureAwait(false);
         var structure = await ResolverAsync("Salary Structure", cancellationToken).ConfigureAwait(false);
         var known = await KnownAsync("Salary Structure Assignment", cancellationToken).ConfigureAwait(false);
+        var pay = await PayAsync(cancellationToken).ConfigureAwait(false);
         var expected = 0;
         var forLeavers = 0;
         foreach (var a in rows)
@@ -222,7 +201,18 @@ public sealed partial class MigrationRun
 
             if (structure(a.Structure) is not { } structureId)
             {
-                report.Failures.Add($"{a.Employee} from {a.FromDate:yyyy-MM-dd}: salary structure \"{a.Structure}\" is not migrated.");
+                report.Failures.Add(pay.Structures.ContainsKey(a.Structure)
+                    ? $"{a.Employee} from {a.FromDate:yyyy-MM-dd}: salary structure \"{a.Structure}\" is not migrated (see the structures step)."
+                    : $"{a.Employee} from {a.FromDate:yyyy-MM-dd}: salary structure \"{a.Structure}\" has no earnings or deductions in ERPNext, or is not submitted; fix it there.");
+                continue;
+            }
+
+            var (values, problems) = pay.Structures.TryGetValue(a.Structure, out var mapped)
+                ? PayValues.For(a, mapped, pay.AssignmentFields, pay.EmployeeFields)
+                : ([], []);
+            if (problems.Count > 0)
+            {
+                report.Failures.AddRange(problems);
                 continue;
             }
 
@@ -232,7 +222,7 @@ public sealed partial class MigrationRun
                 continue;
             }
 
-            var created = await Handle<AssignSalaryStructureCommand, SalaryStructureAssignmentDto>(new AssignSalaryStructureCommand(employeeId, structureId, a.Base, a.FromDate), cancellationToken)
+            var created = await Handle<AssignSalaryStructureCommand, SalaryStructureAssignmentDto>(new AssignSalaryStructureCommand(employeeId, structureId, a.Base, a.FromDate, values), cancellationToken)
                 .ConfigureAwait(false);
             if (created.IsFailure)
             {
@@ -270,8 +260,7 @@ public sealed partial class MigrationRun
         }
 
         var stored = await StructuresForCheckAsync(cancellationToken).ConfigureAwait(false);
-        var renamed = (await source.SalaryStructuresAsync(options.Company, cancellationToken).ConfigureAwait(false))
-            .ToDictionary(s => s.Name, s => (IReadOnlyDictionary<string, string>)MapStructure(s).Renamed, StringComparer.Ordinal);
+        var pay = await PayAsync(cancellationToken).ConfigureAwait(false);
         var bases = (await source.AssignmentsAsync(options.Company, cancellationToken).ConfigureAwait(false)).ToLookup(a => a.Employee, StringComparer.Ordinal);
         var equal = 0;
         var differences = new List<string>();
@@ -292,8 +281,10 @@ public sealed partial class MigrationRun
                 continue;
             }
 
-            var renames = SlipAbbreviations(slip, structure, renamed.GetValueOrDefault(slip.Structure));
-            var result = await Query<CalculateSalaryQuery, SalaryCalculationDto>(Recalculation(slip, assignment.Base, structure, renames), cancellationToken).ConfigureAwait(false);
+            var mapped = pay.Structures.GetValueOrDefault(slip.Structure);
+            var renames = SlipAbbreviations(slip, structure, mapped?.Renamed);
+            var values = mapped is null ? [] : PayValues.For(assignment, mapped, pay.AssignmentFields, pay.EmployeeFields).Values;
+            var result = await Query<CalculateSalaryQuery, SalaryCalculationDto>(Recalculation(slip, assignment.Base, structure, renames, values), cancellationToken).ConfigureAwait(false);
             if (result.IsFailure)
             {
                 differences.Add($"{slip.Name} ({slip.Employee}): {result.Error!.Message}");
@@ -337,10 +328,9 @@ public sealed partial class MigrationRun
     /// <summary>What Gebeta stores for each migrated structure (in a dry run, what it would store).</summary>
     private async Task<Dictionary<string, IReadOnlyList<SalaryComponentDto>>> StructuresForCheckAsync(CancellationToken cancellationToken)
     {
-        var erp = await source.SalaryStructuresAsync(options.Company, cancellationToken).ConfigureAwait(false);
         if (options.DryRun || _companyId == Guid.Empty)
         {
-            return erp.ToDictionary(s => s.Name, s => (IReadOnlyList<SalaryComponentDto>)MapStructure(s).Components, StringComparer.Ordinal);
+            return (await PayAsync(cancellationToken).ConfigureAwait(false)).Structures.ToDictionary(s => s.Key, s => s.Value.Components, StringComparer.Ordinal);
         }
 
         var ids = await idMap.LoadAsync(options.Company, "Salary Structure", cancellationToken).ConfigureAwait(false);
@@ -353,7 +343,8 @@ public sealed partial class MigrationRun
     /// The slip's inputs for Gebeta's calculator. A component paid only through an Additional Salary (overtime, a one-off deduction)
     /// is not in the structure, so it joins the calculation at zero and receives its amount as an additional amount.
     /// </summary>
-    public static CalculateSalaryQuery Recalculation(ErpSalarySlip slip, decimal baseAmount, IReadOnlyList<SalaryComponentDto> structure, IReadOnlyDictionary<string, string> renames)
+    public static CalculateSalaryQuery Recalculation(ErpSalarySlip slip, decimal baseAmount, IReadOnlyList<SalaryComponentDto> structure, IReadOnlyDictionary<string, string> renames,
+        IReadOnlyDictionary<string, decimal>? values = null)
     {
         ArgumentNullException.ThrowIfNull(slip);
         ArgumentNullException.ThrowIfNull(structure);
@@ -372,7 +363,8 @@ public sealed partial class MigrationRun
             additional[abbreviation] = additional.GetValueOrDefault(abbreviation) + (row.AdditionalAmount != 0m ? row.AdditionalAmount : row.Amount);
         }
 
-        return new CalculateSalaryQuery(new CalculateSalaryRequest(baseAmount, slip.EndDate, slip.PaymentDays, slip.TotalWorkingDays, components, additional));
+        return new CalculateSalaryQuery(new CalculateSalaryRequest(baseAmount, slip.EndDate, slip.PaymentDays, slip.TotalWorkingDays, components, additional,
+            values is { Count: > 0 } ? values : null));
     }
 
     /// <summary>Each slip row's abbreviation as Gebeta knows it: the structure's renames, then the same cleaning for components paid only as additional salary.</summary>

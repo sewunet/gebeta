@@ -51,7 +51,7 @@ public sealed class StepReport(string name)
 /// </summary>
 public sealed partial class MigrationRun(IServiceProvider services, IErpNextSource source, IdMap idMap, MigrationOptions options)
 {
-    public static readonly string[] MasterSteps = ["parties", "items", "warehouses"];
+    public static readonly string[] MasterSteps = ["parties", "items", "warehouses", "employees", "structures", "assignments", "payroll"];
     public static readonly string[] CutoverSteps = ["invoices", "stock", "opening"];
     public static readonly string[] AllSteps = ["company", .. MasterSteps, .. CutoverSteps];
 
@@ -76,7 +76,7 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
 
         Func<CancellationToken, Task<StepReport>>[] runners =
         [
-            PartiesAsync, ItemsAsync, WarehousesAsync,
+            PartiesAsync, ItemsAsync, WarehousesAsync, EmployeesAsync, SalaryStructuresAsync, AssignmentsAsync, PayrollCheckAsync,
             ct => Cutover("invoices", OpenInvoicesAsync, ct),
             ct => Cutover("stock", OpeningStockAsync, ct),
             ct => Cutover("opening", OpeningBalancesAsync, ct),
@@ -140,6 +140,8 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
                 .Concat(await source.SuppliersAsync(cancellationToken).ConfigureAwait(false)).Where(p => !p.Disabled).Select(p => p.Name),
             "Item" => (await source.ItemsAsync(cancellationToken).ConfigureAwait(false)).Where(i => !i.Disabled).Select(i => i.Code),
             "Warehouse" => (await source.WarehousesAsync(options.Company, cancellationToken).ConfigureAwait(false)).Where(w => !w.Disabled).Select(w => w.Name),
+            "Employee" => (await source.EmployeesAsync(options.Company, cancellationToken).ConfigureAwait(false)).Where(e => e.Status != "Left").Select(e => e.Name),
+            "Salary Structure" => (await source.SalaryStructuresAsync(options.Company, cancellationToken).ConfigureAwait(false)).Select(s => s.Name),
             _ => throw new ArgumentOutOfRangeException(nameof(doctype), doctype, null),
         };
         var names = active.ToHashSet(StringComparer.Ordinal);

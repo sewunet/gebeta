@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Gebeta.Accounting.Application;
+using Gebeta.Payroll.Contracts;
 using Gebeta.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -53,6 +54,15 @@ public class MigrationTests(GebetaApiFactory factory)
         public List<ErpOutstanding> Outstanding { get; } = [];
         public List<ErpStockBalance> Stock { get; } = [];
         public DateOnly? YearStartAsked { get; private set; }
+        public List<ErpEmployee> Employees { get; } = [];
+        public List<ErpSalaryStructure> Structures { get; } = [];
+        public List<ErpAssignment> Assignments { get; } = [];
+        public List<ErpSalarySlip> Slips { get; } = [];
+
+        public Task<IReadOnlyList<ErpEmployee>> EmployeesAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpEmployee>>(Employees);
+        public Task<IReadOnlyList<ErpSalaryStructure>> SalaryStructuresAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpSalaryStructure>>(Structures);
+        public Task<IReadOnlyList<ErpAssignment>> AssignmentsAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpAssignment>>(Assignments);
+        public Task<IReadOnlyList<ErpSalarySlip>> LatestSlipsAsync(string c, DateOnly? asOf, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpSalarySlip>>(Slips);
 
         public Task<IReadOnlyList<ErpAccountBalance>> TrialBalanceAsync(string c, DateOnly asOf, DateOnly yearStart, CancellationToken cancellationToken)
         {
@@ -301,6 +311,87 @@ public class MigrationTests(GebetaApiFactory factory)
         {
             File.Delete(map);
         }
+    }
+
+    [Fact]
+    public async Task Employees_structures_and_assignments_come_over_and_gebeta_recalculates_the_last_payroll_to_the_cent()
+    {
+        const string name = "Beles Sugar Factory";
+        var erp = new FakeErpNext(name, "0800000200");
+        erp.Employees.AddRange(
+        [
+            new("HR-EMP-0001", "Abebe", "Kebede", "Tesfaye", "Abebe Kebede Tesfaye", "Male", new(2020, 1, 15), "Active", null, "0800000201"),
+            new("HR-EMP-0002", "Almaz", null, null, "Almaz Tadesse Bekele", "Female", new(2025, 7, 1), "Active", null, "123"),
+            new("HR-EMP-0003", "Lemma", "Girma", null, "Lemma Girma", "Male", new(2019, 3, 1), "Left", new(2024, 6, 30), null),
+        ]);
+
+        // ERPNext rows: Parent, IsDeduction, Component, Abbr, Formula, Amount, Condition, IsTaxable, DependsOnPaymentDays, Statistical, NotInTotal, TaxSlabBased
+        static ErpSalaryDetail Row(string parent, bool deduction, string component, string abbr, string? formula, decimal amount = 0m, bool taxable = true,
+            bool days = false, bool notInTotal = false, bool tax = false, decimal additional = 0m, bool fromAdditional = false) =>
+            new(parent, deduction, component, abbr, formula, amount, null, taxable, days, false, notInTotal, tax, additional, fromAdditional);
+        ErpSalaryDetail[] Staff(string p) =>
+        [
+            Row(p, false, "Basic Salary", "BS", "base", days: true),
+            Row(p, false, "Transport Allowance", "TA", null, 600m, taxable: false),
+            Row(p, true, "Income Tax", "IT", null, tax: true),
+            Row(p, true, "Employee Pension", "PE", "BS * 0.07"),
+            Row(p, true, "Employer Pension", "EPC", "BS * 0.11", notInTotal: true),
+        ];
+        erp.Structures.AddRange([new("Staff 2018", Staff("Staff 2018")), new("Old Grade", [Row("Old Grade", false, "Basic Salary", "BS", "base"), Row("Old Grade", true, "Income Tax", "IT", null, tax: true)])]);
+        erp.Assignments.AddRange(
+        [
+            new("HR-EMP-0001", "Old Grade", 8_000m, new(2024, 7, 8)),
+            new("HR-EMP-0001", "Staff 2018", 10_000m, new(2025, 7, 8)),
+            new("HR-EMP-0002", "Staff 2018", 6_000m, new(2025, 7, 8)),
+            new("HR-EMP-0003", "Old Grade", 5_000m, new(2024, 1, 1)),
+        ]);
+
+        // Sene 2018 as ERPNext paid it, worked out by hand with the 2025 table:
+        //   0001: BS 10,000 + TA 600 (not taxable) + OT 1,500 = 12,100; tax on 11,500 = 30% - 1,350 = 2,100; PE 700; net 9,300; EPC 1,100.
+        //   0002: 20 of 30 days, BS 4,000 + TA 600 = 4,600; tax on 4,000 = 15% - 300 = 300; PE 280; net 4,020; EPC 440.
+        DateOnly start = new(2026, 6, 8), end = new(2026, 7, 7);
+        erp.Slips.AddRange(
+        [
+            new("Sal Slip/HR-EMP-0001/00012", "HR-EMP-0001", "Staff 2018", start, end, 30m, 30m, 12_100m, 9_300m,
+            [
+                Row("s1", false, "Basic Salary", "BS", null, 10_000m), Row("s1", false, "Transport Allowance", "TA", null, 600m, taxable: false),
+                Row("s1", false, "Overtime", "OT", null, 1_500m, additional: 1_500m, fromAdditional: true),
+                Row("s1", true, "Income Tax", "IT", null, 2_100m), Row("s1", true, "Employee Pension", "PE", null, 700m),
+                Row("s1", true, "Employer Pension", "EPC", null, 1_100m, notInTotal: true),
+            ]),
+            new("Sal Slip/HR-EMP-0002/00001", "HR-EMP-0002", "Staff 2018", start, end, 20m, 30m, 4_600m, 4_020m,
+            [
+                Row("s2", false, "Basic Salary", "BS", null, 4_000m), Row("s2", false, "Transport Allowance", "TA", null, 600m, taxable: false),
+                Row("s2", true, "Income Tax", "IT", null, 300m), Row("s2", true, "Employee Pension", "PE", null, 280m),
+                Row("s2", true, "Employer Pension", "EPC", null, 440m, notInTotal: true),
+            ]),
+        ]);
+
+        var dry = await Run(erp, new MigrationOptions(name, DryRun: true));
+        Assert.All(dry, r => Assert.True(r.Ok, r.Name + ": " + string.Join("; ", r.Failures)));
+        Assert.Equal("payroll 2026-06-08 – 2026-07-07: 2 of 2 slips recalculated by Gebeta equal ERPNext to the cent", dry.Single(r => r.Name == "payroll").Check);
+
+        var reports = await Run(erp, new MigrationOptions(name));
+        Assert.All(reports, r => Assert.True(r.Ok, r.Name + ": " + string.Join("; ", r.Failures)));
+        Assert.Equal((2, 2, 3), (reports.Single(r => r.Name == "employees").Created, reports.Single(r => r.Name == "structures").Created, reports.Single(r => r.Name == "assignments").Created));
+        Assert.Contains(reports.Single(r => r.Name == "employees").Warnings, w => w.Contains("1 employees who left", StringComparison.Ordinal));
+        Assert.Contains(reports.Single(r => r.Name == "structures").Warnings, w => w.Contains("Employer Pension (EPC)", StringComparison.Ordinal));
+        Assert.Equal("payroll 2026-06-08 – 2026-07-07: 2 of 2 slips recalculated by Gebeta equal ERPNext to the cent", reports.Single(r => r.Name == "payroll").Check);
+
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var company = (await admin.GetFromJsonAsync<List<CompanyDto>>(U("/api/core/companies"), Ct))!.Single(c => c.Name == name);
+        var employees = (await admin.GetFromJsonAsync<List<EmployeeDto>>(U($"/api/core/employees?companyId={company.Id}"), Ct))!;
+        var almaz = employees.Single(e => e.FirstName == "Almaz");
+        Assert.Equal(("Tadesse", "Bekele"), (almaz.FatherName, almaz.GrandfatherName)); // from the full name
+        var history = (await admin.GetFromJsonAsync<List<SalaryStructureAssignmentDto>>(U($"/api/payroll/employees/{employees.Single(e => e.FirstName == "Abebe").Id}/assignments"), Ct))!;
+        Assert.Equal([8_000m, 10_000m], history.OrderBy(a => a.FromDate).Select(a => a.Base));
+
+        // ERPNext worked the tax out differently for one slip (annual projection): the check names the slip and the component.
+        var slip = erp.Slips[1];
+        erp.Slips[1] = slip with { NetPay = 4_019m, Rows = [.. slip.Rows.Where(r => r.Abbreviation != "IT"), Row("s2", true, "Income Tax", "IT", null, 301m)] };
+        var check = (await Run(erp, new MigrationOptions(name, Steps: ["payroll"]))).Single(r => r.Name == "payroll");
+        Assert.False(check.Ok);
+        Assert.Equal("Sal Slip/HR-EMP-0002/00001 (HR-EMP-0002): IT Gebeta 300.00, ERPNext 301.00; net pay Gebeta 4,020.00, ERPNext 4,019.00", Assert.Single(check.Failures));
     }
 
     [Fact]

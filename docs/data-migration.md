@@ -7,9 +7,10 @@ dedicated opening-balance import.
 
 > **Built so far** (`src/Tools/Gebeta.Migration`):
 > - masters: the company (part of step 1), customers and suppliers, items with their valuation method, warehouses;
+> - employees, salary structures and the assignment history (steps 3–4), proved by recalculating the latest payroll;
 > - cut-over balances, with `--cutover`: open invoices (step 8), opening stock (step 9) and the opening trial balance (step 7).
 >
-> Not yet built: HR, payroll, open orders and assets. Each run prints, for every step, how many records were created,
+> Not yet built: users and roles, HR masters (grades, steps), slip history, the leave ledger, open orders and assets. Each run prints, for every step, how many records were created,
 > adopted (an existing Gebeta record with the same code was used) or already migrated, plus warnings, failures and the
 > step's check.
 >
@@ -22,7 +23,8 @@ dedicated opening-balance import.
 >     --cutover 2026-07-07     also bring the balances at the end of that day (the last day kept in ERPNext)
 >     --account-map file.csv   ERPNext account → Gebeta account; written with suggestions when missing
 >     --steps parties,items    only these steps (company always runs first):
->                              parties, items, warehouses, invoices, stock, opening
+>                              parties, items, warehouses, employees, structures, assignments, payroll,
+>                              invoices, stock, opening
 > ```
 >
 > How the masters come over:
@@ -37,6 +39,27 @@ dedicated opening-balance import.
 >   both a customer and a supplier becomes one party of type Both.
 > - Each item's valuation method comes along (FIFO or moving average). LIFO, which IFRS does not
 >   allow, becomes moving average with a warning.
+>
+> How employees and payroll come over:
+> - **Employees** are everyone whose status is not Left. Ethiopian names are read as ERPNext usually
+>   keeps them: first name, father's name (`middle_name`), grandfather's name (`last_name`). When
+>   those are blank, they come from the second and third words of the full name. The TIN comes from
+>   the `tin_number` custom field when the site has it. A leaving date already set comes along.
+> - **Salary structures** keep their formulas and conditions unchanged. The income tax row (worked
+>   out from tax slabs in ERPNext) becomes `income_tax(taxable_earnings)`, using Gebeta's legal
+>   tables. A deduction kept out of the totals becomes an employer contribution, with a warning to
+>   confirm it. A statistical earning has no Gebeta equivalent yet, and is listed for rewriting
+>   together with any formula Gebeta cannot read. Inactive structures that the assignment history
+>   still names come along too.
+> - **Assignments** come over as the whole submitted history, so back pay across the cut-over has
+>   the earlier bases.
+> - **The proof** (the `payroll` step, which writes nothing) takes every slip of ERPNext's latest
+>   submitted payroll, up to the cut-over day when one is given. Gebeta's engine recalculates each
+>   one from the stored structure, with the same base, payment days and additional salary.
+>   Components paid only through an Additional Salary join at zero, then get their amount. Every
+>   component and the net pay must match to the cent. Differences are listed per slip, e.g.
+>   `IT Gebeta 300.00, ERPNext 301.00`. Typical causes are ERPNext's annual tax projection or a
+>   tax slab set up differently. The first 25 are shown.
 >
 > How the cut-over balances come over (all dated the cut-over day):
 > - **Open invoices** come from ERPNext's Payment Ledger as at the cut-over day. Each becomes a

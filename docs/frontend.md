@@ -34,6 +34,11 @@
 > date, TIN; record or take back a leaving) and customers or suppliers (with their own object page listing their
 > invoices and open amounts) are edited in place: Edit in the header, fields become inputs, Save and Cancel in the
 > footer bar. Every page is loaded on first use (`lazyRouteComponent`), so the first download stays small.
+>
+> **Stock screens** (step 29): items (list, create dialog, item page with edit mode, stock per warehouse and the
+> valuation method), warehouses, stock entries (list report; create page per purpose with Save and post or Save as
+> draft; object page with post and cancel), stock balance (filter by warehouse, click through to the ledger) and
+> stock ledger per item. A Stock group on the home page shows the stock value.
 
 React 19 + TypeScript (strict) + Vite, in `web/`.
 

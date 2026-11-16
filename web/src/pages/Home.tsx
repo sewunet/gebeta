@@ -5,7 +5,7 @@ import { APPS, GROUPS, type AppEntry } from "../app/apps";
 import { useSession } from "../app/context";
 import { api } from "../lib/api";
 import { formatEthiopian, toEthiopian, todayIso } from "../lib/ethiopian";
-import { can, type AgeingReportDto, type BankAccountDto, type EmployeeDto, type PeriodClosingsDto, type VatReportDto } from "../lib/types";
+import { can, type AgeingReportDto, type BankAccountDto, type EmployeeDto, type PeriodClosingsDto, type StockBalanceDto, type VatReportDto } from "../lib/types";
 import { Tile, type Tone } from "../ui/fiori";
 import { monthRange, currentMonth } from "./payroll/month";
 
@@ -34,6 +34,8 @@ export function Home() {
     queryFn: () => api<PeriodClosingsDto>(`/api/accounting/periods?companyId=${id}`) });
   const banks = useQuery({ queryKey: ["bank-accounts", id], enabled: on("accounting.banking.read", "accounting"),
     queryFn: () => api<BankAccountDto[]>(`/api/accounting/bank-accounts?companyId=${id}`) });
+  const stockValue = useQuery({ queryKey: ["stock-balance", id, today], enabled: on("stock.reports.read", "stock"),
+    queryFn: () => api<StockBalanceDto>(`/api/stock/reports/balance?companyId=${id}&asOf=${today}`) });
   const employees = useQuery({ queryKey: ["employees", id], enabled: on("core.employees.read"),
     queryFn: () => api<EmployeeDto[]>(`/api/core/employees?companyId=${id}`) });
 
@@ -47,6 +49,7 @@ export function Home() {
       : { value: t("tiles.allOpen"), footer: t("tiles.noMonthClosed") }) : {},
     banking: banks.data ? { value: String(banks.data.length), footer: t("tiles.bankAccounts") } : {},
     employees: employees.data ? { value: String(employees.data.length), footer: company?.abbreviation } : {},
+    "stock-balance": stockValue.data ? { value: compact(stockValue.data.totalValue), unit: "ETB", footer: t("tiles.inStock") } : {},
   };
   const installed = (a: AppEntry) => (!a.module || modules.some((m) => m.id === a.module)) && can(me, a.permission);
 

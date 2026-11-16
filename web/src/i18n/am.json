@@ -29,7 +29,13 @@
     "periods": "የሂሳብ መዝጊያ",
     "ageing": "ተሰብሳቢና ተከፋይ ሂሳቦች",
     "banking": "ባንኮች",
-    "home": "መነሻ"
+    "home": "መነሻ",
+    "stock": "ክምችት",
+    "stockEntries": "የክምችት ምዝገባዎች",
+    "stockBalance": "የክምችት ቀሪ",
+    "stockLedger": "የክምችት መዝገብ",
+    "items": "ዕቃዎች",
+    "warehouses": "መጋዘኖች"
   },
   "common": {
     "company": "ኩባንያ",
@@ -509,7 +515,13 @@
     "closedUpTo": "ተዘግቷል እስከ",
     "allOpen": "ክፍት",
     "noMonthClosed": "የተዘጋ ወር የለም",
-    "bankAccounts": "የባንክ ሂሳቦች"
+    "bankAccounts": "የባንክ ሂሳቦች",
+    "stockEntries": "ገቢ፣ ወጪ፣ ዝውውር",
+    "stockBalance": "በክምችት ያለው",
+    "stockLedger": "እያንዳንዱ እንቅስቃሴ",
+    "items": "ምርቶችና አገልግሎቶች",
+    "warehouses": "መጋዘኖችና ቦታዎች",
+    "inStock": "በክምችት"
   },
   "ui": {
     "search": "ፈልግ",
@@ -533,5 +545,55 @@
     "timeZone": "የሰዓት ክልል",
     "tradeLicense": "የንግድ ፈቃድ ቁጥር",
     "fixedFields": "ምህጻረ ቃሉ፣ ግብር ከፋይ መለያ፣ የሕግ ሰውነት፣ ገንዘብና የበጀት ዓመት እዚህ አይቀየሩም፤ ሰነዶችና ሂሳቦች በእነሱ ይሰየማሉ።"
+  },
+  "stock": {
+    "stockItem": "የክምችት ዕቃ",
+    "nonStock": "የማይከማች",
+    "group": "ምድብ",
+    "uom": "መለኪያ",
+    "inactive": "የቆመ",
+    "newItem": "አዲስ ዕቃ",
+    "isStockItem": "በክምችት ይያዛል",
+    "onHand": "ያለው",
+    "value": "ዋጋ",
+    "stock": "ክምችት",
+    "method": "የዋጋ ትመና ዘዴ",
+    "methods": {
+      "MovingAverage": "ተንቀሳቃሽ አማካይ",
+      "Fifo": "FIFO (የመጀመሪያው ገቢ መጀመሪያ ወጪ)"
+    },
+    "methodFixed": "ተወስኗል፤ ዕቃው የክምችት እንቅስቃሴ አለው።",
+    "methodHint": "ከመጀመሪያው እንቅስቃሴ በፊት ይምረጡ፤ በኋላ አይቀየርም።",
+    "qty": "ብዛት",
+    "noStock": "በክምችት ምንም የለም።",
+    "stockAccount": "የክምችት ሂሳብ",
+    "stockAccountHint": "የዚህ መጋዘን የክምችት ዋጋ የሚያዝበት ሂሳብ (በነባሪ 1300 ክምችቶች)።",
+    "newWarehouse": "አዲስ መጋዘን",
+    "warehouseSaved": "መጋዘን {{code}} ተጨምሯል።",
+    "noWarehouses": "እስካሁን መጋዘን የለም። መጀመሪያ በመጋዘኖች ስር ይጨምሩ።",
+    "entrySearchHint": "ቁጥር፣ ዕቃ ወይም ማብራሪያ",
+    "purpose": "ዓይነት",
+    "purposes": {
+      "Receipt": "ገቢ",
+      "Issue": "ወጪ",
+      "Transfer": "ዝውውር"
+    },
+    "new": {
+      "Receipt": "አዲስ ገቢ",
+      "Issue": "አዲስ ወጪ",
+      "Transfer": "አዲስ ዝውውር"
+    },
+    "saveAndPost": "አስቀምጥና መዝግብ",
+    "counterAccount": "ተቃራኒ ሂሳብ",
+    "from": "ከ",
+    "to": "ወደ",
+    "receiptHint": "ዋጋው የአንድ መለኪያ ዋጋ ነው። ሲመዘገብ ክምችቱና ዋጋው ይጨመራል፤ የሂሳብ ክፍሉ የዋጋ ምዝገባውን ያገኛል (የክምችት ሂሳብ ከተቃራኒ ሂሳቡ ጋር፣ በነባሪ 5100 የክምችት ማስተካከያ)።",
+    "rateHint": "ዋጋው ከዕቃው የዋጋ ትመና ዘዴ ይመጣል፤ እርስዎ አያስገቡትም። ክምችት ከዜሮ በታች አይወርድም።",
+    "cancelled": "{{number}} ተሰርዟል፤ ክምችቱና የዋጋ ምዝገባው ተቀልብሰዋል።",
+    "posted": "{{number}} ተመዝግቧል።",
+    "draftHint": "ይህ ረቂቅ ነው፤ እስኪመዘግቡት ድረስ ክምችት አይንቀሳቀስም።",
+    "valueChange": "የዋጋ ለውጥ",
+    "qtyAfter": "ከዚያ በኋላ ያለው ብዛት",
+    "valueAfter": "ከዚያ በኋላ ያለው ዋጋ"
   }
 }

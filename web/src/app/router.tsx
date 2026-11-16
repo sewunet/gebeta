@@ -1,8 +1,20 @@
 import { createRootRoute, createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
 import { validateKind } from "../pages/accounting/invoices/shared";
+import { validateItem, validatePurpose } from "../pages/stock/search";
 import { Layout } from "./Layout";
 
 const root = createRootRoute({ component: Layout });
+
+const items = createRoute({ getParentRoute: () => root, path: "/items", component: lazyRouteComponent(() => import("../pages/stock/Items"), "Items") });
+const item = createRoute({ getParentRoute: () => root, path: "/items/$id", component: lazyRouteComponent(() => import("../pages/stock/Items"), "ItemDetail") });
+const warehouses = createRoute({ getParentRoute: () => root, path: "/stock/warehouses", component: lazyRouteComponent(() => import("../pages/stock/Warehouses"), "Warehouses") });
+const stockEntries = createRoute({ getParentRoute: () => root, path: "/stock/entries", component: lazyRouteComponent(() => import("../pages/stock/StockEntries"), "StockEntries") });
+const stockEntryNew = createRoute({ getParentRoute: () => root, path: "/stock/entries/new", component: lazyRouteComponent(() => import("../pages/stock/StockEntries"), "StockEntryCreate"),
+  validateSearch: validatePurpose });
+const stockEntry = createRoute({ getParentRoute: () => root, path: "/stock/entries/$id", component: lazyRouteComponent(() => import("../pages/stock/StockEntries"), "StockEntryDetail") });
+const stockBalance = createRoute({ getParentRoute: () => root, path: "/stock/balance", component: lazyRouteComponent(() => import("../pages/stock/StockReports"), "StockBalance") });
+const stockLedger = createRoute({ getParentRoute: () => root, path: "/stock/ledger", component: lazyRouteComponent(() => import("../pages/stock/StockReports"), "StockLedger"),
+  validateSearch: validateItem });
 
 const dashboard = createRoute({ getParentRoute: () => root, path: "/", component: lazyRouteComponent(() => import("../pages/Home"), "Home") });
 const companies = createRoute({ getParentRoute: () => root, path: "/companies", component: lazyRouteComponent(() => import("../pages/Companies"), "Companies") });
@@ -36,7 +48,7 @@ const banking = createRoute({ getParentRoute: () => root, path: "/accounting/ban
 const ageing = createRoute({ getParentRoute: () => root, path: "/accounting/ageing", component: lazyRouteComponent(() => import("../pages/accounting/Ageing"), "Ageing") });
 
 export const router = createRouter({
-  routeTree: root.addChildren([dashboard, companies, companyPage, employees, employeePage, slips, slip, run, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, trialBalance, parties, party, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
+  routeTree: root.addChildren([items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, employees, employeePage, slips, slip, run, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, trialBalance, parties, party, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
 });
 
 declare module "@tanstack/react-router" {

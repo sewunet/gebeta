@@ -110,3 +110,20 @@ export type ReconciliationDto = {
   suggestions: { statementLineId: string; glEntryId: string }[]; bookBalance: number; unmatchedStatement: number; unmatchedBook: number;
   expectedStatementBalance: number; statementBalance?: number; difference?: number;
 };
+export type ItemDto = { id: string; companyId: string; code: string; name: string; uom: string; group?: string; isStockItem: boolean; isActive: boolean };
+export type WarehouseDto = { id: string; companyId: string; code: string; name: string; stockAccountCode: string };
+export type ItemStockSettingDto = { itemId: string; method: "MovingAverage" | "Fifo"; hasMovements: boolean };
+export type StockEntryLineDto = {
+  itemId: string; itemCode: string; itemName: string; uom: string; qty: number; rate?: number; sourceWarehouseId?: string; sourceWarehouse?: string;
+  targetWarehouseId?: string; targetWarehouse?: string; value: number;
+};
+export type StockEntryDto = {
+  id: string; number?: string; companyId: string; purpose: "Receipt" | "Issue" | "Transfer"; postingDate: string; status: string; counterAccountCode: string;
+  remark?: string; lines: StockEntryLineDto[]; totalValue: number;
+};
+export type StockBalanceRow = { itemId: string; itemCode: string; itemName: string; uom: string; warehouseId: string; warehouse: string; qty: number; rate: number; value: number; method: string };
+export type StockBalanceDto = { companyId: string; asOf: string; rows: StockBalanceRow[]; totalValue: number };
+export type StockLedgerDto = {
+  itemId: string; itemCode: string; itemName: string;
+  rows: { date: string; voucher: string; warehouse: string; qty: number; rate: number; valueChange: number; qtyAfter: number; valueAfter: number }[];
+};

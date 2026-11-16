@@ -29,7 +29,13 @@
     "periods": "Closing",
     "ageing": "Receivables & payables",
     "banking": "Banks",
-    "home": "Home"
+    "home": "Home",
+    "stock": "Stock",
+    "stockEntries": "Stock entries",
+    "stockBalance": "Stock balance",
+    "stockLedger": "Stock ledger",
+    "items": "Items",
+    "warehouses": "Warehouses"
   },
   "common": {
     "company": "Company",
@@ -509,7 +515,13 @@
     "closedUpTo": "closed up to",
     "allOpen": "Open",
     "noMonthClosed": "no month closed",
-    "bankAccounts": "bank accounts"
+    "bankAccounts": "bank accounts",
+    "stockEntries": "Receipts, issues, transfers",
+    "stockBalance": "What is in stock",
+    "stockLedger": "Every movement",
+    "items": "Products and services",
+    "warehouses": "Stores and locations",
+    "inStock": "in stock"
   },
   "ui": {
     "search": "Search",
@@ -533,5 +545,55 @@
     "timeZone": "Time zone",
     "tradeLicense": "Trade licence no.",
     "fixedFields": "The abbreviation, TIN, legal form, currency and fiscal year cannot be changed here: documents and accounts are named after them."
+  },
+  "stock": {
+    "stockItem": "Stock item",
+    "nonStock": "Not stocked",
+    "group": "Group",
+    "uom": "Unit",
+    "inactive": "Inactive",
+    "newItem": "New item",
+    "isStockItem": "Kept in stock",
+    "onHand": "On hand",
+    "value": "Value",
+    "stock": "Stock",
+    "method": "Valuation method",
+    "methods": {
+      "MovingAverage": "Moving average",
+      "Fifo": "FIFO (first in, first out)"
+    },
+    "methodFixed": "Fixed: the item has stock movements.",
+    "methodHint": "Choose before the first movement; it cannot change afterwards.",
+    "qty": "Qty",
+    "noStock": "Nothing in stock.",
+    "stockAccount": "Stock account",
+    "stockAccountHint": "The ledger account this warehouse's stock value is kept on (default 1300 Inventories).",
+    "newWarehouse": "New warehouse",
+    "warehouseSaved": "Warehouse {{code}} added.",
+    "noWarehouses": "No warehouses yet. Add one under Warehouses first.",
+    "entrySearchHint": "Number, item or remark",
+    "purpose": "Type",
+    "purposes": {
+      "Receipt": "Receipt",
+      "Issue": "Issue",
+      "Transfer": "Transfer"
+    },
+    "new": {
+      "Receipt": "New receipt",
+      "Issue": "New issue",
+      "Transfer": "New transfer"
+    },
+    "saveAndPost": "Save and post",
+    "counterAccount": "Counter account",
+    "from": "From",
+    "to": "To",
+    "receiptHint": "The rate is what one unit cost. Posting adds the stock and its value; Accounting gets the value journal (stock account against the counter account, default 5100 Stock Adjustment).",
+    "rateHint": "The rate comes from the item's valuation method; you do not enter it. Stock cannot go below zero.",
+    "cancelled": "{{number}} is cancelled; its stock and value journal are reversed.",
+    "posted": "{{number}} is posted.",
+    "draftHint": "This is a draft: no stock moves until you post it.",
+    "valueChange": "Value change",
+    "qtyAfter": "Qty after",
+    "valueAfter": "Value after"
   }
 }

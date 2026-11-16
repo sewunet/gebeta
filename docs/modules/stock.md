@@ -8,9 +8,18 @@
 > warehouse with PostgreSQL advisory locks. Each entry asks Accounting for its value journal (`StockJournalRequested`:
 > stock account against the counter account, default 5100 Stock Adjustment, or between stock accounts for
 > transfers); cancelling posts the reversal. Reports: stock balance as of a date, stock ledger per item.
-> Not yet: **backdated entries and reposting** (an entry may not be dated before the latest movement of its item
-> and warehouse, and can be cancelled only while it is still the latest), batches and serial numbers, units of
-> measure conversions, purchase receipts and delivery notes, stock reconciliation, the web screens.
+>
+> **Reposting** (step 30): an entry may be backdated, and any entry may be cancelled. Both happen in one
+> transaction: the entry's rows are written from the stock on its posting date (or marked cancelled), then every later
+> row of each item and warehouse is replayed in posting order (date, then sequence). Receipts keep their value;
+> issues and transfers out are repriced by the engine; a transfer out whose value changed passes it to its transfer
+> in, whose warehouse is replayed in turn. A replay that would take stock below zero at any point is refused and
+> nothing changes. Repriced entries get their line values updated and an adjustment journal for the difference
+> (`StockJournalAdjusted`); cancelling sends one that takes the entry's value back out. Ledger rows carry their
+> movement kind. Running it inline (not as a background job) keeps it simple at today's volumes; a large history
+> would move it to a job with a reposting page, as designed below.
+> Not yet: batches and serial numbers, units of measure conversions, purchase receipts and delivery notes, stock
+> reconciliation.
 
 ## Scope
 

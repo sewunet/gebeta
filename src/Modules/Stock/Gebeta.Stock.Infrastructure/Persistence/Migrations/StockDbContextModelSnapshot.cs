@@ -273,6 +273,12 @@ namespace Gebeta.Stock.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("item_id");
 
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
                     b.Property<int>("LineIndex")
                         .HasColumnType("integer")
                         .HasColumnName("line_index");
@@ -348,6 +354,9 @@ namespace Gebeta.Stock.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ItemId", "WarehouseId", "Sequence")
                         .HasDatabaseName("ix_stock_ledger_entry_item_id_warehouse_id_sequence");
+
+                    b.HasIndex("ItemId", "WarehouseId", "PostingDate", "Sequence")
+                        .HasDatabaseName("ix_stock_ledger_entry_item_id_warehouse_id_posting_date_sequen");
 
                     b.ToTable("stock_ledger_entry", "stock");
                 });

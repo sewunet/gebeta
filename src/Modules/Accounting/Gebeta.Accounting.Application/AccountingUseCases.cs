@@ -211,7 +211,47 @@ public sealed class StockJournalRequestedConsumer(
     }
 }
 
-/// <summary>A cancelled stock entry reverses its value journal.</summary>
+/// <summary>
+/// A stock value adjustment: reposting repriced an entry, or the entry was cancelled. Posted as its own journal (source
+/// <see cref="JournalSource.Stock"/>, source id = the adjustment), so the ledger stays append-only and a repeat does nothing.
+/// </summary>
+public sealed class StockJournalAdjustedConsumer(
+    ChartSetup chart,
+    IAccountRepository accounts,
+    IJournalRepository journals,
+    IAccountingNumbers numbers,
+    IAccountingUnitOfWork unitOfWork,
+    TimeProvider clock) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockJournalAdjusted>
+{
+    public async Task HandleAsync(Gebeta.Stock.Contracts.StockJournalAdjusted adjustment, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(adjustment);
+        if (await journals.FindBySourceAsync(adjustment.AdjustmentId, cancellationToken).ConfigureAwait(false) is not null)
+        {
+            return;
+        }
+
+        if (await chart.EnsureAsync(adjustment.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var byCode = (await accounts.ListAsync(adjustment.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
+        var lines = adjustment.Lines.Select(l => byCode.TryGetValue(l.AccountCode, out var account) && !account.IsGroup
+                ? new JournalLine(account.Id, l.Debit, l.Credit, adjustment.Remark)
+                : throw new DomainException("accounting.unknown_account", $"Account {l.AccountCode} from {adjustment.VoucherNumber} is not a postable account."))
+            .ToList();
+        var journal = JournalEntry.Create(adjustment.CompanyId, adjustment.PostingDate, adjustment.Remark, lines, JournalSource.Stock, adjustment.AdjustmentId, adjustment.VoucherNumber);
+        journal.AssignName(await numbers.NextAsync(adjustment.CompanyId, journal.DocumentType, JournalHandler.DefaultPattern, adjustment.PostingDate, cancellationToken).ConfigureAwait(false));
+        journal.CreatedAt = clock.GetUtcNow();
+        journal.CreatedBy = "stock";
+        journals.Add(journal);
+        journals.Add(journal.Post());
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>A cancelled stock entry reverses its value journal (events from before step 30; cancelling now sends an adjustment).</summary>
 public sealed class StockEntryCancelledConsumer(IJournalRepository journals, IAccountingUnitOfWork unitOfWork) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockEntryCancelled>
 {
     public async Task HandleAsync(Gebeta.Stock.Contracts.StockEntryCancelled cancelled, CancellationToken cancellationToken)

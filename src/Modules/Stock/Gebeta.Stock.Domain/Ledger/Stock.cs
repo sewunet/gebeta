@@ -143,11 +143,24 @@ public sealed class StockEntry : DocumentBase
     }
 
     internal void SetLineValues(IReadOnlyList<decimal> values) => _lines = _lines.Select((l, i) => l with { Value = values[i] }).ToList();
+
+    /// <summary>Reposting changed the value of one line (issues and transfers; a receipt's value never changes).</summary>
+    public void RevalueLine(int index, decimal value) => _lines = _lines.Select((l, i) => i == index ? l with { Value = value } : l).ToList();
+}
+
+/// <summary>What a ledger row is: its value is fixed (receipt), taken from its transfer-out row (transfer in), or computed by the engine (issue, transfer out).</summary>
+public enum MovementKind
+{
+    Receipt,
+    Issue,
+    TransferOut,
+    TransferIn,
 }
 
 /// <summary>
-/// A row of the stock ledger: one movement of one item in one warehouse, with the state after it. Append-only; a cancelled
-/// entry's rows are marked cancelled (allowed only while they are the latest rows of their item and warehouse).
+/// A row of the stock ledger: one movement of one item in one warehouse, with the state after it. The movement itself
+/// never changes; the computed columns (value change, quantity and value after, FIFO queue) are rewritten by reposting
+/// when an earlier movement is posted or cancelled. Rows are ordered by posting date, then sequence.
 /// </summary>
 public sealed class StockLedgerEntry : Entity
 {
@@ -170,6 +183,7 @@ public sealed class StockLedgerEntry : Entity
     public decimal QtyAfter { get; private set; }
     public decimal ValueAfter { get; private set; }
     public ValuationMethod Method { get; private set; }
+    public MovementKind Kind { get; private set; }
     public IReadOnlyList<FifoLayer> Queue => _queue;
     public Guid VoucherId { get; private set; }
     public string VoucherNumber { get; private set; }
@@ -182,22 +196,78 @@ public sealed class StockLedgerEntry : Entity
     public ValuationState State => new(QtyAfter, ValueAfter, _queue);
 
     internal static StockLedgerEntry Create(StockEntry entry, int lineIndex, Guid itemId, Guid warehouseId, decimal qty, decimal valueChange, ValuationState after,
-        ValuationMethod method) => new()
+        ValuationMethod method, MovementKind kind) => new()
     {
+        Kind = kind,
         CompanyId = entry.CompanyId, ItemId = itemId, WarehouseId = warehouseId, PostingDate = entry.PostingDate, ActualQty = qty, ValueChange = valueChange,
         QtyAfter = after.Qty, ValueAfter = after.Value, Method = method, _queue = after.Queue.ToList(), VoucherId = entry.Id, VoucherNumber = entry.Name ?? string.Empty,
         LineIndex = lineIndex,
     };
 
     public void MarkCancelled() => IsCancelled = true;
+
+    /// <summary>Reposting: the new computed value of this movement and the state after it.</summary>
+    internal bool Revalue(decimal valueChange, ValuationState after)
+    {
+        var changed = valueChange != ValueChange || after.Qty != QtyAfter || after.Value != ValueAfter || !after.Queue.SequenceEqual(_queue);
+        (ValueChange, QtyAfter, ValueAfter, _queue) = (valueChange, after.Qty, after.Value, after.Queue.ToList());
+        return changed;
+    }
 }
 
-/// <summary>Where an item stands in a warehouse before a posting: its state and the date of its latest movement.</summary>
-public sealed record StockPosition(ValuationState State, DateOnly? LastMovement, ValuationMethod? Method);
+/// <summary>
+/// Reposting (docs/modules/stock.md): replays the ledger rows of one item and warehouse from a starting state, in posting
+/// order. Receipts keep their value, transfers in take the (possibly new) value of their transfer out, issues and
+/// transfers out get their value from the engine again. A replay that would take stock below zero at any point fails.
+/// </summary>
+public static class Reposting
+{
+    /// <returns>The rows whose computed values changed, with their value change before reposting.</returns>
+    public static IReadOnlyList<(StockLedgerEntry Row, decimal OldValueChange)> Replay(ValuationState start, IReadOnlyList<StockLedgerEntry> rows, ValuationMethod method,
+        Func<StockLedgerEntry, decimal?> transferInValue)
+    {
+        ArgumentNullException.ThrowIfNull(start);
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(transferInValue);
+        var state = start;
+        var changed = new List<(StockLedgerEntry, decimal)>();
+        foreach (var row in rows)
+        {
+            var old = row.ValueChange;
+            decimal change;
+            try
+            {
+                (state, change) = row.Kind switch
+                {
+                    MovementKind.Receipt => Valuation.Receive(state, row.ActualQty, row.ValueChange, method),
+                    MovementKind.TransferIn => Valuation.Receive(state, row.ActualQty, transferInValue(row) ?? row.ValueChange, method),
+                    _ => Valuation.Issue(state, -row.ActualQty, method),
+                };
+            }
+            catch (DomainException ex) when (ex.Code == "stock.negative")
+            {
+                throw new DomainException("stock.negative", $"{row.VoucherNumber} on {row.PostingDate:yyyy-MM-dd} would take the stock below zero: {ex.Message}");
+            }
+
+            if (row.Revalue(change, state))
+            {
+                changed.Add((row, old));
+            }
+        }
+
+        return changed;
+    }
+}
+
+/// <summary>Where an item stands in a warehouse on the posting date (after every movement up to then).</summary>
+public sealed record StockPosition(ValuationState State, ValuationMethod? Method);
 
 public sealed record StockPostingResult(IReadOnlyList<StockLedgerEntry> Rows, IReadOnlyList<(string AccountCode, decimal Debit, decimal Credit)> JournalLines);
 
-/// <summary>Turns a stock entry into ledger rows and the value journal.</summary>
+/// <summary>
+/// Turns a stock entry into ledger rows and the value journal, from the state of each item and warehouse on the posting
+/// date. Later movements (a backdated entry) are repriced afterwards by <see cref="Reposting"/>.
+/// </summary>
 public static class StockPosting
 {
     public static StockPostingResult Post(StockEntry entry, IReadOnlyDictionary<(Guid Item, Guid Warehouse), StockPosition> positions,
@@ -220,14 +290,7 @@ public static class StockPosting
                 return s;
             }
 
-            var p = positions.GetValueOrDefault((item, warehouse));
-            if (p?.LastMovement is { } last && entry.PostingDate < last)
-            {
-                throw new DomainException("stock.backdated",
-                    $"There are later stock movements for this item in {warehouses[warehouse].Code} (on {last:yyyy-MM-dd}); backdated entries are not supported yet.");
-            }
-
-            return p?.State ?? ValuationState.Empty;
+            return positions.GetValueOrDefault((item, warehouse))?.State ?? ValuationState.Empty;
         }
 
         var rows = new List<StockLedgerEntry>();
@@ -245,7 +308,7 @@ public static class StockPosting
                 var target = l.TargetWarehouseId!.Value;
                 var (after, change) = Valuation.Receive(Current(l.ItemId, target), l.Qty, l.Qty * l.Rate!.Value, method);
                 state[(l.ItemId, target)] = after;
-                rows.Add(StockLedgerEntry.Create(entry, i, l.ItemId, target, l.Qty, change, after, method));
+                rows.Add(StockLedgerEntry.Create(entry, i, l.ItemId, target, l.Qty, change, after, method, MovementKind.Receipt));
                 value = change;
                 Book(warehouses[target].StockAccountCode, value);
                 Book(entry.CounterAccountCode, -value);
@@ -259,7 +322,8 @@ public static class StockPosting
                     before = Current(l.ItemId, source);
                     var (after, change) = Valuation.Issue(before, l.Qty, method);
                     state[(l.ItemId, source)] = after;
-                    rows.Add(StockLedgerEntry.Create(entry, i, l.ItemId, source, -l.Qty, change, after, method));
+                    rows.Add(StockLedgerEntry.Create(entry, i, l.ItemId, source, -l.Qty, change, after, method,
+                        entry.Purpose == StockEntryPurpose.Issue ? MovementKind.Issue : MovementKind.TransferOut));
                     value = -change;
                 }
                 catch (DomainException ex) when (ex.Code == "stock.negative")
@@ -277,7 +341,7 @@ public static class StockPosting
                     var target = l.TargetWarehouseId!.Value;
                     var (inAfter, inChange) = Valuation.Receive(Current(l.ItemId, target), l.Qty, value, method);
                     state[(l.ItemId, target)] = inAfter;
-                    rows.Add(StockLedgerEntry.Create(entry, i, l.ItemId, target, l.Qty, inChange, inAfter, method));
+                    rows.Add(StockLedgerEntry.Create(entry, i, l.ItemId, target, l.Qty, inChange, inAfter, method, MovementKind.TransferIn));
                     Book(warehouses[target].StockAccountCode, value);
                 }
             }
@@ -304,8 +368,10 @@ public interface IStockRepository
     /// <summary>Serialises postings per item and warehouse for the rest of the transaction.</summary>
     Task LockAsync(IEnumerable<(Guid Item, Guid Warehouse)> pairs, CancellationToken cancellationToken);
 
-    /// <summary>The latest live ledger row of each pair.</summary>
-    Task<IReadOnlyDictionary<(Guid Item, Guid Warehouse), StockLedgerEntry>> LatestAsync(IEnumerable<(Guid Item, Guid Warehouse)> pairs, CancellationToken cancellationToken);
+    /// <summary>Every live ledger row of one item and warehouse, tracked, in posting order (date, then sequence).</summary>
+    Task<List<StockLedgerEntry>> RowsForPairAsync(Guid itemId, Guid warehouseId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<StockEntry>> GetEntriesAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken);
 
     Task<bool> HasMovementsAsync(Guid itemId, CancellationToken cancellationToken);
     Task<IReadOnlyList<StockLedgerEntry>> RowsForVoucherAsync(Guid voucherId, CancellationToken cancellationToken);

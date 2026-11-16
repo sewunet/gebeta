@@ -72,13 +72,11 @@ public class StockFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiF
         var issue = await Entry(new { companyId = id, purpose = "Issue", postingDate = "2026-11-13", remark = "Site A", lines = new[] { Line(30m, from: shop.Id) } });
         Assert.Equal(15_300m, issue.TotalValue); // the shop's layer came in at 510
 
-        // Refused: more than in stock, a service item, a backdated movement, a method change.
+        // Refused: more than in stock, a service item, a method change.
         var tooMuch = await Entry(new { companyId = id, purpose = "Issue", postingDate = "2026-11-13", lines = new[] { Line(500m, from: shop.Id) } }, submit: false);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsync(U($"/api/stock/entries/{tooMuch.Id}/submit"), null, Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync(U("/api/stock/entries"),
             new { companyId = id, purpose = "Receipt", postingDate = "2026-11-13", lines = new[] { new { itemId = service!.Id, qty = 1m, rate = 1m, targetWarehouseId = main.Id } } }, Ct)).StatusCode);
-        var backdated = await Entry(new { companyId = id, purpose = "Receipt", postingDate = "2026-11-09", lines = new[] { Line(1m, 1m, to: main.Id) } }, submit: false);
-        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsync(U($"/api/stock/entries/{backdated.Id}/submit"), null, Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync(U($"/api/stock/items/{cement.Id}/settings"), new { method = "MovingAverage" }, Ct)).StatusCode);
 
         var balance = await admin.GetFromJsonAsync<StockBalanceDto>(U($"/api/stock/reports/balance?companyId={id}&asOf=2026-11-30"), Ct);
@@ -88,7 +86,7 @@ public class StockFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiF
         var ledger = await admin.GetFromJsonAsync<StockLedgerDto>(U($"/api/stock/reports/ledger?companyId={id}&itemId={cement.Id}&from=2026-11-01&to=2026-11-30"), Ct);
         Assert.Equal(5, ledger!.Rows.Count); // two receipts, transfer out and in, issue
 
-        // Cancelling: the first receipt has later movements; the issue is the latest in the shop.
+        // Cancelling: without the first receipt the transfer would take MAIN below zero; the issue can go.
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsync(U($"/api/stock/entries/{r1.Id}/cancel"), null, Ct)).StatusCode);
         Assert.Equal("Cancelled", (await (await admin.PostAsync(U($"/api/stock/entries/{issue.Id}/cancel"), null, Ct)).Content.ReadFromJsonAsync<StockEntryDto>(Ct))!.Status);
         balance = await admin.GetFromJsonAsync<StockBalanceDto>(U($"/api/stock/reports/balance?companyId={id}&asOf=2026-11-30"), Ct);
@@ -102,7 +100,8 @@ public class StockFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiF
             [new StockJournalLine("5100", 15_300m, 0m), new StockJournalLine("1300", 0m, 15_300m)], DateTimeOffset.UtcNow));
         var tb = await admin.GetFromJsonAsync<TrialBalanceDto>(U($"/api/accounting/reports/trial-balance?companyId={id}&asOf=2026-11-30"), Ct);
         Assert.Equal(34_700m, tb!.Rows.Single(r => r.Code == "1300").Balance);
-        await Deliver<StockEntryCancelledConsumer, StockEntryCancelled>(new StockEntryCancelled(issue.Id, issue.Number!, id, DateTimeOffset.UtcNow));
+        await Deliver<StockJournalAdjustedConsumer, StockJournalAdjusted>(new StockJournalAdjusted(Guid.CreateVersion7(), issue.Id, issue.Number!, id, issue.PostingDate,
+            $"Cancelled {issue.Number}", [new StockJournalLine("1300", 15_300m, 0m), new StockJournalLine("5100", 0m, 15_300m)], DateTimeOffset.UtcNow));
         tb = await admin.GetFromJsonAsync<TrialBalanceDto>(U($"/api/accounting/reports/trial-balance?companyId={id}&asOf=2026-11-30"), Ct);
         Assert.Equal(50_000m, tb!.Rows.Single(r => r.Code == "1300").Balance);
     }

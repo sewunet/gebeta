@@ -38,5 +38,12 @@ public sealed record StockJournalLine(string AccountCode, decimal Debit, decimal
 public sealed record StockJournalRequested(Guid SourceId, string SourceNumber, Guid CompanyId, DateOnly PostingDate, string Remark, IReadOnlyList<StockJournalLine> Lines,
     DateTimeOffset OccurredAt);
 
-/// <summary>A stock entry was cancelled; Accounting reverses its value journal.</summary>
+/// <summary>A stock entry was cancelled; Accounting reverses its value journal. No longer published (cancelling sends a <see cref="StockJournalAdjusted"/>); kept for events already queued.</summary>
 public sealed record StockEntryCancelled(Guid SourceId, string SourceNumber, Guid CompanyId, DateTimeOffset OccurredAt);
+
+/// <summary>
+/// A change to stock value already posted: reposting after a backdated or cancelled entry repriced <see cref="VoucherNumber"/>,
+/// or the entry itself was cancelled. Accounting posts it as its own journal (the general ledger stays append-only).
+/// </summary>
+public sealed record StockJournalAdjusted(Guid AdjustmentId, Guid VoucherId, string VoucherNumber, Guid CompanyId, DateOnly PostingDate, string Remark,
+    IReadOnlyList<StockJournalLine> Lines, DateTimeOffset OccurredAt);

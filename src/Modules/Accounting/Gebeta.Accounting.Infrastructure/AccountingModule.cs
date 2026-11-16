@@ -90,6 +90,7 @@ public sealed class AccountingModule : IErpModule
         services.AddIntegrationEventConsumer<Gebeta.Cash.Contracts.JournalRequested, CashJournalRequestedConsumer, AccountingDbContext>(Id);
         services.AddIntegrationEventConsumer<Gebeta.Stock.Contracts.StockJournalRequested, StockJournalRequestedConsumer, AccountingDbContext>(Id);
         services.AddIntegrationEventConsumer<Gebeta.Stock.Contracts.StockEntryCancelled, StockEntryCancelledConsumer, AccountingDbContext>(Id);
+        services.AddIntegrationEventConsumer<Gebeta.Stock.Contracts.StockJournalAdjusted, StockJournalAdjustedConsumer, AccountingDbContext>(Id);
 
         services.AddScoped<JournalHandler>();
         services.AddScoped<IQueryHandler<ListAccountsQuery, IReadOnlyList<AccountDto>>>(sp => sp.GetRequiredService<JournalHandler>());

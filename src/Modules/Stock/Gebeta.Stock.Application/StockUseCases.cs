@@ -197,7 +197,10 @@ public sealed class StockHandler(
         return ToDto(entry, warehouses);
     }
 
-    /// <summary>Writes the stock ledger through the valuation engine and requests the value journal, in one transaction.</summary>
+    /// <summary>
+    /// Writes the stock ledger through the valuation engine from the stock on the posting date, requests the value journal,
+    /// then reposts every later movement (a backdated entry), all in one transaction.
+    /// </summary>
     public async Task<Result<StockEntryDto>> Handle(SubmitStockEntryCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -211,11 +214,14 @@ public sealed class StockHandler(
         var pairs = Pairs(entry);
         await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         await stock.LockAsync(pairs, cancellationToken).ConfigureAwait(false);
-        var latest = await stock.LatestAsync(pairs, cancellationToken).ConfigureAwait(false);
         var settings = await stock.SettingsAsync(entry.CompanyId, cancellationToken).ConfigureAwait(false);
-        var positions = pairs.ToDictionary(p => p, p => latest.TryGetValue(p, out var row)
-            ? new StockPosition(row.State, row.PostingDate, row.Method)
-            : new StockPosition(ValuationState.Empty, null, null));
+        var positions = new Dictionary<(Guid, Guid), StockPosition>();
+        foreach (var pair in pairs)
+        {
+            var before = (await stock.RowsForPairAsync(pair.Item, pair.Warehouse, cancellationToken).ConfigureAwait(false)).LastOrDefault(r => r.PostingDate <= entry.PostingDate);
+            positions[pair] = new StockPosition(before?.State ?? ValuationState.Empty, before?.Method);
+        }
+
         var methods = entry.Lines.Select(l => l.ItemId).Distinct()
             .ToDictionary(id => id, id => settings.GetValueOrDefault(id)?.Method ?? ValuationMethod.MovingAverage);
 
@@ -245,12 +251,27 @@ public sealed class StockHandler(
                 posted.JournalLines.Select(j => new StockJournalLine(j.AccountCode, j.Debit, j.Credit)).ToList(), entry.ModifiedAt.Value));
         }
 
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false); // gives the new rows their sequence
+        try
+        {
+            // Every later movement of each item and warehouse is repriced from the new rows on.
+            var seeds = posted.Rows.GroupBy(r => (r.ItemId, r.WarehouseId)).Select(g => ((g.Key.ItemId, g.Key.WarehouseId), Key(g.Max(r => r.Sequence), g.First().PostingDate)));
+            await RepostAsync(entry, seeds, warehouses, settings, methods, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DomainException ex)
+        {
+            return Error.Validation(ex.Message); // the transaction is rolled back
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return ToDto(entry, warehouses);
     }
 
-    /// <summary>Cancels while the entry is still the latest movement of each of its items and warehouses; later movements would need reposting.</summary>
+    /// <summary>
+    /// Cancels an entry at any point in history: its rows leave the ledger, its value is taken back out of the general
+    /// ledger, and later movements are repriced. Refused if that would take stock below zero at any point.
+    /// </summary>
     public async Task<Result<StockEntryDto>> Handle(CancelStockEntryCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -273,23 +294,154 @@ public sealed class StockHandler(
             return Error.Validation(ex.Message);
         }
 
-        var latest = await stock.LatestAsync(pairs, cancellationToken).ConfigureAwait(false);
-        if (latest.Values.FirstOrDefault(r => r.VoucherId != entry.Id) is { } later)
-        {
-            return Error.Validation($"{later.VoucherNumber} moved the same stock after this entry; cancel it first.");
-        }
-
-        foreach (var row in await stock.RowsForVoucherAsync(entry.Id, cancellationToken).ConfigureAwait(false))
+        var rows = await stock.RowsForVoucherAsync(entry.Id, cancellationToken).ConfigureAwait(false);
+        var signed = new Dictionary<string, decimal>(StringComparer.Ordinal);
+        foreach (var row in rows)
         {
             row.MarkCancelled();
+            Add(signed, warehouses[row.WarehouseId].StockAccountCode, -row.ValueChange);
+        }
+
+        if (entry.Purpose != StockEntryPurpose.Transfer)
+        {
+            Add(signed, entry.CounterAccountCode, rows.Sum(r => r.ValueChange));
         }
 
         entry.ModifiedAt = clock.GetUtcNow();
         entry.ModifiedBy = currentUser.Username;
-        unitOfWork.Publish(new StockEntryCancelled(entry.Id, entry.Name!, entry.CompanyId, entry.ModifiedAt.Value));
+        PublishAdjustment(entry, signed, $"Cancelled {entry.Name}");
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var settings = await stock.SettingsAsync(entry.CompanyId, cancellationToken).ConfigureAwait(false);
+            var seeds = rows.GroupBy(r => (r.ItemId, r.WarehouseId)).Select(g => ((g.Key.ItemId, g.Key.WarehouseId), Key(g.Min(r => r.Sequence) - 1, g.First().PostingDate)));
+            await RepostAsync(entry, seeds, warehouses, settings, null, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DomainException ex)
+        {
+            return Error.Validation(ex.Message);
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return ToDto(entry, warehouses);
+    }
+
+    private static (DateOnly Date, long Sequence) Key(long sequence, DateOnly date) => (date, sequence);
+
+    private static bool After(StockLedgerEntry row, (DateOnly Date, long Sequence) key) =>
+        row.PostingDate > key.Date || (row.PostingDate == key.Date && row.Sequence > key.Sequence);
+
+    private static void Add(Dictionary<string, decimal> signed, string account, decimal amount) => signed[account] = signed.GetValueOrDefault(account) + amount;
+
+    /// <summary>
+    /// Replays each seeded item and warehouse after its key; a transfer out whose value changed carries the new value to its
+    /// transfer in, whose warehouse is replayed in turn. Changed issues and transfers get their entry line revalued, and
+    /// each changed entry gets an adjustment journal for the difference.
+    /// </summary>
+    private async Task RepostAsync(StockEntry trigger, IEnumerable<((Guid Item, Guid Warehouse) Pair, (DateOnly Date, long Sequence) After)> seeds,
+        Dictionary<Guid, Warehouse> warehouses, IReadOnlyDictionary<Guid, StockItemSetting> settings, IReadOnlyDictionary<Guid, ValuationMethod>? methods,
+        CancellationToken cancellationToken)
+    {
+        var work = new Queue<((Guid Item, Guid Warehouse) Pair, (DateOnly Date, long Sequence) After)>(seeds);
+        var rowsByPair = new Dictionary<(Guid, Guid), List<StockLedgerEntry>>();
+        var transferValues = new Dictionary<(Guid Voucher, int Line), decimal>();
+        var changed = new Dictionary<Guid, (StockLedgerEntry Row, decimal Old)>();
+        var locked = new HashSet<(Guid, Guid)>(Pairs(trigger));
+        for (var guard = 0; work.Count > 0; guard++)
+        {
+            if (guard > 1_000)
+            {
+                throw new DomainException("stock.repost_loop", "Reposting did not settle; check transfers going back and forth.");
+            }
+
+            var (pair, after) = work.Dequeue();
+            if (locked.Add(pair))
+            {
+                await stock.LockAsync([pair], cancellationToken).ConfigureAwait(false);
+            }
+
+            if (!rowsByPair.TryGetValue(pair, out var rows))
+            {
+                rows = await stock.RowsForPairAsync(pair.Item, pair.Warehouse, cancellationToken).ConfigureAwait(false);
+                rowsByPair[pair] = rows;
+            }
+
+            var index = rows.FindIndex(r => After(r, after));
+            if (index < 0)
+            {
+                continue;
+            }
+
+            var method = methods?.GetValueOrDefault(pair.Item) ?? settings.GetValueOrDefault(pair.Item)?.Method ?? rows[index].Method;
+            var start = index > 0 ? rows[index - 1].State : ValuationState.Empty;
+            var replayed = Reposting.Replay(start, rows.Skip(index).ToList(), method,
+                r => transferValues.TryGetValue((r.VoucherId, r.LineIndex), out var v) ? v : null);
+            foreach (var (row, old) in replayed)
+            {
+                changed.TryAdd(row.Id, (row, old));
+                if (row.Kind != MovementKind.TransferOut)
+                {
+                    continue;
+                }
+
+                transferValues[(row.VoucherId, row.LineIndex)] = -row.ValueChange;
+                var voucher = (await stock.GetEntriesAsync([row.VoucherId], cancellationToken).ConfigureAwait(false)).Single();
+                var target = (row.ItemId, voucher.Lines[row.LineIndex].TargetWarehouseId!.Value);
+                if (!rowsByPair.TryGetValue(target, out var targetRows))
+                {
+                    if (locked.Add(target))
+                    {
+                        await stock.LockAsync([target], cancellationToken).ConfigureAwait(false);
+                    }
+
+                    targetRows = await stock.RowsForPairAsync(target.Item1, target.Item2, cancellationToken).ConfigureAwait(false);
+                    rowsByPair[target] = targetRows;
+                }
+
+                var transferIn = targetRows.Single(r => r.VoucherId == row.VoucherId && r.LineIndex == row.LineIndex && r.Kind == MovementKind.TransferIn);
+                work.Enqueue((target, (transferIn.PostingDate, transferIn.Sequence - 1)));
+            }
+        }
+
+        var real = changed.Values.Where(c => c.Row.ValueChange != c.Old).ToList();
+        if (real.Count == 0)
+        {
+            return;
+        }
+
+        var vouchers = (await stock.GetEntriesAsync(real.Select(c => c.Row.VoucherId).Distinct(), cancellationToken).ConfigureAwait(false)).ToDictionary(e => e.Id);
+        foreach (var group in real.GroupBy(c => c.Row.VoucherId))
+        {
+            var voucher = vouchers[group.Key];
+            var signed = new Dictionary<string, decimal>(StringComparer.Ordinal);
+            foreach (var (row, old) in group)
+            {
+                Add(signed, warehouses[row.WarehouseId].StockAccountCode, row.ValueChange - old);
+                if (row.Kind is MovementKind.Issue or MovementKind.TransferOut)
+                {
+                    voucher.RevalueLine(row.LineIndex, -row.ValueChange);
+                }
+            }
+
+            if (voucher.Purpose == StockEntryPurpose.Issue)
+            {
+                Add(signed, voucher.CounterAccountCode, -group.Sum(c => c.Row.ValueChange - c.Old));
+            }
+
+            voucher.ModifiedAt = clock.GetUtcNow();
+            PublishAdjustment(voucher, signed, $"Stock revaluation of {voucher.Name} after {trigger.Name}");
+        }
+    }
+
+    private void PublishAdjustment(StockEntry voucher, Dictionary<string, decimal> signed, string remark)
+    {
+        var lines = signed.Where(kv => kv.Value != 0m).OrderBy(kv => kv.Key, StringComparer.Ordinal)
+            .Select(kv => new StockJournalLine(kv.Key, Math.Max(kv.Value, 0m), Math.Max(-kv.Value, 0m))).ToList();
+        if (lines.Count > 0)
+        {
+            unitOfWork.Publish(new StockJournalAdjusted(Guid.CreateVersion7(), voucher.Id, voucher.Name!, voucher.CompanyId, voucher.PostingDate, remark, lines, clock.GetUtcNow()));
+        }
     }
 
     public async Task<Result<StockEntryDto>> Handle(GetStockEntryQuery query, CancellationToken cancellationToken)

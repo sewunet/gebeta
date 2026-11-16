@@ -98,6 +98,8 @@ internal sealed class StockLedgerEntryConfiguration : IEntityTypeConfiguration<S
         builder.Property(e => e.ValueChange).HasPrecision(21, 2);
         builder.Property(e => e.ValueAfter).HasPrecision(21, 2);
         builder.Property(e => e.Method).HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20);
+        builder.HasIndex(e => new { e.ItemId, e.WarehouseId, e.PostingDate, e.Sequence });
         builder.Property(e => e.VoucherNumber).HasMaxLength(60).IsRequired();
         builder.Property<List<FifoLayer>>("_queue").HasColumnName("fifo_queue").IsJsonList();
         builder.Ignore(e => e.Queue);
@@ -139,17 +141,14 @@ internal sealed class StockRepository(StockDbContext db) : IStockRepository
         return BitConverter.ToInt64(a, 8) ^ BitConverter.ToInt64(b, 8) ^ 0x5374_6f63_6b00_0000; // "Stock"
     }
 
-    public async Task<IReadOnlyDictionary<(Guid Item, Guid Warehouse), StockLedgerEntry>> LatestAsync(IEnumerable<(Guid Item, Guid Warehouse)> pairs, CancellationToken cancellationToken)
+    public async Task<List<StockLedgerEntry>> RowsForPairAsync(Guid itemId, Guid warehouseId, CancellationToken cancellationToken) =>
+        await db.Ledger.Where(e => e.ItemId == itemId && e.WarehouseId == warehouseId && !e.IsCancelled)
+            .OrderBy(e => e.PostingDate).ThenBy(e => e.Sequence).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<StockEntry>> GetEntriesAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)
     {
-        var wanted = pairs.ToList();
-        var itemIds = wanted.Select(p => p.Item).Distinct().ToList();
-        var warehouseIds = wanted.Select(p => p.Warehouse).Distinct().ToList();
-        var rows = await db.Ledger.AsNoTracking()
-            .Where(e => !e.IsCancelled && itemIds.Contains(e.ItemId) && warehouseIds.Contains(e.WarehouseId))
-            .GroupBy(e => new { e.ItemId, e.WarehouseId })
-            .Select(g => g.OrderByDescending(e => e.Sequence).First())
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-        return rows.Where(r => wanted.Contains((r.ItemId, r.WarehouseId))).ToDictionary(r => (r.ItemId, r.WarehouseId));
+        var wanted = ids.ToList();
+        return await db.Entries.Where(e => wanted.Contains(e.Id)).ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public Task<bool> HasMovementsAsync(Guid itemId, CancellationToken cancellationToken) => db.Ledger.AnyAsync(e => e.ItemId == itemId && !e.IsCancelled, cancellationToken);
@@ -161,14 +160,14 @@ internal sealed class StockRepository(StockDbContext db) : IStockRepository
         await db.Ledger.AsNoTracking()
             .Where(e => e.CompanyId == companyId && !e.IsCancelled && e.PostingDate <= asOf)
             .GroupBy(e => new { e.ItemId, e.WarehouseId })
-            .Select(g => g.OrderByDescending(e => e.Sequence).First())
+            .Select(g => g.OrderByDescending(e => e.PostingDate).ThenByDescending(e => e.Sequence).First())
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public async Task<IReadOnlyList<StockLedgerEntry>> LedgerAsync(Guid companyId, Guid itemId, Guid? warehouseId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
         await db.Ledger.AsNoTracking()
             .Where(e => e.CompanyId == companyId && e.ItemId == itemId && !e.IsCancelled && e.PostingDate >= from && e.PostingDate <= to
                 && (warehouseId == null || e.WarehouseId == warehouseId))
-            .OrderBy(e => e.Sequence).ToListAsync(cancellationToken).ConfigureAwait(false);
+            .OrderBy(e => e.PostingDate).ThenBy(e => e.Sequence).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public void Add(IEnumerable<StockLedgerEntry> rows) => db.Ledger.AddRange(rows);
 

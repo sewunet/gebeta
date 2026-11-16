@@ -38,7 +38,7 @@ public class PostingTests
     [Fact]
     public void A_transfer_moves_value_between_stock_accounts_and_nothing_when_they_are_the_same()
     {
-        var stocked = new Dictionary<(Guid, Guid), StockPosition> { [(Cement, Main.Id)] = new(new ValuationState(100m, 50_000m, []), Day, ValuationMethod.MovingAverage) };
+        var stocked = new Dictionary<(Guid, Guid), StockPosition> { [(Cement, Main.Id)] = new(new ValuationState(100m, 50_000m, []), ValuationMethod.MovingAverage) };
         var toShop = Post(Entry(StockEntryPurpose.Transfer, Line(40m, from: Main, to: Shop)), stocked);
         Assert.Equal(2, toShop.Rows.Count);
         Assert.Equal([("1300", 0m, 20_000m), ("1310", 20_000m, 0m)], toShop.JournalLines);
@@ -49,10 +49,8 @@ public class PostingTests
     }
 
     [Fact]
-    public void Backdated_future_and_negative_postings_are_refused()
+    public void Future_and_negative_postings_are_refused()
     {
-        var later = new Dictionary<(Guid, Guid), StockPosition> { [(Cement, Main.Id)] = new(new ValuationState(5m, 2_500m, []), Day.AddDays(1), ValuationMethod.MovingAverage) };
-        Assert.Equal("stock.backdated", Assert.Throws<DomainException>(() => Post(Entry(StockEntryPurpose.Receipt, Line(1m, 1m, to: Main)), later)).Code);
         Assert.Equal("stock.negative", Assert.Throws<DomainException>(() => Post(Entry(StockEntryPurpose.Issue, Line(1m, from: Main)))).Code);
 
         var future = StockEntry.Create(Company, StockEntryPurpose.Receipt, Day.AddDays(1), [Line(1m, 1m, to: Main)], null, null);

@@ -231,6 +231,9 @@ public sealed record ListAccountsQuery(Guid CompanyId) : IQuery<IReadOnlyList<Ac
 
 public sealed record SetUpChartCommand(Guid CompanyId) : ICommand<IReadOnlyList<AccountDto>>;
 
+/// <summary>A company's own account (a bank loan, accumulated depreciation...) under one of its groups; it takes the group's root type.</summary>
+public sealed record CreateAccountCommand(Guid CompanyId, string Code, string Name, string ParentCode, bool IsGroup = false) : ICommand<AccountDto>;
+
 public sealed record JournalLineInput(string AccountCode, decimal Debit, decimal Credit, string? Description);
 
 public sealed record CreateJournalCommand(Guid CompanyId, DateOnly PostingDate, string Remark, IReadOnlyList<JournalLineInput> Lines) : ICommand<JournalEntryDto>;
@@ -257,6 +260,7 @@ public sealed class JournalHandler(
     TimeProvider clock)
     : IQueryHandler<ListAccountsQuery, IReadOnlyList<AccountDto>>,
       ICommandHandler<SetUpChartCommand, IReadOnlyList<AccountDto>>,
+      ICommandHandler<CreateAccountCommand, AccountDto>,
       ICommandHandler<CreateJournalCommand, JournalEntryDto>,
       ICommandHandler<SubmitJournalCommand, JournalEntryDto>,
       ICommandHandler<CancelJournalCommand, JournalEntryDto>,
@@ -291,6 +295,42 @@ public sealed class JournalHandler(
         }
 
         return await Handle(new ListAccountsQuery(command.CompanyId), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<AccountDto>> Handle(CreateAccountCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (!await access.CanAccessAsync(command.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.NotFound("Company", command.CompanyId);
+        }
+
+        if (await chart.EnsureAsync(command.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var all = await accounts.ListAsync(command.CompanyId, cancellationToken).ConfigureAwait(false);
+        var parent = all.FirstOrDefault(a => a.Code == command.ParentCode?.Trim());
+        if (parent is null || !parent.IsGroup)
+        {
+            return Error.Validation($"{command.ParentCode} is not a group of this company's chart; a new account goes under a group such as 2000 Liabilities.");
+        }
+
+        if (all.Any(a => a.Code == command.Code?.Trim()))
+        {
+            return Error.Conflict($"The chart already has account {command.Code?.Trim()}.");
+        }
+
+        var created = Account.Create(command.CompanyId, command.Code ?? string.Empty, command.Name ?? string.Empty, parent.RootType, command.IsGroup, parent.Id);
+        if (created.IsFailure)
+        {
+            return created.Error!;
+        }
+
+        accounts.Add(created.Value);
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return ToDto(created.Value);
     }
 
     public async Task<Result<JournalEntryDto>> Handle(CreateJournalCommand command, CancellationToken cancellationToken)

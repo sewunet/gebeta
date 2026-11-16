@@ -5,22 +5,27 @@ API for small sets) and writes through the **application layer** of Gebeta, so e
 validation runs. No direct inserts into ledger tables, except opening balances through the
 dedicated opening-balance import.
 
-> **Built so far** (`src/Tools/Gebeta.Migration`): the company (part of step 1), customers and
-> suppliers (masters for step 8), and items and warehouses (masters for step 9). Not yet built:
-> opening invoices, opening stock and opening balances. Each run prints, for every step, how many
-> records were created, adopted (an existing Gebeta record with the same code was used) or already
-> migrated, plus warnings, failures and the count check.
+> **Built so far** (`src/Tools/Gebeta.Migration`):
+> - masters: the company (part of step 1), customers and suppliers, items with their valuation method, warehouses;
+> - cut-over balances, with `--cutover`: open invoices (step 8), opening stock (step 9) and the opening trial balance (step 7).
+>
+> Not yet built: HR, payroll, open orders and assets. Each run prints, for every step, how many records were created,
+> adopted (an existing Gebeta record with the same code was used) or already migrated, plus warnings, failures and the
+> step's check.
 >
 > ```
 > dotnet run --project src/Tools/Gebeta.Migration -- --company "Arjo Dedessa Sugar Factory" --dry-run
 >     ERPNext: --source "<MariaDB connection string>" or ERPNEXT_DB
 >     Gebeta:  --target "<PostgreSQL connection string>" or ConnectionStrings__Main
->     --target-company <id>   load into a company already set up in Gebeta
->     --tin <TIN>             when ERPNext has no valid TIN for the company
->     --steps parties,items   only these steps (company always runs first)
+>     --target-company <id>    load into a company already set up in Gebeta
+>     --tin <TIN>              when ERPNext has no valid TIN for the company
+>     --cutover 2026-07-07     also bring the balances at the end of that day (the last day kept in ERPNext)
+>     --account-map file.csv   ERPNext account → Gebeta account; written with suggestions when missing
+>     --steps parties,items    only these steps (company always runs first):
+>                              parties, items, warehouses, invoices, stock, opening
 > ```
 >
-> How it works:
+> How the masters come over:
 > - The tool loads the same modules as the API (`Gebeta.Composition.ModuleCatalogue`) and sends
 >   the same commands, signed in as the `gebeta.migration` user. Every rule runs, nothing is
 >   inserted directly.
@@ -30,12 +35,43 @@ dedicated opening-balance import.
 > - Data problems are reported per record and the run carries on: an invalid TIN is a warning and
 >   the party comes in without one. Disabled ERPNext records are left behind, and a name that is
 >   both a customer and a supplier becomes one party of type Both.
-> - A dry run checks every record against the real rules and writes nothing.
-> - Exit code 0 when every step is OK, 1 when any step failed, 2 for wrong arguments.
+> - Each item's valuation method comes along (FIFO or moving average). LIFO, which IFRS does not
+>   allow, becomes moving average with a warning.
 >
-> Debt: each record is its own command and transaction, which is fine for thousands of masters.
-> Opening stock and invoices (tens of thousands of rows) will need batching. The ERPNext source
-> reads all records at once with no paging, which is fine for masters only.
+> How the cut-over balances come over (all dated the cut-over day):
+> - **Open invoices** come from ERPNext's Payment Ledger as at the cut-over day. Each becomes a
+>   Gebeta opening invoice for its outstanding amount, with its original date, due date and number
+>   as the reference, so ageing carries on. Opening invoices post nothing to the GL; the receivable
+>   and payable accounts come from the trial balance. Unallocated advances (negative balances) are
+>   not invoices: a warning gives their total, and they stay in the control account.
+> - **Opening stock** is the last stock ledger row per item and warehouse on or before the cut-over
+>   day. Each warehouse becomes one receipt against **3900 Opening Balance Clearing**. FIFO queues
+>   are kept as separate lines, and the last layer takes the rounding, so each warehouse's value is
+>   ERPNext's to the cent. Negative stock, or stock held by a disabled item or warehouse, stops
+>   that warehouse.
+> - **The opening trial balance** is one journal (`PostOpeningBalancesCommand`):
+>   - Balance-sheet accounts bring their whole balance. Income and expense accounts bring only
+>     this fiscal year's; earlier years' profit or loss goes to 3200 Retained Earnings.
+>   - ERPNext stock accounts post to 3900, which meets the opening stock, so 3900 ends at zero
+>     exactly when stock value and stock accounts agree.
+>   - The account map is a CSV for finance to review and sign off. The first run (a dry run is
+>     enough) writes it with suggestions. Loans, depreciation and other unclear balance-sheet
+>     accounts are left blank on purpose. An account Gebeta lacks can be added under a group with
+>     `POST /api/accounting/accounts`.
+> - **The proof** is the opening step's check: Gebeta's trial balance on the cut-over day equals
+>   ERPNext's, account by account, with 3900 at zero. The opening stock's journals reach the
+>   ledger through the running Gebeta server (outbox → RabbitMQ → Accounting), so the check waits
+>   up to a minute for them. If the server was not running, start it and run `--steps opening`
+>   again; a step already done only re-checks.
+> - Nothing the tool writes into Gebeta mentions ERPNext. Remarks read "Opening balance" and
+>   "Opening stock at cut-over <date>", and old document numbers are kept as references.
+>
+> Debt:
+> - Each record is its own command and transaction. That's fine for thousands of masters and open
+>   invoices, but tens of thousands of open invoices would want batching.
+> - The ERPNext source reads each list at once, with no paging.
+> - Advances are not carried as unallocated payments, so the receivables subledger and the GL
+>   control account differ by the advances until they are allocated.
 
 ## Principles
 

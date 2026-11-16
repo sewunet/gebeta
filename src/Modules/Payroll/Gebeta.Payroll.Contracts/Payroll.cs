@@ -96,7 +96,7 @@ public sealed record SalarySlipDto(
 /// <summary>Line of a submitted slip in the integration event (Accounting builds the payroll journal from these).</summary>
 public sealed record SalarySlipLineData(string Abbreviation, string Component, string Type, decimal Amount);
 
-/// <summary>Published when a salary slip is submitted. Accounting (or the ERPNext connector) posts the journal.</summary>
+/// <summary>Published when a salary slip is submitted. Accounting (or an external ledger connector) posts the journal.</summary>
 public sealed record SalarySlipSubmitted(
     Guid SlipId,
     string Number,

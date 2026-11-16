@@ -4,7 +4,7 @@ using Gebeta.SharedKernel.Ethiopia;
 namespace Gebeta.SharedKernel.Naming;
 
 /// <summary>
-/// A document number pattern, written like ERPNext naming series: parts separated by dots, e.g.
+/// A document number pattern, written as a naming series: parts separated by dots, e.g.
 /// <c>PCR-.YYYY.-.#####</c> → PCR-2026-00012, or <c>INV-.ABBR.-.FY.-.####</c> → INV-ESIG-2019-0001.
 ///
 /// Tokens: <c>YYYY</c>, <c>YY</c>, <c>MM</c>, <c>DD</c> (Gregorian date); <c>EYYYY</c>, <c>EMM</c>

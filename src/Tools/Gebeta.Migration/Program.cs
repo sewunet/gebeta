@@ -4,6 +4,7 @@ namespace Gebeta.Migration;
 
 // gebeta-migrate --company "Arjo Dedessa Sugar Factory" [--target-company <gebeta id>] [--tin 0100000011]
 //                [--steps parties,items] [--dry-run]
+//                [--cutover 2026-07-07 --account-map accounts.csv]   balances at the end of the cut-over day
 // ERPnext:  --source "<MariaDB connection string>"  or environment ERPNEXT_DB
 // Gebeta:   --target "<PostgreSQL connection string>" or environment ConnectionStrings__Main
 // (A named entry class, not top-level statements: the API tests reference this project and the API's Program.)
@@ -17,9 +18,21 @@ internal static class MigrationProgram
         var target = arguments.Get("target") ?? Environment.GetEnvironmentVariable("ConnectionStrings__Main");
         if (company is null || source is null || target is null)
         {
-            Console.Error.WriteLine("Usage: gebeta-migrate --company <ERPNext company> [--target-company <id>] [--tin <TIN>] [--legal-form <form>] [--steps company,parties,items,warehouses] [--dry-run]");
+            Console.Error.WriteLine("Usage: gebeta-migrate --company <ERPNext company> [--target-company <id>] [--tin <TIN>] [--legal-form <form>] [--steps parties,items,warehouses,invoices,stock,opening] [--cutover yyyy-MM-dd] [--account-map file.csv] [--dry-run]");
             Console.Error.WriteLine("       ERPNext source: --source or ERPNEXT_DB; Gebeta database: --target or ConnectionStrings__Main.");
             return 2;
+        }
+
+        DateOnly? cutover = null;
+        if (arguments.Get("cutover") is { } day)
+        {
+            if (!DateOnly.TryParseExact(day, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed))
+            {
+                Console.Error.WriteLine($"--cutover {day}: use yyyy-MM-dd (Gregorian), the last day kept in ERPNext.");
+                return 2;
+            }
+
+            cutover = parsed;
         }
 
         var options = new MigrationOptions(
@@ -28,7 +41,9 @@ internal static class MigrationProgram
             arguments.Get("tin"),
             Enum.TryParse<LegalForm>(arguments.Get("legal-form"), ignoreCase: true, out var form) ? form : LegalForm.PrivateLimitedCompany,
             arguments.Has("dry-run"),
-            arguments.Get("steps")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            arguments.Get("steps")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            cutover,
+            arguments.Get("account-map"));
 
         await using var services = MigrationHost.Build(target);
         var run = new MigrationRun(services, new MariaDbErpNextSource(source), new IdMap(target), options);

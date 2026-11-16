@@ -98,6 +98,7 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<JournalHandler>();
         services.AddScoped<IQueryHandler<ListAccountsQuery, IReadOnlyList<AccountDto>>>(sp => sp.GetRequiredService<JournalHandler>());
         services.AddScoped<ICommandHandler<SetUpChartCommand, IReadOnlyList<AccountDto>>>(sp => sp.GetRequiredService<JournalHandler>());
+        services.AddScoped<ICommandHandler<CreateAccountCommand, AccountDto>>(sp => sp.GetRequiredService<JournalHandler>());
         services.AddScoped<ICommandHandler<CreateJournalCommand, JournalEntryDto>>(sp => sp.GetRequiredService<JournalHandler>());
         services.AddScoped<ICommandHandler<SubmitJournalCommand, JournalEntryDto>>(sp => sp.GetRequiredService<JournalHandler>());
         services.AddScoped<ICommandHandler<CancelJournalCommand, JournalEntryDto>>(sp => sp.GetRequiredService<JournalHandler>());

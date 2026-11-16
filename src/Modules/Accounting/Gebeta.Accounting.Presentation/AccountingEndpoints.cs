@@ -19,6 +19,10 @@ public static class AccountingEndpoints
                 (await h.Handle(new ListAccountsQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
             .WithName("ListAccounts").RequirePermission(AccountingPermissions.AccountsRead);
 
+        acc.MapPost("/accounts", async (CreateAccountCommand command, ICommandHandler<CreateAccountCommand, AccountDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateAccount").RequirePermission(AccountingPermissions.AccountsManage);
+
         acc.MapPost("/companies/{companyId:guid}/chart", async (Guid companyId, ICommandHandler<SetUpChartCommand, IReadOnlyList<AccountDto>> h, CancellationToken ct) =>
                 (await h.Handle(new SetUpChartCommand(companyId), ct).ConfigureAwait(false)).ToHttp())
             .WithName("SetUpChart").RequirePermission(AccountingPermissions.AccountsManage);

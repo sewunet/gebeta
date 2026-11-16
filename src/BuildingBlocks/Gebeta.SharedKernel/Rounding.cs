@@ -2,7 +2,7 @@ namespace Gebeta.SharedKernel;
 
 /// <summary>
 /// The only place where money and quantities are rounded (ADR 0003).
-/// Halves round away from zero, as ERPNext and Ethiopian practice do: 2.345 → 2.35, −2.345 → −2.35.
+/// Halves round away from zero, as Ethiopian practice does: 2.345 → 2.35, −2.345 → −2.35.
 /// </summary>
 public static class Rounding
 {

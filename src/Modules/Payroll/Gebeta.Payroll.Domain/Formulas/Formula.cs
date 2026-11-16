@@ -15,7 +15,7 @@ public interface IFormulaScope
 }
 
 /// <summary>
-/// A salary formula, compiled once. The language is the Python subset ERPNext salary structures use,
+/// A salary formula, compiled once. The language is a small Python-like subset (the syntax existing salary structures are written in),
 /// so existing formulas run unchanged, but evaluation is safe and exact:
 /// <list type="bullet">
 /// <item>numbers are <see cref="decimal"/> (never floating point);</item>

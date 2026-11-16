@@ -65,6 +65,12 @@ public static class EthiopianChartOfAccounts
     public const string CostOfSales = "5000";
     public const string InterestIncome = "4300";
 
+    /// <summary>
+    /// The other side of opening stock brought in at cut-over. The opening trial balance posts the old system's stock accounts here
+    /// too, so it nets to zero exactly when the stock value equals the stock accounts.
+    /// </summary>
+    public const string OpeningClearing = "3900";
+
     public static IReadOnlyList<AccountTemplate> Accounts { get; } =
     [
         new("1000", "Assets", RootType.Asset, true, null),
@@ -90,6 +96,7 @@ public static class EthiopianChartOfAccounts
         new("3000", "Equity", RootType.Equity, true, null),
         new("3100", "Capital", RootType.Equity, false, "3000"),
         new(RetainedEarnings, "Retained Earnings", RootType.Equity, false, "3000"),
+        new(OpeningClearing, "Opening Balance Clearing", RootType.Equity, false, "3000"),
         new("4000", "Income", RootType.Income, true, null),
         new("4100", "Sales", RootType.Income, false, "4000"),
         new("4200", "Other Income", RootType.Income, false, "4000"),

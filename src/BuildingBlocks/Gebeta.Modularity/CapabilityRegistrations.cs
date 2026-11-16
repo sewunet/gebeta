@@ -24,7 +24,7 @@ internal sealed class CapabilityRegistrations
     /// <summary>
     /// For every capability: one provider → everybody uses it (also under each asking module's key);
     /// no provider → each asking module gets its own fallback under its key;
-    /// two providers → error (for example Accounting and the ERPNext connector together).
+    /// two providers → error (for example Accounting and an external ledger connector together).
     /// </summary>
     public IReadOnlyList<CapabilityBinding> Apply(IServiceCollection services)
     {

@@ -186,7 +186,7 @@ public sealed class CashHandler(
 
     /// <summary>
     /// Transfer between two cashiers: both cashier ledgers move, and the journal has one line per cashier even
-    /// when they share a cash account (the current app had to work around ERPNext merging such lines).
+    /// when they share a cash account (the previous system merged such lines and had to be worked around).
     /// </summary>
     public async Task<Result<CashMovementDto>> Handle(CashTransferCommand command, CancellationToken cancellationToken)
     {

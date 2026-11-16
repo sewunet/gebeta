@@ -97,8 +97,8 @@ public sealed class IncomeTaxTable
 public static class EthiopianIncomeTax
 {
     /// <summary>
-    /// Current table: exempt up to ETB 2,000 a month. These are the slabs the existing Gebeta/ERPNext
-    /// payroll uses. VERIFY the amending proclamation number and its effective date with the Ministry of
+    /// Current table: exempt up to ETB 2,000 a month. These are the slabs the existing payroll
+    /// uses. VERIFY the amending proclamation number and its effective date with the Ministry of
     /// Revenue before relying on <see cref="IncomeTaxTable.ValidFrom"/>.
     /// </summary>
     public static IncomeTaxTable Current { get; } = IncomeTaxTable.Create(

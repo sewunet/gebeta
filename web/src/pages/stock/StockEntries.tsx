@@ -11,6 +11,7 @@ import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useWarehouses } from "./hooks";
 import { useParties } from "../accounting/Parties";
 import { usePurchaseOrder } from "../buying/PurchaseOrders";
+import { useSalesOrder } from "../selling/SalesOrders";
 
 const refreshKeys = ["stock-entries", "stock-entry", "stock-balance", "stock-ledger", "item-setting"];
 
@@ -89,8 +90,9 @@ export function StockEntryCreate() {
   const { company } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { purpose, po } = useSearch({ from: "/stock/entries/new" });
+  const { purpose, po, so } = useSearch({ from: "/stock/entries/new" });
   const order = usePurchaseOrder(po);
+  const salesOrder = useSalesOrder(so);
   const items = useItems();
   const warehouses = useWarehouses();
   const parties = useParties();
@@ -108,6 +110,15 @@ export function StockEntryCreate() {
       itemId: l.itemId, qty: String(l.qty - l.receivedQty), rate: String(l.rate), source: "", target: l.warehouseId ?? first,
     })));
   }, [order.data, purpose, first]);
+  useEffect(() => {
+    // Delivering against a sales order: its customer, its number as the reference, and what is still to deliver.
+    if (!salesOrder.data || purpose !== "Issue") return;
+    setPartyId(salesOrder.data.customerId);
+    setLines(salesOrder.data.lines.filter((l) => l.qty > l.deliveredQty).map((l) => ({
+      itemId: l.itemId, qty: String(l.qty - l.deliveredQty), rate: "", source: l.warehouseId ?? first, target: "",
+    })));
+  }, [salesOrder.data, purpose, first]);
+  const reference = order.data?.number ?? salesOrder.data?.number;
   const create = useMutation({
     mutationFn: async ({ body, submit }: { body: object; submit: boolean }) => {
       const draft = await post<StockEntryDto>("/api/stock/entries", body);
@@ -155,6 +166,7 @@ export function StockEntryCreate() {
     >
       {!warehouses.data?.length && !warehouses.isPending && <MessageStrip tone="critical">{t("stock.noWarehouses")}</MessageStrip>}
       {order.data && <MessageStrip tone="information">{t("buy.receivingAgainst", { number: order.data.number, supplier: order.data.supplierName })}</MessageStrip>}
+      {salesOrder.data && <MessageStrip tone="information">{t("sell.deliveringAgainst", { number: salesOrder.data.number, customer: salesOrder.data.customerName })}</MessageStrip>}
       <form id="stock-entry" onSubmit={save(true)}>
         <section className="object-section">
           <h2>{t("ui.general")}</h2>
@@ -167,7 +179,7 @@ export function StockEntryCreate() {
                   {parties.data?.filter((p) => p.type === "Both" || p.type === (purpose === "Receipt" ? "Supplier" : "Customer")).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </label>
-              <label>{t("inv.reference")}<input name="reference" key={order.data?.number ?? "none"} defaultValue={order.data?.number ?? ""} placeholder={purpose === "Receipt" ? "DN / GRN" : "SINV"} /></label>
+              <label>{t("inv.reference")}<input name="reference" key={reference ?? "none"} defaultValue={reference ?? ""} placeholder={purpose === "Receipt" ? "DN / GRN" : "SINV"} /></label>
               <label>{t("stock.counterAccount")}<input name="counterAccountCode" key={partyId ? "p" : "n"} placeholder={partyId ? (purpose === "Receipt" ? "2150" : "5000") : "5100"} /></label>
             </>}
             <label>{t("acc.remark")}<input name="remark" /></label>

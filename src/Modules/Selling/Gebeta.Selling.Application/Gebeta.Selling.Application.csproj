@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Selling.Application</RootNamespace>
+    <Description>Selling use cases (sales orders).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Application\Gebeta.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Selling.Domain\Gebeta.Selling.Domain.csproj" />
+    <ProjectReference Include="..\Gebeta.Selling.Contracts\Gebeta.Selling.Contracts.csproj" />
+  </ItemGroup>
+</Project>

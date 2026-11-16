@@ -433,3 +433,21 @@ internal sealed class AccountingPurchaseBilling(AccountingDbContext db) : Gebeta
                 .GroupBy(x => x.Item1).Select(x => new Gebeta.Buying.Contracts.OrderedItemQty(x.Key, x.Sum(q => q.Qty))).ToList());
     }
 }
+
+/// <summary>Quantities invoiced against sales orders: submitted sales invoices naming the order; credit notes count negative (for Selling).</summary>
+internal sealed class AccountingSalesBilling(AccountingDbContext db) : Gebeta.Selling.Contracts.ISalesBillingLookup
+{
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<Gebeta.Selling.Contracts.OrderedItemQty>>> BilledAsync(Guid companyId, IReadOnlyCollection<string> orderNumbers,
+        CancellationToken cancellationToken)
+    {
+        var names = orderNumbers.ToList();
+        var invoices = await db.Set<Gebeta.Accounting.Domain.Invoicing.Invoice>().AsNoTracking()
+            .Where(i => i.CompanyId == companyId && i.Kind == Gebeta.Accounting.Domain.Invoicing.InvoiceKind.Sales && i.DocStatus == DocStatus.Submitted
+                && i.OrderReference != null && names.Contains(i.OrderReference))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return invoices.GroupBy(i => i.OrderReference!).ToDictionary(g => g.Key,
+            g => (IReadOnlyList<Gebeta.Selling.Contracts.OrderedItemQty>)g
+                .SelectMany(i => i.Lines.Where(l => l.ItemId is not null).Select(l => (l.ItemId!.Value, Qty: i.IsReturn ? -l.Quantity : l.Quantity)))
+                .GroupBy(x => x.Item1).Select(x => new Gebeta.Selling.Contracts.OrderedItemQty(x.Key, x.Sum(q => q.Qty))).ToList());
+    }
+}

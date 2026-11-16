@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Selling.Infrastructure</RootNamespace>
+    <Description>Selling persistence (EF Core, PostgreSQL schema "selling") and the module composition root (SellingModule).</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="EFCore.NamingConventions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.Messaging\Gebeta.Messaging.csproj" />
+    <ProjectReference Include="..\Gebeta.Selling.Application\Gebeta.Selling.Application.csproj" />
+    <ProjectReference Include="..\Gebeta.Selling.Presentation\Gebeta.Selling.Presentation.csproj" />
+  </ItemGroup>
+</Project>

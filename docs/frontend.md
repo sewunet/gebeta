@@ -43,6 +43,9 @@
 > **Purchase orders** (step 32): list report with fulfilment percentages and state, create page, object page with
 > received and billed quantities per line; Receive goods and Record supplier invoice open the stock receipt and the
 > purchase invoice pre-filled from the order (`?po=<id>`).
+>
+> **Sales orders** (step 33): the same pattern; Deliver goods and Create sales invoice open the stock issue and the
+> sales invoice pre-filled from the order (`?so=<id>`).
 
 React 19 + TypeScript (strict) + Vite, in `web/`.
 

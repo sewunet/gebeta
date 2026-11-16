@@ -20,5 +20,6 @@
     <ProjectReference Include="..\Modules\Cash\Gebeta.Cash.Infrastructure\Gebeta.Cash.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Stock\Gebeta.Stock.Infrastructure\Gebeta.Stock.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Buying\Gebeta.Buying.Infrastructure\Gebeta.Buying.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Selling\Gebeta.Selling.Infrastructure\Gebeta.Selling.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

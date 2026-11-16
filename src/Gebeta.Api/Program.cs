@@ -37,7 +37,8 @@ builder.AddGebetaModules(
     new Gebeta.Accounting.Infrastructure.AccountingModule(),
     new Gebeta.Cash.Infrastructure.CashModule(),
     new Gebeta.Stock.Infrastructure.StockModule(),
-    new Gebeta.Buying.Infrastructure.BuyingModule());
+    new Gebeta.Buying.Infrastructure.BuyingModule(),
+    new Gebeta.Selling.Infrastructure.SellingModule());
 
 var app = builder.Build();
 

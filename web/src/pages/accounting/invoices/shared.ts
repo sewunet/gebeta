@@ -4,8 +4,9 @@ import type { Tone } from "../../../ui/fiori";
 
 export type Kind = "Sales" | "Purchase";
 
-export const validateKind = (search: Record<string, unknown>): { kind: Kind; po?: string } =>
-  ({ kind: search.kind === "Purchase" ? "Purchase" : "Sales", po: typeof search.po === "string" ? search.po : undefined });
+export const validateKind = (search: Record<string, unknown>): { kind: Kind; po?: string; so?: string } =>
+  ({ kind: search.kind === "Purchase" ? "Purchase" : "Sales", po: typeof search.po === "string" ? search.po : undefined,
+    so: typeof search.so === "string" ? search.so : undefined });
 
 /** Everything an invoice action can change. */
 export function useInvoiceRefresh() {

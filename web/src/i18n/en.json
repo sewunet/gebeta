@@ -37,7 +37,9 @@
     "items": "Items",
     "warehouses": "Warehouses",
     "buying": "Buying",
-    "purchaseOrders": "Purchase orders"
+    "purchaseOrders": "Purchase orders",
+    "selling": "Selling",
+    "salesOrders": "Sales orders"
   },
   "common": {
     "company": "Company",
@@ -525,7 +527,8 @@
     "items": "Products and services",
     "warehouses": "Stores and locations",
     "inStock": "in stock",
-    "purchaseOrders": "Orders to suppliers"
+    "purchaseOrders": "Orders to suppliers",
+    "salesOrders": "Orders from customers"
   },
   "ui": {
     "search": "Search",
@@ -626,5 +629,30 @@
     "draftHint": "This is a draft: submit it to place the order.",
     "receivingAgainst": "Receiving against {{number}} from {{supplier}}: the lines show what is still to come.",
     "billingAgainst": "Billing {{number}} from {{supplier}}: the lines show what is not billed yet."
+  },
+  "sell": {
+    "searchHint": "Number, customer or item",
+    "deliveryDate": "Delivery date",
+    "delivered": "Delivered",
+    "billed": "Invoiced",
+    "newOrder": "New sales order",
+    "states": {
+      "Draft": "Draft",
+      "ToDeliverAndBill": "To deliver and invoice",
+      "ToDeliver": "To deliver",
+      "ToBill": "To invoice",
+      "Completed": "Completed",
+      "Closed": "Closed",
+      "Cancelled": "Cancelled"
+    },
+    "deliver": "Deliver goods",
+    "bill": "Create sales invoice",
+    "close": "Close",
+    "reopen": "Reopen",
+    "order": "Sales order",
+    "draftHint": "This is a draft: submit it to confirm the order.",
+    "deliveringAgainst": "Delivering against {{number}} to {{customer}}: the lines show what is still to deliver.",
+    "invoicingAgainst": "Invoicing {{number}} for {{customer}}: the lines show what is not invoiced yet.",
+    "requiredBy": "Delivery date"
   }
 }

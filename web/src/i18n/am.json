@@ -37,7 +37,9 @@
     "items": "ዕቃዎች",
     "warehouses": "መጋዘኖች",
     "buying": "ግዢ",
-    "purchaseOrders": "የግዢ ትዕዛዞች"
+    "purchaseOrders": "የግዢ ትዕዛዞች",
+    "selling": "ሽያጭ",
+    "salesOrders": "የሽያጭ ትዕዛዞች"
   },
   "common": {
     "company": "ኩባንያ",
@@ -525,7 +527,8 @@
     "items": "ምርቶችና አገልግሎቶች",
     "warehouses": "መጋዘኖችና ቦታዎች",
     "inStock": "በክምችት",
-    "purchaseOrders": "ለአቅራቢዎች የተሰጡ ትዕዛዞች"
+    "purchaseOrders": "ለአቅራቢዎች የተሰጡ ትዕዛዞች",
+    "salesOrders": "ከደንበኞች የመጡ ትዕዛዞች"
   },
   "ui": {
     "search": "ፈልግ",
@@ -626,5 +629,30 @@
     "draftHint": "ይህ ረቂቅ ነው፤ ትዕዛዙን ለመስጠት ያቅርቡት።",
     "receivingAgainst": "ከ{{supplier}} በ{{number}} መሠረት እየተቀበሉ ነው፤ ዝርዝሮቹ ገና የሚመጣውን ያሳያሉ።",
     "billingAgainst": "የ{{supplier}} ደረሰኝ ለ{{number}}፤ ዝርዝሮቹ ደረሰኝ ያልተቆረጠላቸውን ያሳያሉ።"
+  },
+  "sell": {
+    "searchHint": "ቁጥር፣ ደንበኛ ወይም ዕቃ",
+    "deliveryDate": "የማስረከቢያ ቀን",
+    "delivered": "የተረከበ",
+    "billed": "ደረሰኝ የተቆረጠለት",
+    "newOrder": "አዲስ የሽያጭ ትዕዛዝ",
+    "states": {
+      "Draft": "ረቂቅ",
+      "ToDeliverAndBill": "የሚረከብና ደረሰኝ የሚቆረጥ",
+      "ToDeliver": "የሚረከብ",
+      "ToBill": "ደረሰኝ የሚቆረጥ",
+      "Completed": "የተጠናቀቀ",
+      "Closed": "የተዘጋ",
+      "Cancelled": "የተሰረዘ"
+    },
+    "deliver": "ዕቃ አስረክብ",
+    "bill": "የሽያጭ ደረሰኝ አዘጋጅ",
+    "close": "ዝጋ",
+    "reopen": "እንደገና ክፈት",
+    "order": "የሽያጭ ትዕዛዝ",
+    "draftHint": "ይህ ረቂቅ ነው፤ ትዕዛዙን ለማረጋገጥ ያቅርቡት።",
+    "deliveringAgainst": "ለ{{customer}} በ{{number}} መሠረት እያስረከቡ ነው፤ ዝርዝሮቹ ገና የሚረከበውን ያሳያሉ።",
+    "invoicingAgainst": "ለ{{customer}} የ{{number}} ደረሰኝ፤ ዝርዝሮቹ ደረሰኝ ያልተቆረጠላቸውን ያሳያሉ።",
+    "requiredBy": "የማስረከቢያ ቀን"
   }
 }

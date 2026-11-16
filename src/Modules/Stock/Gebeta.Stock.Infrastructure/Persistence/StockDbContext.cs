@@ -200,6 +200,23 @@ internal sealed class StockPurchaseReceipts(StockDbContext db) : Gebeta.Buying.C
     }
 }
 
+/// <summary>Goods delivered against sales orders: submitted stock issues whose reference is the order number (for Selling).</summary>
+internal sealed class StockSalesDeliveries(StockDbContext db) : Gebeta.Selling.Contracts.ISalesDeliveryLookup
+{
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<Gebeta.Selling.Contracts.OrderedItemQty>>> DeliveredAsync(Guid companyId, IReadOnlyCollection<string> orderNumbers,
+        CancellationToken cancellationToken)
+    {
+        var names = orderNumbers.ToList();
+        var entries = await db.Entries.AsNoTracking()
+            .Where(e => e.CompanyId == companyId && e.Purpose == StockEntryPurpose.Issue && e.DocStatus == Gebeta.SharedKernel.DocStatus.Submitted
+                && e.Reference != null && names.Contains(e.Reference))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return entries.GroupBy(e => e.Reference!).ToDictionary(g => g.Key,
+            g => (IReadOnlyList<Gebeta.Selling.Contracts.OrderedItemQty>)g.SelectMany(e => e.Lines)
+                .GroupBy(l => l.ItemId).Select(x => new Gebeta.Selling.Contracts.OrderedItemQty(x.Key, x.Sum(l => l.Qty))).ToList());
+    }
+}
+
 internal sealed class StockNumbers(StockDbContext db, DocumentNumbering numbering) : ModuleDocumentNumbers(db, numbering), IStockNumbers;
 
 internal sealed class StockMigrator(StockDbContext db) : IModuleMigrator

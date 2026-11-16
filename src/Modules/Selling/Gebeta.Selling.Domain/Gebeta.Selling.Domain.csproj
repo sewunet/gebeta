@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Gebeta.Selling.Domain</RootNamespace>
+    <Description>Selling rules: sales orders and their fulfilment.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Gebeta.SharedKernel\Gebeta.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

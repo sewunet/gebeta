@@ -30,6 +30,7 @@ x-server-env: &server-env
   Modules__Enabled__4: cash
   Modules__Enabled__5: stock
   Modules__Enabled__6: buying
+  Modules__Enabled__7: selling
 
 services:
   postgres:

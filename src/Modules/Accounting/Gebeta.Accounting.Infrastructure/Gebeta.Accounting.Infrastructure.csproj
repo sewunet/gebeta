@@ -15,5 +15,6 @@
     <ProjectReference Include="..\Gebeta.Accounting.Application\Gebeta.Accounting.Application.csproj" />
     <ProjectReference Include="..\Gebeta.Accounting.Presentation\Gebeta.Accounting.Presentation.csproj" />
     <ProjectReference Include="..\..\Buying\Gebeta.Buying.Contracts\Gebeta.Buying.Contracts.csproj" />
+    <ProjectReference Include="..\..\Selling\Gebeta.Selling.Contracts\Gebeta.Selling.Contracts.csproj" />
   </ItemGroup>
 </Project>

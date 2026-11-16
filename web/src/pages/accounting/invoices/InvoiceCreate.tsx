@@ -10,6 +10,7 @@ import { DynamicPage, MessageStrip } from "../../../ui/fiori";
 import { useParties } from "../Parties";
 import { useItems } from "../../stock/hooks";
 import { usePurchaseOrder } from "../../buying/PurchaseOrders";
+import { useSalesOrder } from "../../selling/SalesOrders";
 import { useInvoiceRefresh, type Kind } from "./shared";
 
 type Line = { itemId: string; description: string; quantity: string; rate: string; accountCode: string; isService: boolean; vatApplicable: boolean };
@@ -20,8 +21,9 @@ export function InvoiceCreate() {
   const { t } = useTranslation();
   const { company } = useSession();
   const navigate = useNavigate();
-  const { kind, po } = useSearch({ from: "/accounting/invoices/new" });
+  const { kind, po, so } = useSearch({ from: "/accounting/invoices/new" });
   const order = usePurchaseOrder(po);
+  const salesOrder = useSalesOrder(so);
   const [partyId, setPartyId] = useState("");
   const sales = kind === "Sales";
   const [lines, setLines] = useState<Line[]>([emptyLine(kind)]);
@@ -37,6 +39,14 @@ export function InvoiceCreate() {
         accountCode: item?.isStockItem ? "2150" : "", isService: !item?.isStockItem, vatApplicable: true };
     }));
   }, [order.data, items.data]);
+  useEffect(() => {
+    // Invoicing a sales order: its customer and what is not invoiced yet.
+    if (!salesOrder.data) return;
+    setPartyId(salesOrder.data.customerId);
+    setLines(salesOrder.data.lines.filter((l) => l.qty > l.billedQty).map((l) => ({
+      itemId: l.itemId, description: l.itemName, quantity: String(l.qty - l.billedQty), rate: String(l.rate), accountCode: "4100", isService: false, vatApplicable: true,
+    })));
+  }, [salesOrder.data]);
   const refresh = useInvoiceRefresh();
   const accounts = useQuery({
     queryKey: ["accounts", company?.id],
@@ -66,7 +76,7 @@ export function InvoiceCreate() {
     const f = new FormData(e.currentTarget);
     create.mutate({
       kind, companyId: company.id, partyId: f.get("partyId"), postingDate: f.get("postingDate"), dueDate: f.get("dueDate") || null,
-      supplierInvoiceNumber: f.get("supplierInvoiceNumber") || null, customerWithholds: f.get("customerWithholds") === "on", orderReference: order.data?.number ?? null,
+      supplierInvoiceNumber: f.get("supplierInvoiceNumber") || null, customerWithholds: f.get("customerWithholds") === "on", orderReference: order.data?.number ?? salesOrder.data?.number ?? null,
       lines: lines.filter((l) => l.description && l.accountCode).map((l) => ({ ...l, itemId: l.itemId || null, quantity: Number(l.quantity), rate: Number(l.rate || 0) })),
     });
   };
@@ -82,6 +92,7 @@ export function InvoiceCreate() {
       </>}
     >
       {order.data && <MessageStrip tone="information">{t("buy.billingAgainst", { number: order.data.number, supplier: order.data.supplierName })}</MessageStrip>}
+      {salesOrder.data && <MessageStrip tone="information">{t("sell.invoicingAgainst", { number: salesOrder.data.number, customer: salesOrder.data.customerName })}</MessageStrip>}
       <form id="invoice-create" onSubmit={onSubmit}>
         <section className="object-section">
           <h2>{t("ui.general")}</h2>

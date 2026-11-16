@@ -133,3 +133,9 @@ export type PurchaseOrderDto = {
   state: "Draft" | "ToReceiveAndBill" | "ToReceive" | "ToBill" | "Completed" | "Closed" | "Cancelled";
   lines: PurchaseOrderLineDto[]; netTotal: number; percentReceived: number; percentBilled: number; remark?: string;
 };
+export type SalesOrderLineDto = { itemId: string; itemCode: string; itemName: string; uom: string; qty: number; rate: number; amount: number; warehouseId?: string; deliveredQty: number; billedQty: number };
+export type SalesOrderDto = {
+  id: string; number?: string; companyId: string; customerId: string; customerName: string; orderDate: string; deliveryDate: string; status: string;
+  state: "Draft" | "ToDeliverAndBill" | "ToDeliver" | "ToBill" | "Completed" | "Closed" | "Cancelled";
+  lines: SalesOrderLineDto[]; netTotal: number; percentDelivered: number; percentBilled: number; remark?: string;
+};

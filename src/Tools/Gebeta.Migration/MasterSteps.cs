@@ -78,21 +78,17 @@ public sealed partial class MigrationRun
         return erp;
     }
 
-    /// <summary>ERPNext keeps customers and suppliers apart; one name in both becomes one Gebeta party of type Both. Disabled ones are left behind.</summary>
+    /// <summary>
+    /// ERPNext keeps customers and suppliers apart; one name in both becomes one Gebeta party of type Both. Disabled ones are left
+    /// behind, unless they still have open balances at the cut-over: those come over so the balances can be settled.
+    /// </summary>
     private async Task<StepReport> PartiesAsync(CancellationToken cancellationToken)
     {
         var report = new StepReport("parties");
-        var customers = (await source.CustomersAsync(cancellationToken).ConfigureAwait(false)).Where(p => !p.Disabled).ToList();
-        var suppliers = (await source.SuppliersAsync(cancellationToken).ConfigureAwait(false)).Where(p => !p.Disabled).ToList();
-        var byName = new Dictionary<string, (ErpParty Party, PartyType Type)>(StringComparer.Ordinal);
-        foreach (var c in customers)
+        var byName = await PartiesToMigrateAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var (name, (party, _)) in byName.Where(p => p.Value.Party.Disabled).OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            byName[c.Name] = (c, PartyType.Customer);
-        }
-
-        foreach (var s in suppliers)
-        {
-            byName[s.Name] = byName.TryGetValue(s.Name, out var both) ? (both.Party with { TaxId = both.Party.TaxId ?? s.TaxId }, PartyType.Both) : (s, PartyType.Supplier);
+            report.Warnings.Add($"{PartyLabel(name, party.DisplayName)}: disabled in ERPNext but has open balances at the cut-over; migrated so they can be settled.");
         }
 
         var known = await KnownAsync("Party", cancellationToken).ConfigureAwait(false);
@@ -139,6 +135,33 @@ public sealed partial class MigrationRun
         return report;
     }
 
+    /// <summary>The parties the migration brings: active customers and suppliers, plus disabled ones with open balances at the cut-over.</summary>
+    private async Task<Dictionary<string, (ErpParty Party, PartyType Type)>> PartiesToMigrateAsync(CancellationToken cancellationToken)
+    {
+        var withBalance = new HashSet<string>(StringComparer.Ordinal);
+        if (options.Cutover is { } cutover)
+        {
+            withBalance.UnionWith((await source.OutstandingAsync(options.Company, cutover, cancellationToken).ConfigureAwait(false))
+                .Where(o => o.PartyType is "Customer" or "Supplier").Select(o => o.Party));
+        }
+
+        bool Keep(ErpParty p) => !p.Disabled || withBalance.Contains(p.Name);
+        var customers = (await source.CustomersAsync(cancellationToken).ConfigureAwait(false)).Where(Keep).ToList();
+        var suppliers = (await source.SuppliersAsync(cancellationToken).ConfigureAwait(false)).Where(Keep).ToList();
+        var byName = new Dictionary<string, (ErpParty Party, PartyType Type)>(StringComparer.Ordinal);
+        foreach (var c in customers)
+        {
+            byName[c.Name] = (c, PartyType.Customer);
+        }
+
+        foreach (var s in suppliers)
+        {
+            byName[s.Name] = byName.TryGetValue(s.Name, out var both) ? (both.Party with { TaxId = both.Party.TaxId ?? s.TaxId }, PartyType.Both) : (s, PartyType.Supplier);
+        }
+
+        return byName;
+    }
+
     /// <summary>
     /// Item codes become upper case without spaces (Gebeta's rule); a code that already exists in Gebeta is adopted, not duplicated.
     /// Disabled items and variant templates are left behind.
@@ -160,11 +183,6 @@ public sealed partial class MigrationRun
             }
 
             var code = Codes.Normalise(item.Code, 40);
-            if (code != item.Code)
-            {
-                report.Warnings.Add($"{item.Code}: code becomes {code}.");
-            }
-
             if (existing.TryGetValue(code, out var adopt))
             {
                 report.Warnings.Add($"{item.Code}: Gebeta already has item {code}; it is used for this item.");
@@ -177,10 +195,11 @@ public sealed partial class MigrationRun
                 continue;
             }
 
-            if (!used.Add(code))
+            var unique = Codes.Unique(code, used, 40);
+            if (unique != code)
             {
-                report.Failures.Add($"{item.Code}: code {code} clashes with another ERPNext item after normalising; rename one of them in ERPNext.");
-                continue;
+                report.Warnings.Add($"{item.Code}: {code} is taken by another item; this one becomes {unique}.");
+                code = unique;
             }
 
             var method = Valuation(item, report);
@@ -252,10 +271,11 @@ public sealed partial class MigrationRun
                 continue;
             }
 
-            if (!used.Add(code))
+            var unique = Codes.Unique(code, used, 20);
+            if (unique != code)
             {
-                report.Failures.Add($"{w.Name}: code {code} clashes with another warehouse; rename one of them in ERPNext.");
-                continue;
+                report.Warnings.Add($"{w.Name}: {code} is taken by another warehouse; this one becomes {unique}.");
+                code = unique;
             }
 
             if (options.DryRun)

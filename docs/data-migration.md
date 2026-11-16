@@ -89,6 +89,25 @@ dedicated opening-balance import.
 > - Nothing the tool writes into Gebeta mentions ERPNext. Remarks read "Opening balance" and
 >   "Opening stock at cut-over <date>", and old document numbers are kept as references.
 >
+> **First dry run on real data** (a local copy, the largest company: 127 parties, 2,040 items,
+> 98 warehouses, 149 employees, 32 salary structures, 150 open invoices, 37 stocked warehouses):
+> - Passing: parties, items, warehouses, open invoices, opening stock, and the payroll check (4 of
+>   4 slips equal to the cent).
+> - Fixed along the way:
+>   - Codes that clash after cleaning (by letter case, or the length limit) get `-2`, `-3` with a
+>     warning, instead of failing.
+>   - Disabled customers and suppliers with open balances come over.
+>   - Abbreviations Gebeta cannot read (`P7%`) are renamed; no formula can name them.
+>   - The payroll check uses the base valid when each slip was made. A raise entered later is
+>     reported as back pay due, or an overpayment to recover.
+> - Open, needing a Gebeta feature (step 38b): ERPNext formulas read names Gebeta formulas don't
+>   have.
+>   - Employee fields such as `ctc` and `custom_fuel_payment`; 16 structures in use need them.
+>   - Slip fields such as `salary_slip_based_on_timesheet`.
+>   - Abbreviations of components outside the structure, which ERPNext counts as 0.
+> - Open, data to fix in ERPNext: 36 employees with a single name (Gebeta needs the father's
+>   name); 10 balance-sheet accounts the accountant has to map.
+
 > Debt:
 > - Each record is its own command and transaction. That's fine for thousands of masters and open
 >   invoices, but tens of thousands of open invoices would want batching.

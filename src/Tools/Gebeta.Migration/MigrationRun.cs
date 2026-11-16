@@ -136,8 +136,7 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
 
         IEnumerable<string> active = doctype switch
         {
-            "Party" => (await source.CustomersAsync(cancellationToken).ConfigureAwait(false))
-                .Concat(await source.SuppliersAsync(cancellationToken).ConfigureAwait(false)).Where(p => !p.Disabled).Select(p => p.Name),
+            "Party" => (await PartiesToMigrateAsync(cancellationToken).ConfigureAwait(false)).Keys,
             "Item" => (await source.ItemsAsync(cancellationToken).ConfigureAwait(false)).Where(i => !i.Disabled).Select(i => i.Code),
             "Warehouse" => (await source.WarehousesAsync(options.Company, cancellationToken).ConfigureAwait(false)).Where(w => !w.Disabled).Select(w => w.Name),
             "Employee" => (await source.EmployeesAsync(options.Company, cancellationToken).ConfigureAwait(false)).Where(e => e.Status != "Left").Select(e => e.Name),

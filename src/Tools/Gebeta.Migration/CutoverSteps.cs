@@ -105,7 +105,7 @@ public sealed partial class MigrationRun
         var item = await ResolverAsync("Item", cancellationToken).ConfigureAwait(false);
         var warehouse = await ResolverAsync("Warehouse", cancellationToken).ConfigureAwait(false);
         var known = await KnownAsync(OpeningStock, cancellationToken).ConfigureAwait(false);
-        var expected = new Dictionary<Guid, (string Name, decimal Value)>();
+        var expected = new Dictionary<string, (Guid Id, decimal Value)>(StringComparer.Ordinal); // by name: in a dry run every id is empty
 
         foreach (var group in rows.GroupBy(r => r.Warehouse, StringComparer.Ordinal))
         {
@@ -116,7 +116,7 @@ public sealed partial class MigrationRun
                 continue;
             }
 
-            expected[warehouseId] = (group.Key, value);
+            expected[group.Key] = (warehouseId, value);
             if (known.ContainsKey(group.Key))
             {
                 report.AlreadyMigrated++;
@@ -176,8 +176,8 @@ public sealed partial class MigrationRun
 
         var balance = (await Query<StockBalanceQuery, StockBalanceDto>(new StockBalanceQuery(_companyId, cutover), cancellationToken).ConfigureAwait(false)).Value;
         var actual = balance.Rows.GroupBy(r => r.WarehouseId).ToDictionary(g => g.Key, g => g.Sum(r => r.Value));
-        var differences = expected.Where(e => actual.GetValueOrDefault(e.Key) != e.Value.Value)
-            .Select(e => $"{e.Value.Name}: Gebeta {actual.GetValueOrDefault(e.Key):N2}, ERPNext {e.Value.Value:N2}").ToList();
+        var differences = expected.Where(e => actual.GetValueOrDefault(e.Value.Id) != e.Value.Value)
+            .Select(e => $"{e.Key}: Gebeta {actual.GetValueOrDefault(e.Value.Id):N2}, ERPNext {e.Value.Value:N2}").ToList();
         report.Failures.AddRange(differences);
         report.CheckPassed = differences.Count == 0;
         report.Check = $"stock value per warehouse at {cutover:yyyy-MM-dd}: {expected.Count - differences.Count} of {expected.Count} equal ERPNext (total {total:N2})";

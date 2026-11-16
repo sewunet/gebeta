@@ -36,10 +36,11 @@ public sealed record ErpSalaryDetail(string Parent, bool IsDeduction, string Com
 
 public sealed record ErpSalaryStructure(string Name, IReadOnlyList<ErpSalaryDetail> Rows);
 
-public sealed record ErpAssignment(string Employee, string Structure, decimal Base, DateOnly FromDate);
+/// <param name="Created">When it was entered: a raise entered after a slip was made did not count for that slip (it is back pay).</param>
+public sealed record ErpAssignment(string Employee, string Structure, decimal Base, DateOnly FromDate, DateTime? Created = null);
 
 public sealed record ErpSalarySlip(string Name, string Employee, string Structure, DateOnly StartDate, DateOnly EndDate, decimal PaymentDays, decimal TotalWorkingDays,
-    decimal GrossPay, decimal NetPay, IReadOnlyList<ErpSalaryDetail> Rows);
+    decimal GrossPay, decimal NetPay, IReadOnlyList<ErpSalaryDetail> Rows, DateTime? Created = null);
 
 /// <summary>An item's stock in a warehouse at cut-over: the last stock ledger row on or before that day.</summary>
 public sealed record ErpStockBalance(string Item, string Warehouse, decimal Qty, decimal Value, IReadOnlyList<ErpFifoLayer> Queue);
@@ -185,10 +186,10 @@ public sealed class MariaDbErpNextSource(string connectionString) : IErpNextSour
 
     public Task<IReadOnlyList<ErpAssignment>> AssignmentsAsync(string company, CancellationToken cancellationToken) =>
         QueryAsync("""
-            SELECT employee, salary_structure, base, from_date FROM `tabSalary Structure Assignment`
-            WHERE company = @p AND docstatus = 1 ORDER BY employee, from_date
+            SELECT employee, salary_structure, base, from_date, creation FROM `tabSalary Structure Assignment`
+            WHERE company = @p AND docstatus = 1 ORDER BY employee, from_date, creation
             """, company,
-            r => new ErpAssignment(r.GetString(0), r.GetString(1), r.GetDecimal(2), DateOnly.FromDateTime(r.GetDateTime(3))), cancellationToken);
+            r => new ErpAssignment(r.GetString(0), r.GetString(1), r.GetDecimal(2), DateOnly.FromDateTime(r.GetDateTime(3)), r.GetDateTime(4)), cancellationToken);
 
     public async Task<IReadOnlyList<ErpSalarySlip>> LatestSlipsAsync(string company, DateOnly? asOf, CancellationToken cancellationToken)
     {
@@ -201,10 +202,10 @@ public sealed class MariaDbErpNextSource(string connectionString) : IErpNextSour
                 $"SELECT {DetailColumns} FROM `tabSalary Detail` d JOIN `tabSalary Slip` s ON s.name = d.parent AND d.parenttype = 'Salary Slip' WHERE {Latest} ORDER BY d.parent, d.idx",
                 company, Detail, cancellationToken, ("@asOf", day)).ConfigureAwait(false))
             .ToLookup(d => d.Parent, StringComparer.Ordinal);
-        return await QueryAsync($"SELECT s.name, s.employee, s.salary_structure, s.start_date, s.end_date, s.payment_days, s.total_working_days, s.gross_pay, s.net_pay FROM `tabSalary Slip` s WHERE {Latest} ORDER BY s.employee",
+        return await QueryAsync($"SELECT s.name, s.employee, s.salary_structure, s.start_date, s.end_date, s.payment_days, s.total_working_days, s.gross_pay, s.net_pay, s.creation FROM `tabSalary Slip` s WHERE {Latest} ORDER BY s.employee",
             company,
             r => new ErpSalarySlip(r.GetString(0), r.GetString(1), r.GetString(2), DateOnly.FromDateTime(r.GetDateTime(3)), DateOnly.FromDateTime(r.GetDateTime(4)),
-                r.GetDecimal(5), r.GetDecimal(6), r.GetDecimal(7), r.GetDecimal(8), details[r.GetString(0)].ToList()),
+                r.GetDecimal(5), r.GetDecimal(6), r.GetDecimal(7), r.GetDecimal(8), details[r.GetString(0)].ToList(), r.GetDateTime(9)),
             cancellationToken, ("@asOf", day)).ConfigureAwait(false);
     }
 

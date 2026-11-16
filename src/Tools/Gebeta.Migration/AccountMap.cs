@@ -68,6 +68,8 @@ public static class AccountMap
             "Fixed Asset" => "1500",
             "Temporary" => EthiopianChartOfAccounts.OpeningClearing,
             "Tax" when name.Contains("VAT", StringComparison.Ordinal) => asset ? "1250" : "2300",
+            _ when !asset && (name.Contains("PAYROLL PAYABLE", StringComparison.Ordinal) || name.Contains("SALARY PAYABLE", StringComparison.Ordinal)) =>
+                EthiopianChartOfAccounts.SalaryPayable,
             "Tax" when name.Contains("WITHHOLD", StringComparison.Ordinal) => asset ? "1260" : "2400",
             _ => account.RootType switch
             {

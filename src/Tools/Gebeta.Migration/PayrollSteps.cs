@@ -150,12 +150,14 @@ public sealed partial class MigrationRun
     }
 
     /// <summary>ERPNext earnings and deductions as Gebeta components; problems are what Gebeta has no equivalent for.</summary>
-    public static (List<SalaryComponentDto> Components, List<string> Problems, List<string> Warnings) MapStructure(ErpSalaryStructure structure)
+    public static (List<SalaryComponentDto> Components, List<string> Problems, List<string> Warnings, Dictionary<string, string> Renamed) MapStructure(ErpSalaryStructure structure)
     {
         ArgumentNullException.ThrowIfNull(structure);
         var components = new List<SalaryComponentDto>();
         var problems = new List<string>();
         var warnings = new List<string>();
+        var taken = structure.Rows.Select(r => r.Abbreviation).Where(Codes.IsValidAbbreviation).ToHashSet(StringComparer.Ordinal);
+        var renamed = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var d in structure.Rows)
         {
             var label = $"Salary structure \"{structure.Name}\", {d.Component} ({d.Abbreviation})";
@@ -176,12 +178,20 @@ public sealed partial class MigrationRun
                 continue;
             }
 
+            var abbreviation = d.Abbreviation;
+            if (!Codes.IsValidAbbreviation(abbreviation))
+            {
+                abbreviation = renamed.TryGetValue(d.Abbreviation, out var done) ? done : Codes.Abbreviation(d.Abbreviation, taken);
+                renamed[d.Abbreviation] = abbreviation;
+                warnings.Add($"{label}: abbreviation becomes {abbreviation} (Gebeta abbreviations are letters, digits and _; no formula can name the old one).");
+            }
+
             var formula = d.TaxSlabBased ? IncomeTaxFormula : d.Formula?.Trim();
-            components.Add(new SalaryComponentDto(d.Component, d.Abbreviation, type.ToString(), formula, formula is null ? d.Amount : null, d.Condition?.Trim(),
+            components.Add(new SalaryComponentDto(d.Component, abbreviation, type.ToString(), formula, formula is null ? d.Amount : null, d.Condition?.Trim(),
                 d.IsTaxable, d.DependsOnPaymentDays));
         }
 
-        return (components, problems, warnings);
+        return (components, problems, warnings, renamed);
     }
 
     /// <summary>The whole assignment history, oldest first, so back pay across the cut-over has the earlier bases.</summary>
@@ -260,19 +270,30 @@ public sealed partial class MigrationRun
         }
 
         var stored = await StructuresForCheckAsync(cancellationToken).ConfigureAwait(false);
+        var renamed = (await source.SalaryStructuresAsync(options.Company, cancellationToken).ConfigureAwait(false))
+            .ToDictionary(s => s.Name, s => (IReadOnlyDictionary<string, string>)MapStructure(s).Renamed, StringComparer.Ordinal);
         var bases = (await source.AssignmentsAsync(options.Company, cancellationToken).ConfigureAwait(false)).ToLookup(a => a.Employee, StringComparer.Ordinal);
         var equal = 0;
         var differences = new List<string>();
         foreach (var slip in slips)
         {
-            var assignment = bases[slip.Employee].Where(a => a.FromDate <= slip.StartDate).MaxBy(a => a.FromDate);
+            // The base the slip was made with: an assignment entered later (a backdated raise) is back pay, not part of this slip.
+            var valid = bases[slip.Employee].Where(a => a.FromDate <= slip.StartDate).ToList();
+            var assignment = valid.Where(a => a.Created is null || slip.Created is null || a.Created <= slip.Created).MaxBy(a => (a.FromDate, a.Created));
+            var current = valid.MaxBy(a => (a.FromDate, a.Created));
+            if (assignment is not null && current is not null && current.Base != assignment.Base)
+            {
+                report.Warnings.Add($"{slip.Name} ({slip.Employee}): paid on base {assignment.Base:N2}; the base from {current.FromDate:yyyy-MM-dd} was later set to {current.Base:N2}, so {(current.Base > assignment.Base ? "back pay is due" : "an overpayment is to be recovered")}.");
+            }
+
             if (assignment is null || !stored.TryGetValue(slip.Structure, out var structure))
             {
                 differences.Add($"{slip.Name} ({slip.Employee}): {(assignment is null ? "no salary structure assignment on " + slip.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : $"salary structure \"{slip.Structure}\" is not in Gebeta")}.");
                 continue;
             }
 
-            var result = await Query<CalculateSalaryQuery, SalaryCalculationDto>(Recalculation(slip, assignment.Base, structure), cancellationToken).ConfigureAwait(false);
+            var renames = SlipAbbreviations(slip, structure, renamed.GetValueOrDefault(slip.Structure));
+            var result = await Query<CalculateSalaryQuery, SalaryCalculationDto>(Recalculation(slip, assignment.Base, structure, renames), cancellationToken).ConfigureAwait(false);
             if (result.IsFailure)
             {
                 differences.Add($"{slip.Name} ({slip.Employee}): {result.Error!.Message}");
@@ -281,7 +302,7 @@ public sealed partial class MigrationRun
 
             var gebeta = result.Value.Lines.GroupBy(l => l.Abbreviation).ToDictionary(g => g.Key, g => g.Sum(l => l.Amount), StringComparer.Ordinal);
             var wrong = slip.Rows.Where(r => !(r.Statistical && !r.IsDeduction))
-                .GroupBy(r => r.Abbreviation).Select(g => (Abbr: g.Key, Erp: g.Sum(r => r.Amount), Gebeta: gebeta.GetValueOrDefault(g.Key)))
+                .GroupBy(r => renames[r.Abbreviation]).Select(g => (Abbr: g.Key, Erp: g.Sum(r => r.Amount), Gebeta: gebeta.GetValueOrDefault(g.Key)))
                 .Where(c => c.Erp != c.Gebeta)
                 .Select(c => $"{c.Abbr} Gebeta {c.Gebeta:N2}, ERPNext {c.Erp:N2}")
                 .ToList();
@@ -332,24 +353,41 @@ public sealed partial class MigrationRun
     /// The slip's inputs for Gebeta's calculator. A component paid only through an Additional Salary (overtime, a one-off deduction)
     /// is not in the structure, so it joins the calculation at zero and receives its amount as an additional amount.
     /// </summary>
-    public static CalculateSalaryQuery Recalculation(ErpSalarySlip slip, decimal baseAmount, IReadOnlyList<SalaryComponentDto> structure)
+    public static CalculateSalaryQuery Recalculation(ErpSalarySlip slip, decimal baseAmount, IReadOnlyList<SalaryComponentDto> structure, IReadOnlyDictionary<string, string> renames)
     {
         ArgumentNullException.ThrowIfNull(slip);
         ArgumentNullException.ThrowIfNull(structure);
+        ArgumentNullException.ThrowIfNull(renames);
         var components = structure.ToList();
         var additional = new Dictionary<string, decimal>(StringComparer.Ordinal);
         foreach (var row in slip.Rows.Where(r => r.FromAdditionalSalary || r.AdditionalAmount != 0m))
         {
-            var inStructure = components.Any(c => c.Abbreviation == row.Abbreviation);
-            if (!inStructure)
+            var abbreviation = renames[row.Abbreviation];
+            if (components.All(c => c.Abbreviation != abbreviation))
             {
-                components.Add(new SalaryComponentDto(row.Component, row.Abbreviation, row.IsDeduction ? nameof(ComponentType.Deduction) : nameof(ComponentType.Earning),
+                components.Add(new SalaryComponentDto(row.Component, abbreviation, row.IsDeduction ? nameof(ComponentType.Deduction) : nameof(ComponentType.Earning),
                     Amount: 0m, IsTaxable: row.IsTaxable));
             }
 
-            additional[row.Abbreviation] = additional.GetValueOrDefault(row.Abbreviation) + (row.AdditionalAmount != 0m ? row.AdditionalAmount : row.Amount);
+            additional[abbreviation] = additional.GetValueOrDefault(abbreviation) + (row.AdditionalAmount != 0m ? row.AdditionalAmount : row.Amount);
         }
 
         return new CalculateSalaryQuery(new CalculateSalaryRequest(baseAmount, slip.EndDate, slip.PaymentDays, slip.TotalWorkingDays, components, additional));
+    }
+
+    /// <summary>Each slip row's abbreviation as Gebeta knows it: the structure's renames, then the same cleaning for components paid only as additional salary.</summary>
+    public static Dictionary<string, string> SlipAbbreviations(ErpSalarySlip slip, IReadOnlyList<SalaryComponentDto> structure, IReadOnlyDictionary<string, string>? structureRenames)
+    {
+        ArgumentNullException.ThrowIfNull(slip);
+        ArgumentNullException.ThrowIfNull(structure);
+        var taken = structure.Select(c => c.Abbreviation).ToHashSet(StringComparer.Ordinal);
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var abbreviation in slip.Rows.Select(r => r.Abbreviation).Distinct(StringComparer.Ordinal))
+        {
+            result[abbreviation] = structureRenames?.GetValueOrDefault(abbreviation)
+                ?? (Codes.IsValidAbbreviation(abbreviation) ? abbreviation : Codes.Abbreviation(abbreviation, taken));
+        }
+
+        return result;
     }
 }

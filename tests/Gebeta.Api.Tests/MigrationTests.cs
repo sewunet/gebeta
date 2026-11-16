@@ -174,16 +174,17 @@ public class MigrationTests(GebetaApiFactory factory)
     {
         const string name = "Metehara Sugar Factory";
         var erp = new FakeErpNext(name, "0800000170");
-        erp.Items.Add(new("Cement-50-kg", "Same code after normalising", "Bag", null, true, false));
+        erp.Items.Add(new("Cement-50-kg", "Same code after normalising", "Bag", null, true, false)); // a clash: gets a suffix
+        erp.Items.Add(new("BLANK", "", "Nos", null, true, false));                                  // no name: refused
 
         var reports = await Run(erp, new MigrationOptions(name));
 
         var items = reports.Single(r => r.Name == "items");
         Assert.False(items.Ok);
-        Assert.Single(items.Failures);
-        Assert.Contains("CEMENT-50-KG", items.Failures[0], StringComparison.Ordinal);
-        Assert.Equal(3, items.Created);
-        Assert.False(items.CheckPassed);                        // 3 of 4 in Gebeta
+        Assert.StartsWith("BLANK: ", Assert.Single(items.Failures), StringComparison.Ordinal);
+        Assert.Contains(items.Warnings, w => w == "Cement-50-kg: CEMENT-50-KG is taken by another item; this one becomes CEMENT-50-KG-2.");
+        Assert.Equal(4, items.Created);
+        Assert.False(items.CheckPassed);                        // 4 of 5 in Gebeta
         Assert.True(reports.Single(r => r.Name == "warehouses").Ok); // later steps still ran
     }
 
@@ -220,14 +221,15 @@ public class MigrationTests(GebetaApiFactory factory)
             new("Receivable", "Customer", "Merkato Traders", "Sales Invoice", "SINV-0002", 2_300m, new(2026, 7, 1), new(2026, 7, 31)),
             new("Payable", "Supplier", "Addis Cement Factory", "Purchase Invoice", "PINV-0001", 34_500m, new(2026, 6, 20), new(2026, 7, 20)),
             new("Receivable", "Customer", "CUST-0002", "Payment Entry", "PE-0001", -1_000m, new(2026, 6, 1), null),
+            new("Receivable", "Customer", "CUST-0003", "Sales Invoice", "SINV-0003", 5_000m, new(2026, 3, 1), new(2026, 3, 31)), // disabled, still owes
             new("Receivable", "Employee", "HR-EMP-0001", "Journal Entry", "JV-0001", 800m, new(2026, 6, 1), null),
         ]);
         erp.Balances.AddRange(
         [
-            new("Debtors - KES", "Asset", "Receivable", null, 13_600m, 0m),           // 11,500 + 2,300 - 1,000 advance + 800 employee
+            new("Debtors - KES", "Asset", "Receivable", null, 18_600m, 0m),           // 11,500 + 2,300 + 5,000 - 1,000 advance + 800 employee
             new("Creditors - KES", "Liability", "Payable", null, -34_500m, 0m),
             new("Stock In Hand - KES", "Asset", "Stock", null, 122_500.23m, 0m),
-            new("Commercial Bank - KES", "Asset", "Bank", null, 299_200m, 0m),
+            new("Commercial Bank - KES", "Asset", "Bank", null, 294_200m, 0m),
             new("Output VAT - KES", "Liability", "Tax", null, -5_000m, 0m),
             new("Loan from Bank - KES", "Liability", null, null, -100_000m, 0m),
             new("Capital Stock - KES", "Equity", null, null, -250_000m, 0m),
@@ -253,7 +255,8 @@ public class MigrationTests(GebetaApiFactory factory)
             var first = await Run(erp, options);
             Assert.All(first.Where(r => r.Name != "opening"), r => Assert.True(r.Ok, r.Name + ": " + string.Join("; ", r.Failures)));
             var invoices = first.Single(r => r.Name == "invoices");
-            Assert.Equal(3, invoices.Created);
+            Assert.Equal(4, invoices.Created);
+            Assert.Contains(first.Single(r => r.Name == "parties").Warnings, w => w.StartsWith("Closed Shop (CUST-0003): disabled", StringComparison.Ordinal));
             Assert.Contains(invoices.Warnings, w => w.Contains("advances total 1,000.00", StringComparison.Ordinal));
             Assert.Contains(invoices.Warnings, w => w.Contains("JV-0001", StringComparison.Ordinal));
             Assert.Equal("Loan from Bank - KES (Liability, balance -100,000.00): no Gebeta account in " + map + ".", Assert.Single(first.Single(r => r.Name == "opening").Failures));
@@ -289,7 +292,7 @@ public class MigrationTests(GebetaApiFactory factory)
             decimal Net(string code) => tb.Rows.Where(r => r.Code == code).Sum(r => r.Debit - r.Credit);
             Assert.Equal(122_500.23m, Net("1300"));     // the opening stock, met by the stock accounts through 3900
             Assert.Equal(0m, Net("3900"));
-            Assert.Equal(13_600m, Net("1200"));
+            Assert.Equal(18_600m, Net("1200"));
             Assert.Equal(-100_000m, Net("2500"));
             Assert.Equal(-30_000m, Net("3200"));       // earlier years' profit
             Assert.Equal(-250_000m, Net("4100"));      // this year's sales only
@@ -300,7 +303,7 @@ public class MigrationTests(GebetaApiFactory factory)
             Assert.Equal("Fifo", stock.Rows.Single(r => r.ItemCode == "CEMENT-50-KG").Method);
 
             var sales = (await admin.GetFromJsonAsync<List<InvoiceDto>>(U($"/api/accounting/invoices?companyId={company.Id}&kind=Sales&from=2026-01-01&to=2026-07-07"), Ct))!;
-            Assert.Equal(13_800m, sales.Where(i => i.IsOpening).Sum(i => i.Outstanding));
+            Assert.Equal(18_800m, sales.Where(i => i.IsOpening).Sum(i => i.Outstanding));
 
             // Running everything again changes nothing and every check stays green.
             var again = await Run(erp, options);
@@ -343,6 +346,7 @@ public class MigrationTests(GebetaApiFactory factory)
             new("HR-EMP-0001", "Old Grade", 8_000m, new(2024, 7, 8)),
             new("HR-EMP-0001", "Staff 2018", 10_000m, new(2025, 7, 8)),
             new("HR-EMP-0002", "Staff 2018", 6_000m, new(2025, 7, 8)),
+            new("HR-EMP-0001", "Staff 2018", 11_000m, new(2026, 6, 8), Created: new(2026, 8, 3, 9, 0, 0)), // a raise for Sene, entered after Sene was paid
             new("HR-EMP-0003", "Old Grade", 5_000m, new(2024, 1, 1)),
         ]);
 
@@ -352,7 +356,7 @@ public class MigrationTests(GebetaApiFactory factory)
         DateOnly start = new(2026, 6, 8), end = new(2026, 7, 7);
         erp.Slips.AddRange(
         [
-            new("Sal Slip/HR-EMP-0001/00012", "HR-EMP-0001", "Staff 2018", start, end, 30m, 30m, 12_100m, 9_300m,
+            new("Sal Slip/HR-EMP-0001/00012", "HR-EMP-0001", "Staff 2018", start, end, 30m, 30m, 12_100m, 9_300m, Created: new(2026, 7, 8, 10, 0, 0), Rows:
             [
                 Row("s1", false, "Basic Salary", "BS", null, 10_000m), Row("s1", false, "Transport Allowance", "TA", null, 600m, taxable: false),
                 Row("s1", false, "Overtime", "OT", null, 1_500m, additional: 1_500m, fromAdditional: true),
@@ -373,7 +377,7 @@ public class MigrationTests(GebetaApiFactory factory)
 
         var reports = await Run(erp, new MigrationOptions(name));
         Assert.All(reports, r => Assert.True(r.Ok, r.Name + ": " + string.Join("; ", r.Failures)));
-        Assert.Equal((2, 2, 3), (reports.Single(r => r.Name == "employees").Created, reports.Single(r => r.Name == "structures").Created, reports.Single(r => r.Name == "assignments").Created));
+        Assert.Equal((2, 2, 4), (reports.Single(r => r.Name == "employees").Created, reports.Single(r => r.Name == "structures").Created, reports.Single(r => r.Name == "assignments").Created));
         Assert.Contains(reports.Single(r => r.Name == "employees").Warnings, w => w.Contains("1 employees who left", StringComparison.Ordinal));
         Assert.Contains(reports.Single(r => r.Name == "structures").Warnings, w => w.Contains("Employer Pension (EPC)", StringComparison.Ordinal));
         Assert.Equal("payroll 2026-06-08 – 2026-07-07: 2 of 2 slips recalculated by Gebeta equal ERPNext to the cent", reports.Single(r => r.Name == "payroll").Check);
@@ -384,7 +388,9 @@ public class MigrationTests(GebetaApiFactory factory)
         var almaz = employees.Single(e => e.FirstName == "Almaz");
         Assert.Equal(("Tadesse", "Bekele"), (almaz.FatherName, almaz.GrandfatherName)); // from the full name
         var history = (await admin.GetFromJsonAsync<List<SalaryStructureAssignmentDto>>(U($"/api/payroll/employees/{employees.Single(e => e.FirstName == "Abebe").Id}/assignments"), Ct))!;
-        Assert.Equal([8_000m, 10_000m], history.OrderBy(a => a.FromDate).Select(a => a.Base));
+        Assert.Equal([8_000m, 10_000m, 11_000m], history.OrderBy(a => a.FromDate).Select(a => a.Base));
+        Assert.Contains(reports.Single(r => r.Name == "payroll").Warnings,
+            w => w == "Sal Slip/HR-EMP-0001/00012 (HR-EMP-0001): paid on base 10,000.00; the base from 2026-06-08 was later set to 11,000.00, so back pay is due.");
 
         // ERPNext worked the tax out differently for one slip (annual projection): the check names the slip and the component.
         var slip = erp.Slips[1];
@@ -403,6 +409,15 @@ public class MigrationTests(GebetaApiFactory factory)
         // A queue that does not match the quantity (ERPNext after negative stock) becomes one line at the average.
         Assert.Equal([(5m, 50m)], MigrationRun.Layers(new ErpStockBalance("X", "W", 5m, 50m, [new(2m, 10m), new(2m, 10m)])));
     }
+
+    [Theory]
+    [InlineData("P7%", "P7")]
+    [InlineData("2", "C_2")]
+    [InlineData("hdf;fwff", "hdf_fwff")]
+    [InlineData("BS", "BS_2")]          // BS is taken by the structure
+    [InlineData("Employer pension 11% of basic", "Employer_pension_11")]
+    public void Abbreviations_gebeta_cannot_read_are_cleaned_without_clashing(string abbreviation, string expected) =>
+        Assert.Equal(expected, Codes.Abbreviation(abbreviation, new HashSet<string>(["BS"], StringComparer.Ordinal)));
 
     [Theory]
     [InlineData("Stores - ADSF", 20, "STORES")]

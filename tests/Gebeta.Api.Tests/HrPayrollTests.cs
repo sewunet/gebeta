@@ -8,7 +8,7 @@ using Gebeta.Payroll.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>HR plugged in next to Payroll: leave and attendance change the payment days of the salary slip.</summary>
-public class HrPayrollTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class HrPayrollTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

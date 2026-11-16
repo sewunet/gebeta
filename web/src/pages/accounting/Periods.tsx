@@ -5,8 +5,8 @@ import { useSession } from "../../app/context";
 import { api, post } from "../../lib/api";
 import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
 import { can, type AccountDto, type InvoiceDto, type JournalEntryDto, type PeriodClosingDto, type PeriodClosingsDto } from "../../lib/types";
-import { useParties } from "./Parties";
 import { Dialog, MessageStrip, ObjectPage, ObjectStatus } from "../../ui/fiori";
+import { useParties } from "../../lib/queries";
 
 type Line = { accountCode: string; debit: string; credit: string };
 const emptyLine = (): Line => ({ accountCode: "", debit: "", credit: "" });

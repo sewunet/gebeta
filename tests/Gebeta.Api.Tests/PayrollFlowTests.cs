@@ -6,7 +6,7 @@ using Gebeta.Payroll.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>A full monthly payroll through the API: company, employees, structure, assignments, slips.</summary>
-public class PayrollFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class PayrollFlowTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Backdated entries and cancelling older entries reprice later movements, through transfers too.</summary>
-public class BackdatedStockTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class BackdatedStockTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

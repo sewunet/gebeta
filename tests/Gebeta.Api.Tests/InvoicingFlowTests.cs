@@ -6,7 +6,7 @@ using Gebeta.Core.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Customers and suppliers, invoices with Ethiopian VAT and withholding, payments, and the tax reports.</summary>
-public class InvoicingFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class InvoicingFlowTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

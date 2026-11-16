@@ -6,7 +6,7 @@ using Gebeta.Core.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Cut-over opening balances and the year-end closing to retained earnings.</summary>
-public class YearEndTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class YearEndTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

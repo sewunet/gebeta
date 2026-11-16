@@ -6,6 +6,12 @@ public interface IUserRepository
     Task<User?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken);
     Task<IReadOnlyList<User>> ListAsync(CancellationToken cancellationToken);
     void Add(User user);
+
+    /// <summary>
+    /// Saves a user signing in for the first time. If a parallel request (the web app loads several things at once on
+    /// first sign-in) created the same user a moment earlier, returns that user instead of failing.
+    /// </summary>
+    Task<User> AddOrGetExistingAsync(User user, CancellationToken cancellationToken);
 }
 
 public interface IRoleRepository

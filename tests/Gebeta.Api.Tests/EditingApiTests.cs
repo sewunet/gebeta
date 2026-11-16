@@ -6,7 +6,7 @@ using Gebeta.Core.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Editing companies, employees (including leaving) and customers or suppliers.</summary>
-public class EditingApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class EditingApiTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

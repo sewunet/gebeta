@@ -64,6 +64,9 @@ public enum StockEntryPurpose
     Receipt,
     Issue,
     Transfer,
+
+    /// <summary>A stock count: sets each line's quantity (and rate) in its warehouse; the difference is booked against the counter account.</summary>
+    Reconciliation,
 }
 
 /// <summary>A line of a stock entry. <see cref="Rate"/> is given only for receipts; issues and transfers take it from the valuation engine.</summary>
@@ -134,13 +137,16 @@ public sealed class StockEntry : DocumentBase
 
         foreach (var l in lines)
         {
-            if (l.Qty <= 0m || decimal.Round(l.Qty, 3) != l.Qty)
+            if ((purpose == StockEntryPurpose.Reconciliation ? l.Qty < 0m : l.Qty <= 0m) || decimal.Round(l.Qty, 3) != l.Qty)
             {
-                throw new DomainException("stock.entry_qty", $"{l.ItemCode}: the quantity must be positive, with at most three decimals.");
+                throw new DomainException("stock.entry_qty", purpose == StockEntryPurpose.Reconciliation
+                    ? $"{l.ItemCode}: the counted quantity cannot be negative and has at most three decimals."
+                    : $"{l.ItemCode}: the quantity must be positive, with at most three decimals.");
             }
 
             var ok = purpose switch
             {
+                StockEntryPurpose.Reconciliation => l.TargetWarehouseId is not null && l.SourceWarehouseId is null && l.Rate is null or >= 0m,
                 StockEntryPurpose.Receipt => l.TargetWarehouseId is not null && l.SourceWarehouseId is null && l.Rate is >= 0m,
                 StockEntryPurpose.Issue => l.SourceWarehouseId is not null && l.TargetWarehouseId is null,
                 _ => l.SourceWarehouseId is not null && l.TargetWarehouseId is not null && l.SourceWarehouseId != l.TargetWarehouseId,
@@ -149,11 +155,22 @@ public sealed class StockEntry : DocumentBase
             {
                 throw new DomainException("stock.entry_warehouse", purpose switch
                 {
+                    StockEntryPurpose.Reconciliation => $"{l.ItemCode}: a stock count needs the warehouse counted.",
                     StockEntryPurpose.Receipt => $"{l.ItemCode}: a receipt needs a target warehouse and a rate.",
                     StockEntryPurpose.Issue => $"{l.ItemCode}: an issue needs a source warehouse.",
                     _ => $"{l.ItemCode}: a transfer needs two different warehouses.",
                 });
             }
+        }
+
+        if (purpose == StockEntryPurpose.Reconciliation && lines.GroupBy(l => (l.ItemId, l.TargetWarehouseId)).Any(g => g.Count() > 1))
+        {
+            throw new DomainException("stock.count_duplicate", "Each item is counted once per warehouse.");
+        }
+
+        if (party is not null && purpose == StockEntryPurpose.Reconciliation)
+        {
+            throw new DomainException("stock.entry_party", "A stock count has no supplier or customer.");
         }
 
         var defaultCounter = party is null ? DefaultCounterAccount : purpose == StockEntryPurpose.Receipt ? StockReceivedNotBilled : CostOfSales;
@@ -180,6 +197,9 @@ public enum MovementKind
     Issue,
     TransferOut,
     TransferIn,
+
+    /// <summary>A stock count: the quantity and value after it are fixed; its quantity and value change follow from what was there before.</summary>
+    Reconciliation,
 }
 
 /// <summary>
@@ -232,6 +252,16 @@ public sealed class StockLedgerEntry : Entity
     public void MarkCancelled() => IsCancelled = true;
 
     /// <summary>Reposting: the new computed value of this movement and the state after it.</summary>
+    /// <summary>Reposting a stock count: the counted state stays; what changes is the difference from the stock before it.</summary>
+    internal bool Recount(ValuationState before)
+    {
+        var qty = QtyAfter - before.Qty;
+        var change = ValueAfter - before.Value;
+        var changed = qty != ActualQty || change != ValueChange;
+        (ActualQty, ValueChange) = (qty, change);
+        return changed;
+    }
+
     internal bool Revalue(decimal valueChange, ValuationState after)
     {
         var changed = valueChange != ValueChange || after.Qty != QtyAfter || after.Value != ValueAfter || !after.Queue.SequenceEqual(_queue);
@@ -259,6 +289,17 @@ public static class Reposting
         foreach (var row in rows)
         {
             var old = row.ValueChange;
+            if (row.Kind == MovementKind.Reconciliation)
+            {
+                if (row.Recount(state))
+                {
+                    changed.Add((row, old));
+                }
+
+                state = row.State;
+                continue;
+            }
+
             decimal change;
             try
             {
@@ -328,7 +369,21 @@ public static class StockPosting
             var l = entry.Lines[i];
             var method = methods.GetValueOrDefault(l.ItemId, ValuationMethod.MovingAverage);
             decimal value;
-            if (entry.Purpose == StockEntryPurpose.Receipt)
+            if (entry.Purpose == StockEntryPurpose.Reconciliation)
+            {
+                var target = l.TargetWarehouseId!.Value;
+                var before = Current(l.ItemId, target);
+                var rate = l.Rate ?? (before.Qty > 0m ? before.Rate : throw new DomainException("stock.count_rate",
+                    $"{l.ItemCode} has no stock in {warehouses[target].Code} to take a rate from; give the rate for the count."));
+                var countedValue = Rounding.ToCurrency(l.Qty * rate);
+                var after = new ValuationState(l.Qty, countedValue, l.Qty > 0m && method == ValuationMethod.Fifo ? [new FifoLayer(l.Qty, countedValue / l.Qty)] : []);
+                state[(l.ItemId, target)] = after;
+                value = countedValue - before.Value;
+                rows.Add(StockLedgerEntry.Create(entry, i, l.ItemId, target, l.Qty - before.Qty, value, after, method, MovementKind.Reconciliation));
+                Book(warehouses[target].StockAccountCode, value);
+                Book(entry.CounterAccountCode, -value);
+            }
+            else if (entry.Purpose == StockEntryPurpose.Receipt)
             {
                 var target = l.TargetWarehouseId!.Value;
                 var (after, change) = Valuation.Receive(Current(l.ItemId, target), l.Qty, l.Qty * l.Rate!.Value, method);
@@ -393,8 +448,17 @@ public interface IStockRepository
     /// <summary>Serialises postings per item and warehouse for the rest of the transaction.</summary>
     Task LockAsync(IEnumerable<(Guid Item, Guid Warehouse)> pairs, CancellationToken cancellationToken);
 
-    /// <summary>Every live ledger row of one item and warehouse, tracked, in posting order (date, then sequence).</summary>
-    Task<List<StockLedgerEntry>> RowsForPairAsync(Guid itemId, Guid warehouseId, CancellationToken cancellationToken);
+    /// <summary>
+    /// The latest live row of one item and warehouse at or before a point in posting order (date, then sequence), tracked.
+    /// One indexed row, however long the history.
+    /// </summary>
+    Task<StockLedgerEntry?> LastAtOrBeforeAsync(Guid itemId, Guid warehouseId, DateOnly date, long sequence, CancellationToken cancellationToken);
+
+    /// <summary>The live rows of one item and warehouse after a point in posting order, tracked, oldest first (what reposting replays).</summary>
+    Task<List<StockLedgerEntry>> RowsAfterAsync(Guid itemId, Guid warehouseId, DateOnly date, long sequence, CancellationToken cancellationToken);
+
+    /// <summary>The transfer-in row paired with a transfer out (same entry and line), tracked.</summary>
+    Task<StockLedgerEntry?> TransferInAsync(Guid voucherId, int lineIndex, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<StockEntry>> GetEntriesAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken);
 

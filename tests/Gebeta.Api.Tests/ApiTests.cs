@@ -5,7 +5,7 @@ using Gebeta.Core.Presentation;
 
 namespace Gebeta.Api.Tests;
 
-public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class ApiTests(GebetaApiFactory factory)
 {
     private static readonly Uri Companies = new("/api/core/companies", UriKind.Relative);
     private static readonly Uri Me = new("/api/me", UriKind.Relative);
@@ -37,6 +37,23 @@ public class ApiTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory
         var response = await client.GetAsync(new Uri(path, UriKind.Relative), Ct);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_new_users_parallel_first_requests_all_succeed_and_create_one_user()
+    {
+        // The web app loads /api/me, /api/modules and the companies at once on first sign-in.
+        var username = $"first-{Guid.NewGuid():N}"[..20];
+        var responses = await Task.WhenAll(Enumerable.Range(0, 8).Select(async _ =>
+        {
+            using var client = factory.ClientFor(username);
+            return (await client.GetAsync(Me, Ct)).StatusCode;
+        }));
+        Assert.All(responses, s => Assert.Equal(HttpStatusCode.OK, s));
+
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var users = await admin.GetFromJsonAsync<List<UserDto>>(Users, Ct);
+        Assert.Single(users!, u => u.Username == username);
     }
 
     [Fact]

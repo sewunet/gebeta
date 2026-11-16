@@ -6,7 +6,7 @@ using Gebeta.Core.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Credit notes, cancelled payments, opening invoices at cut-over and the ageing report.</summary>
-public class InvoiceCorrectionsTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class InvoiceCorrectionsTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

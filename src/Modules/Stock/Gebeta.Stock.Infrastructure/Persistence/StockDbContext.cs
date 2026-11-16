@@ -144,9 +144,18 @@ internal sealed class StockRepository(StockDbContext db) : IStockRepository
         return BitConverter.ToInt64(a, 8) ^ BitConverter.ToInt64(b, 8) ^ 0x5374_6f63_6b00_0000; // "Stock"
     }
 
-    public async Task<List<StockLedgerEntry>> RowsForPairAsync(Guid itemId, Guid warehouseId, CancellationToken cancellationToken) =>
-        await db.Ledger.Where(e => e.ItemId == itemId && e.WarehouseId == warehouseId && !e.IsCancelled)
+    public Task<StockLedgerEntry?> LastAtOrBeforeAsync(Guid itemId, Guid warehouseId, DateOnly date, long sequence, CancellationToken cancellationToken) =>
+        db.Ledger.Where(e => e.ItemId == itemId && e.WarehouseId == warehouseId && !e.IsCancelled
+                && (e.PostingDate < date || (e.PostingDate == date && e.Sequence <= sequence)))
+            .OrderByDescending(e => e.PostingDate).ThenByDescending(e => e.Sequence).FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<List<StockLedgerEntry>> RowsAfterAsync(Guid itemId, Guid warehouseId, DateOnly date, long sequence, CancellationToken cancellationToken) =>
+        await db.Ledger.Where(e => e.ItemId == itemId && e.WarehouseId == warehouseId && !e.IsCancelled
+                && (e.PostingDate > date || (e.PostingDate == date && e.Sequence > sequence)))
             .OrderBy(e => e.PostingDate).ThenBy(e => e.Sequence).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<StockLedgerEntry?> TransferInAsync(Guid voucherId, int lineIndex, CancellationToken cancellationToken) =>
+        db.Ledger.FirstOrDefaultAsync(e => e.VoucherId == voucherId && e.LineIndex == lineIndex && e.Kind == MovementKind.TransferIn && !e.IsCancelled, cancellationToken);
 
     public async Task<IReadOnlyList<StockEntry>> GetEntriesAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken)
     {

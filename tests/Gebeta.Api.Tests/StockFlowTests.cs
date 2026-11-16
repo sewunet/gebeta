@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Items, warehouses, FIFO stock entries, the stock reports and the value journals in Accounting.</summary>
-public class StockFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class StockFlowTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

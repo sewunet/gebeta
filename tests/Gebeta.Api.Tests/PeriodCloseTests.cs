@@ -6,7 +6,7 @@ using Gebeta.Core.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Month-end close on the Ethiopian calendar, the lock date, and the financial reports.</summary>
-public class PeriodCloseTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class PeriodCloseTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

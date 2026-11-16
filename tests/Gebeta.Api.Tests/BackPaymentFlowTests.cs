@@ -6,7 +6,7 @@ using Gebeta.Payroll.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>A retroactive increment through the API, paid in the next payroll.</summary>
-public class BackPaymentFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class BackPaymentFlowTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

@@ -23,8 +23,15 @@
 > (their delivery note, our invoice). With a supplier the counter account defaults to 2150 Stock Received But Not
 > Billed; the supplier's invoice line for the item debits 2150, clearing it (any price difference stays there to be
 > reviewed). With a customer it defaults to 5000 Cost of Sales. Invoice lines can carry a Core item (kept as its code).
-> Not yet: purchase and sales orders, batches and serial numbers, units of measure conversions, stock reconciliation,
-> automatic matching of invoices to goods received.
+>
+> **Stock counts** (step 34): a stock entry of purpose *Reconciliation* sets each line's quantity in its warehouse, at
+> the given rate or the current one. The difference from the books is booked against the counter account (default
+> 5100 Stock Adjustment) and may be negative; counting zero writes the stock off. In reposting a count keeps its counted
+> quantity and value; what changes is its difference (an earlier movement entered later changes how much was short or
+> over), with an adjustment journal for that. At cut-over, leave stock out of the opening balances journal and bring it
+> in with an opening count against the equity account the opening balances used (e.g. 3100), so the two together match
+> the old trial balance. Purchase and sales orders follow receipts and deliveries (docs/modules/buying.md, selling.md).
+> Not yet: batches and serial numbers, units of measure conversions, automatic matching of invoices to goods received.
 
 ## Scope
 

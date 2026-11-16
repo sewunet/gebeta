@@ -8,7 +8,7 @@ import { formatMoney, todayIso } from "../../lib/ethiopian";
 import { formData } from "../../lib/hooks";
 import { can, type ItemDto, type ItemStockSettingDto, type StockBalanceDto } from "../../lib/types";
 import { Dialog, EditFooter, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus } from "../../ui/fiori";
-import { useItems } from "./hooks";
+import { useItems } from "../../lib/queries";
 
 const UOMS = ["pcs", "kg", "quintal", "ton", "litre", "metre", "bag", "box", "set", "trip", "hour"];
 

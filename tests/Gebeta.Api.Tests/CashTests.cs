@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Cash Management through the API, and its journal requests posted by Accounting.</summary>
-public class CashTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class CashTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

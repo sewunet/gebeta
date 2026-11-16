@@ -41,6 +41,7 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<IJournalRepository, JournalRepository>();
         services.AddScoped<IModuleMigrator, AccountingMigrator>();
         services.AddScoped<ChartSetup>();
+        services.AddScoped<ModuleJournalPoster>();
         context.Capabilities.Provide<Gebeta.Buying.Contracts.IPurchaseBillingLookup, AccountingPurchaseBilling>()
             .Provide<Gebeta.Selling.Contracts.ISalesBillingLookup, AccountingSalesBilling>();
         var accountingOptions = new AccountingOptions();

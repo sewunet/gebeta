@@ -1,22 +1,14 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../../app/context";
-import { api, post } from "../../lib/api";
+import { post } from "../../lib/api";
 import { formatMoney } from "../../lib/ethiopian";
 import { formData } from "../../lib/hooks";
 import { can, type CashierDto } from "../../lib/types";
 import { Dialog, FilterBar, FilterField, ListReport, MessageStrip, ObjectStatus, statusTone } from "../../ui/fiori";
-
-export function useCashiers() {
-  const { company } = useSession();
-  return useQuery({
-    queryKey: ["cashiers", company?.id],
-    queryFn: () => api<CashierDto[]>(`/api/cash/cashiers?companyId=${company!.id}`),
-    enabled: !!company,
-  });
-}
+import { useCashiers } from "../../lib/queries";
 
 /** List report of cash desks with their balances; a row opens the cashier. */
 export function Cashiers() {

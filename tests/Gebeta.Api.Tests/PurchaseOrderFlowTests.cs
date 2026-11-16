@@ -8,7 +8,7 @@ using Gebeta.Stock.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>A purchase order followed through goods received in Stock and the supplier's invoice in Accounting.</summary>
-public class PurchaseOrderFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class PurchaseOrderFlowTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

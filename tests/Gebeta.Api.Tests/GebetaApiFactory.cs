@@ -26,7 +26,11 @@ public sealed class GebetaApiFactory : WebApplicationFactory<Program>, IAsyncLif
         .WithPassword("gebeta_test")
         .Build();
 
-    public async ValueTask InitializeAsync() => await _postgres.StartAsync();
+    public async ValueTask InitializeAsync()
+    {
+        await _postgres.StartAsync();
+        _ = Server; // build the host once, before test classes start using it in parallel (it migrates and seeds on startup)
+    }
 
     /// <summary>An HTTP client signed in as <paramref name="username"/>, or anonymous when null.</summary>
     public HttpClient ClientFor(string? username)

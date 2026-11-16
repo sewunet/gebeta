@@ -8,10 +8,7 @@ import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
 import { can, type StockEntryDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
-import { useItems, useWarehouses } from "./hooks";
-import { useParties } from "../accounting/Parties";
-import { usePurchaseOrder } from "../buying/PurchaseOrders";
-import { useSalesOrder } from "../selling/SalesOrders";
+import { useItems, useParties, usePurchaseOrder, useSalesOrder, useWarehouses } from "../../lib/queries";
 
 const refreshKeys = ["stock-entries", "stock-entry", "stock-balance", "stock-ledger", "item-setting"];
 
@@ -45,7 +42,7 @@ export function StockEntries() {
           <FilterField label={t("ui.search")}><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("stock.entrySearchHint")} /></FilterField>
           <FilterField label={t("stock.purpose")}>
             <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
-              <option value="">{t("ui.all")}</option>{(["Receipt", "Issue", "Transfer"] as const).map((p) => <option key={p} value={p}>{t(`stock.purposes.${p}`)}</option>)}
+              <option value="">{t("ui.all")}</option>{(["Receipt", "Issue", "Transfer", "Reconciliation"] as const).map((p) => <option key={p} value={p}>{t(`stock.purposes.${p}`)}</option>)}
             </select>
           </FilterField>
           <FilterField label={t("fields.status")}>
@@ -59,7 +56,7 @@ export function StockEntries() {
       }
       tableTitle={t("nav.stockEntries")}
       count={rows.length}
-      toolbar={can(me, "stock.entries.create") && (["Receipt", "Issue", "Transfer"] as const).map((p, i) => (
+      toolbar={can(me, "stock.entries.create") && (["Receipt", "Issue", "Transfer", "Reconciliation"] as const).map((p, i) => (
         <button key={p} className={i ? "secondary" : ""} onClick={() => void navigate({ to: "/stock/entries/new", search: { purpose: p } })}>{t(`stock.new.${p}`)}</button>
       ))}
     >
@@ -99,7 +96,11 @@ export function StockEntryCreate() {
   const [partyId, setPartyId] = useState("");
   const first = warehouses.data?.[0]?.id ?? "";
   const second = warehouses.data?.[1]?.id ?? "";
-  const empty = (): Line => ({ itemId: "", qty: "", rate: "", source: purpose === "Receipt" ? "" : first, target: purpose === "Issue" ? "" : purpose === "Transfer" ? second : first });
+  const counting = purpose === "Reconciliation";
+  const hasRate = purpose === "Receipt" || counting;
+  const hasFrom = purpose === "Issue" || purpose === "Transfer";
+  const hasTo = purpose !== "Issue";
+  const empty = (): Line => ({ itemId: "", qty: "", rate: "", source: hasFrom ? first : "", target: !hasTo ? "" : purpose === "Transfer" ? second : first });
   const [lines, setLines] = useState<Line[]>([]);
   const shown = lines.length ? lines : [empty()];
   useEffect(() => {
@@ -140,9 +141,9 @@ export function StockEntryCreate() {
       body: {
         companyId: company.id, purpose, postingDate: f.get("postingDate"), remark: f.get("remark") || null, counterAccountCode: f.get("counterAccountCode") || null,
         partyId: partyId || null, reference: f.get("reference") || null,
-        lines: shown.filter((l) => l.itemId && Number(l.qty) > 0).map((l) => ({
-          itemId: l.itemId, qty: Number(l.qty), rate: purpose === "Receipt" ? Number(l.rate || 0) : null,
-          sourceWarehouseId: purpose === "Receipt" ? null : l.source, targetWarehouseId: purpose === "Issue" ? null : l.target,
+        lines: shown.filter((l) => l.itemId && (counting ? l.qty !== "" : Number(l.qty) > 0)).map((l) => ({
+          itemId: l.itemId, qty: Number(l.qty), rate: purpose === "Receipt" ? Number(l.rate || 0) : counting && l.rate !== "" ? Number(l.rate) : null,
+          sourceWarehouseId: hasFrom ? l.source : null, targetWarehouseId: hasTo ? l.target : null,
         })),
       },
     });
@@ -172,7 +173,7 @@ export function StockEntryCreate() {
           <h2>{t("ui.general")}</h2>
           <div className="form-columns">
             <label>{t("attendance.date")}<span className="required" aria-hidden>*</span><input type="date" name="postingDate" defaultValue={todayIso()} max={todayIso()} required /></label>
-            {purpose !== "Transfer" && <>
+            {(purpose === "Receipt" || purpose === "Issue") && <>
               <label>{t(purpose === "Receipt" ? "inv.supplier" : "inv.customer")}
                 <select value={partyId} onChange={(e) => setPartyId(e.target.value)}>
                   <option value="">{t("stock.noParty")}</option>
@@ -180,33 +181,35 @@ export function StockEntryCreate() {
                 </select>
               </label>
               <label>{t("inv.reference")}<input name="reference" key={reference ?? "none"} defaultValue={reference ?? ""} placeholder={purpose === "Receipt" ? "DN / GRN" : "SINV"} /></label>
-              <label>{t("stock.counterAccount")}<input name="counterAccountCode" key={partyId ? "p" : "n"} placeholder={partyId ? (purpose === "Receipt" ? "2150" : "5000") : "5100"} /></label>
             </>}
+            {purpose !== "Transfer" && <label>{t("stock.counterAccount")}<input name="counterAccountCode" key={partyId ? "p" : "n"}
+              placeholder={partyId ? (purpose === "Receipt" ? "2150" : "5000") : "5100"} /></label>}
             <label>{t("acc.remark")}<input name="remark" /></label>
           </div>
         </section>
         <section className="object-section">
           <h2>{t("ui.lines")}</h2>
           <table className="table edit-table">
-            <thead><tr><th>{t("nav.items")}</th><th className="num">{t("stock.qty")}</th>
-              {purpose === "Receipt" && <th className="num">{t("inv.rate")}</th>}
-              {purpose !== "Receipt" && <th>{t("stock.from")}</th>}{purpose !== "Issue" && <th>{t("stock.to")}</th>}<th /></tr></thead>
+            <thead><tr><th>{t("nav.items")}</th><th className="num">{t(counting ? "stock.countedQty" : "stock.qty")}</th>
+              {hasRate && <th className="num">{t(counting ? "stock.countRate" : "inv.rate")}</th>}
+              {hasFrom && <th>{t("stock.from")}</th>}{hasTo && <th>{t(counting ? "nav.warehouses" : "stock.to")}</th>}<th /></tr></thead>
             <tbody>{shown.map((l, i) => (
               <tr key={i}>
                 <td><select aria-label={t("nav.items")} value={l.itemId} onChange={(e) => setLine(i, { itemId: e.target.value })} required={i === 0}>
                   <option value="">—</option>{stockItems.map((it) => <option key={it.id} value={it.id}>{it.code} · {it.name} ({it.uom})</option>)}
                 </select></td>
-                <td><input aria-label={t("stock.qty")} className="num" type="number" step="0.001" min="0" value={l.qty} onChange={(e) => setLine(i, { qty: e.target.value })} /></td>
-                {purpose === "Receipt" && <td><input aria-label={t("inv.rate")} className="num" type="number" step="0.01" min="0" value={l.rate} onChange={(e) => setLine(i, { rate: e.target.value })} /></td>}
-                {purpose !== "Receipt" && <td>{whSelect(l.source, (v) => setLine(i, { source: v }), t("stock.from"))}</td>}
-                {purpose !== "Issue" && <td>{whSelect(l.target, (v) => setLine(i, { target: v }), t("stock.to"))}</td>}
+                <td><input aria-label={t("stock.qty")} className="num" type="number" step="0.001" min="0" value={l.qty} required={counting && !!l.itemId} onChange={(e) => setLine(i, { qty: e.target.value })} /></td>
+                {hasRate && <td><input aria-label={t("inv.rate")} className="num" type="number" step="0.01" min="0" value={l.rate} placeholder={counting ? t("stock.currentRate") : ""}
+                  onChange={(e) => setLine(i, { rate: e.target.value })} /></td>}
+                {hasFrom && <td>{whSelect(l.source, (v) => setLine(i, { source: v }), t("stock.from"))}</td>}
+                {hasTo && <td>{whSelect(l.target, (v) => setLine(i, { target: v }), t("stock.to"))}</td>}
                 <td>{shown.length > 1 && <button type="button" className="link-button" aria-label={t("ui.remove")} onClick={() => setLines(shown.filter((_, j) => j !== i))}>×</button>}</td>
               </tr>
             ))}</tbody>
-            <tfoot><tr><td colSpan={purpose === "Transfer" ? 4 : 3}><button type="button" className="secondary" onClick={() => setLines([...shown, empty()])}>{t("acc.addLine")}</button></td>
+            <tfoot><tr><td colSpan={purpose === "Transfer" || counting ? 4 : 3}><button type="button" className="secondary" onClick={() => setLines([...shown, empty()])}>{t("acc.addLine")}</button></td>
               {purpose === "Receipt" ? <td className="num">{formatMoney(total)}</td> : <td />}</tr></tfoot>
           </table>
-          <MessageStrip tone="information">{t(purpose === "Receipt" ? "stock.receiptHint" : "stock.rateHint")}
+          <MessageStrip tone="information">{t(counting ? "stock.countHint" : purpose === "Receipt" ? "stock.receiptHint" : "stock.rateHint")}
             {partyId && <> {t(purpose === "Receipt" ? "stock.receivedHint" : "stock.deliveredHint")}</>}</MessageStrip>
         </section>
       </form>
@@ -258,13 +261,14 @@ export function StockEntryDetail() {
       sections={[
         { id: "lines", title: t("ui.lines"), content: (
           <table className="table">
-            <thead><tr><th>{t("nav.items")}</th><th className="num">{t("stock.qty")}</th>{e.purpose !== "Receipt" && <th>{t("stock.from")}</th>}
-              {e.purpose !== "Issue" && <th>{t("stock.to")}</th>}<th className="num">{t("inv.rate")}</th><th className="num">{t("stock.value")}</th></tr></thead>
+            <thead><tr><th>{t("nav.items")}</th><th className="num">{t(e.purpose === "Reconciliation" ? "stock.countedQty" : "stock.qty")}</th>
+              {(e.purpose === "Issue" || e.purpose === "Transfer") && <th>{t("stock.from")}</th>}
+              {e.purpose !== "Issue" && <th>{t(e.purpose === "Reconciliation" ? "nav.warehouses" : "stock.to")}</th>}<th className="num">{t("inv.rate")}</th><th className="num">{t("stock.value")}</th></tr></thead>
             <tbody>{e.lines.map((l, i) => (
               <tr key={i}>
                 <td><span className="mono">{l.itemCode}</span> · {l.itemName}</td><td className="num">{l.qty} {l.uom}</td>
-                {e.purpose !== "Receipt" && <td className="mono">{l.sourceWarehouse}</td>}{e.purpose !== "Issue" && <td className="mono">{l.targetWarehouse}</td>}
-                <td className="num">{l.rate != null ? formatMoney(l.rate) : l.value ? formatMoney(l.value / l.qty) : "—"}</td>
+                {(e.purpose === "Issue" || e.purpose === "Transfer") && <td className="mono">{l.sourceWarehouse}</td>}{e.purpose !== "Issue" && <td className="mono">{l.targetWarehouse}</td>}
+                <td className="num">{l.rate != null ? formatMoney(l.rate) : e.purpose !== "Reconciliation" && l.value ? formatMoney(l.value / l.qty) : "—"}</td>
                 <td className="num">{e.status === "Draft" ? "" : formatMoney(l.value)}</td>
               </tr>
             ))}</tbody>

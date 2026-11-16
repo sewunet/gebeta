@@ -9,6 +9,7 @@ import { formData } from "../../lib/hooks";
 import { can, type AccountDto, type BankAccountDto, type ReconciliationDto } from "../../lib/types";
 import { currentMonth, monthRange } from "../payroll/month";
 import { Dialog, DynamicPage, FilterBar, FilterField, MessageStrip, ObjectStatus } from "../../ui/fiori";
+import { useBankAccounts } from "../../lib/queries";
 
 type Field = "date" | "description" | "reference" | "amount" | "withdrawal" | "deposit" | "balance";
 const FIELDS: Field[] = ["date", "description", "reference", "amount", "withdrawal", "deposit", "balance"];
@@ -16,16 +17,6 @@ const GUESS: Record<Field, RegExp> = {
   date: /date|ቀን/i, description: /desc|narr|particular|detail|ዝርዝር/i, reference: /ref|cheque|chq/i, amount: /^amount$|ገንዘብ/i,
   withdrawal: /withdraw|debit|out/i, deposit: /deposit|credit|in$/i, balance: /bal/i,
 };
-
-/** Bank accounts, statement import from the bank's CSV, and reconciliation against the bank's ledger account. */
-export function useBankAccounts() {
-  const { company } = useSession();
-  return useQuery({
-    queryKey: ["bank-accounts", company?.id],
-    queryFn: () => api<BankAccountDto[]>(`/api/accounting/bank-accounts?companyId=${company!.id}`),
-    enabled: !!company,
-  });
-}
 
 export function Banking() {
   const { t, i18n } = useTranslation();

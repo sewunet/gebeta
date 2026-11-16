@@ -6,7 +6,7 @@ using Gebeta.Core.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Bank accounts, statement import and reconciliation against the ledger.</summary>
-public class BankingFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class BankingFlowTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

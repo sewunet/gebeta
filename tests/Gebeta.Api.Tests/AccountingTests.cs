@@ -13,7 +13,7 @@ namespace Gebeta.Api.Tests;
 /// Accounting next to Payroll. In these tests RabbitMQ is off, so the event consumers are called directly with
 /// the same events Payroll publishes; delivery over RabbitMQ is tested in Gebeta.Messaging.Tests and live.
 /// </summary>
-public class AccountingTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class AccountingTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

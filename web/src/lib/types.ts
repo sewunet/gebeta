@@ -118,7 +118,7 @@ export type StockEntryLineDto = {
   targetWarehouseId?: string; targetWarehouse?: string; value: number;
 };
 export type StockEntryDto = {
-  id: string; number?: string; companyId: string; purpose: "Receipt" | "Issue" | "Transfer"; postingDate: string; status: string; counterAccountCode: string;
+  id: string; number?: string; companyId: string; purpose: "Receipt" | "Issue" | "Transfer" | "Reconciliation"; postingDate: string; status: string; counterAccountCode: string;
   remark?: string; lines: StockEntryLineDto[]; totalValue: number; partyId?: string; partyName?: string; reference?: string;
 };
 export type StockBalanceRow = { itemId: string; itemCode: string; itemName: string; uom: string; warehouseId: string; warehouse: string; qty: number; rate: number; value: number; method: string };

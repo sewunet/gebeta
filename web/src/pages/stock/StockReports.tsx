@@ -8,7 +8,7 @@ import { formatDate, formatEthiopian, formatMoney, todayIso } from "../../lib/et
 import type { StockBalanceDto, StockLedgerDto } from "../../lib/types";
 import { DynamicPage, FilterBar, FilterField } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
-import { useItems, useWarehouses } from "./hooks";
+import { useItems, useWarehouses } from "../../lib/queries";
 
 /** Quantity and value of every item in every warehouse on a date. */
 export function StockBalance() {

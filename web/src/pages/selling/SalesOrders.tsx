@@ -8,16 +8,11 @@ import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
 import { can, type SalesOrderDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, type Tone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
-import { useParties } from "../accounting/Parties";
-import { useItems, useWarehouses } from "../stock/hooks";
+import { useItems, useParties, useSalesOrder, useWarehouses } from "../../lib/queries";
 
 const TONE: Record<SalesOrderDto["state"], Tone> = {
   Draft: "critical", ToDeliverAndBill: "information", ToDeliver: "information", ToBill: "information", Completed: "positive", Closed: "neutral", Cancelled: "negative",
 };
-
-export function useSalesOrder(id: string | undefined) {
-  return useQuery({ queryKey: ["sales-order", id], queryFn: () => api<SalesOrderDto>(`/api/selling/sales-orders/${id}`), enabled: !!id });
-}
 
 /** List report of purchase orders with their fulfilment. */
 export function SalesOrders() {

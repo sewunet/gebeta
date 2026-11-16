@@ -6,7 +6,7 @@ using Gebeta.Payroll.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>A company's monthly payroll in one run, then the tax, pension and bank reports.</summary>
-public class PayrollRunTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class PayrollRunTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

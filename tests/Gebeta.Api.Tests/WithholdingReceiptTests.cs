@@ -6,7 +6,7 @@ using Gebeta.Core.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Withholding receipts for suppliers and the VAT and withholding declaration files.</summary>
-public class WithholdingReceiptTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class WithholdingReceiptTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

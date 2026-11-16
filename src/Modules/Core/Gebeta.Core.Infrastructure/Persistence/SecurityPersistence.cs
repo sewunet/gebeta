@@ -63,6 +63,21 @@ internal sealed class UserRepository(CoreDbContext db) : IUserRepository
         await db.Users.AsNoTracking().OrderBy(u => u.Username).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public void Add(User user) => db.Users.Add(user);
+
+    public async Task<User> AddOrGetExistingAsync(User user, CancellationToken cancellationToken)
+    {
+        db.Users.Add(user);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return user;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+        {
+            db.Entry(user).State = EntityState.Detached; // lost the race: use the row the other request inserted
+            return await db.Users.FirstAsync(u => u.ExternalId == user.ExternalId, cancellationToken).ConfigureAwait(false);
+        }
+    }
 }
 
 internal sealed class RoleRepository(CoreDbContext db) : IRoleRepository

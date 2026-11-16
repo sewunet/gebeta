@@ -8,9 +8,8 @@ import { formatDate, formatMoney, todayIso } from "../../../lib/ethiopian";
 import { can, type InvoiceDto, type PaymentDto } from "../../../lib/types";
 import { Dialog, FilterBar, FilterField, ListReport, MessageStrip, ObjectStatus } from "../../../ui/fiori";
 import { currentMonth, monthRange } from "../../payroll/month";
-import { useBankAccounts } from "../Banking";
-import { useParties } from "../Parties";
 import { isOverdue, paymentState, useInvoiceRefresh, type Kind } from "./shared";
+import { useBankAccounts, useParties } from "../../../lib/queries";
 
 /** List report of sales or purchase invoices: filter bar, table toolbar, select several of one party to pay together. */
 export function InvoiceList() {

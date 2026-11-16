@@ -8,7 +8,7 @@ import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
 import { formData } from "../../lib/hooks";
 import { can, type CashLedgerEntryDto, type CashMovementDto } from "../../lib/types";
 import { Dialog, Fields, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
-import { useCashiers } from "./Cashiers";
+import { useCashiers } from "../../lib/queries";
 
 type Mode = "Receipt" | "Payment" | "Transfer";
 

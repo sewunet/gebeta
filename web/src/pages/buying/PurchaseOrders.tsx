@@ -8,16 +8,11 @@ import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
 import { can, type PurchaseOrderDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, type Tone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
-import { useParties } from "../accounting/Parties";
-import { useItems, useWarehouses } from "../stock/hooks";
+import { useItems, useParties, usePurchaseOrder, useWarehouses } from "../../lib/queries";
 
 const TONE: Record<PurchaseOrderDto["state"], Tone> = {
   Draft: "critical", ToReceiveAndBill: "information", ToReceive: "information", ToBill: "information", Completed: "positive", Closed: "neutral", Cancelled: "negative",
 };
-
-export function usePurchaseOrder(id: string | undefined) {
-  return useQuery({ queryKey: ["purchase-order", id], queryFn: () => api<PurchaseOrderDto>(`/api/buying/purchase-orders/${id}`), enabled: !!id });
-}
 
 /** List report of purchase orders with their fulfilment. */
 export function PurchaseOrders() {

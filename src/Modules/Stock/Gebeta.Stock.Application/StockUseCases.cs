@@ -231,7 +231,7 @@ public sealed class StockHandler(
         var positions = new Dictionary<(Guid, Guid), StockPosition>();
         foreach (var pair in pairs)
         {
-            var before = (await stock.RowsForPairAsync(pair.Item, pair.Warehouse, cancellationToken).ConfigureAwait(false)).LastOrDefault(r => r.PostingDate <= entry.PostingDate);
+            var before = await stock.LastAtOrBeforeAsync(pair.Item, pair.Warehouse, entry.PostingDate, long.MaxValue, cancellationToken).ConfigureAwait(false);
             positions[pair] = new StockPosition(before?.State ?? ValuationState.Empty, before?.Method);
         }
 
@@ -357,7 +357,6 @@ public sealed class StockHandler(
         CancellationToken cancellationToken)
     {
         var work = new Queue<((Guid Item, Guid Warehouse) Pair, (DateOnly Date, long Sequence) After)>(seeds);
-        var rowsByPair = new Dictionary<(Guid, Guid), List<StockLedgerEntry>>();
         var transferValues = new Dictionary<(Guid Voucher, int Line), decimal>();
         var changed = new Dictionary<Guid, (StockLedgerEntry Row, decimal Old)>();
         var locked = new HashSet<(Guid, Guid)>(Pairs(trigger));
@@ -374,21 +373,17 @@ public sealed class StockHandler(
                 await stock.LockAsync([pair], cancellationToken).ConfigureAwait(false);
             }
 
-            if (!rowsByPair.TryGetValue(pair, out var rows))
-            {
-                rows = await stock.RowsForPairAsync(pair.Item, pair.Warehouse, cancellationToken).ConfigureAwait(false);
-                rowsByPair[pair] = rows;
-            }
-
-            var index = rows.FindIndex(r => After(r, after));
-            if (index < 0)
+            // Only the rows after the point and the one row before it: the cost follows what changed, not the item's history.
+            // Rows are tracked, so a pair replayed twice sees its own earlier changes.
+            var rows = await stock.RowsAfterAsync(pair.Item, pair.Warehouse, after.Date, after.Sequence, cancellationToken).ConfigureAwait(false);
+            if (rows.Count == 0)
             {
                 continue;
             }
 
-            var method = methods?.GetValueOrDefault(pair.Item) ?? settings.GetValueOrDefault(pair.Item)?.Method ?? rows[index].Method;
-            var start = index > 0 ? rows[index - 1].State : ValuationState.Empty;
-            var replayed = Reposting.Replay(start, rows.Skip(index).ToList(), method,
+            var before = await stock.LastAtOrBeforeAsync(pair.Item, pair.Warehouse, after.Date, after.Sequence, cancellationToken).ConfigureAwait(false);
+            var method = methods?.GetValueOrDefault(pair.Item) ?? settings.GetValueOrDefault(pair.Item)?.Method ?? rows[0].Method;
+            var replayed = Reposting.Replay(before?.State ?? ValuationState.Empty, rows, method,
                 r => transferValues.TryGetValue((r.VoucherId, r.LineIndex), out var v) ? v : null);
             foreach (var (row, old) in replayed)
             {
@@ -399,21 +394,9 @@ public sealed class StockHandler(
                 }
 
                 transferValues[(row.VoucherId, row.LineIndex)] = -row.ValueChange;
-                var voucher = (await stock.GetEntriesAsync([row.VoucherId], cancellationToken).ConfigureAwait(false)).Single();
-                var target = (row.ItemId, voucher.Lines[row.LineIndex].TargetWarehouseId!.Value);
-                if (!rowsByPair.TryGetValue(target, out var targetRows))
-                {
-                    if (locked.Add(target))
-                    {
-                        await stock.LockAsync([target], cancellationToken).ConfigureAwait(false);
-                    }
-
-                    targetRows = await stock.RowsForPairAsync(target.Item1, target.Item2, cancellationToken).ConfigureAwait(false);
-                    rowsByPair[target] = targetRows;
-                }
-
-                var transferIn = targetRows.Single(r => r.VoucherId == row.VoucherId && r.LineIndex == row.LineIndex && r.Kind == MovementKind.TransferIn);
-                work.Enqueue((target, (transferIn.PostingDate, transferIn.Sequence - 1)));
+                var transferIn = await stock.TransferInAsync(row.VoucherId, row.LineIndex, cancellationToken).ConfigureAwait(false)
+                    ?? throw new DomainException("stock.repost_transfer", $"{row.VoucherNumber} has no matching transfer in.");
+                work.Enqueue(((transferIn.ItemId, transferIn.WarehouseId), (transferIn.PostingDate, transferIn.Sequence - 1)));
             }
         }
 
@@ -435,9 +418,13 @@ public sealed class StockHandler(
                 {
                     voucher.RevalueLine(row.LineIndex, -row.ValueChange);
                 }
+                else if (row.Kind == MovementKind.Reconciliation)
+                {
+                    voucher.RevalueLine(row.LineIndex, row.ValueChange); // the count's difference
+                }
             }
 
-            if (voucher.Purpose == StockEntryPurpose.Issue)
+            if (voucher.Purpose is StockEntryPurpose.Issue or StockEntryPurpose.Reconciliation)
             {
                 Add(signed, voucher.CounterAccountCode, -group.Sum(c => c.Row.ValueChange - c.Old));
             }

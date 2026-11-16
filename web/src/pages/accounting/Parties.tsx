@@ -1,22 +1,13 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../../app/context";
-import { api, post } from "../../lib/api";
+import { post } from "../../lib/api";
 import { formData } from "../../lib/hooks";
 import { can, type PartyDto } from "../../lib/types";
 import { Dialog, FilterBar, FilterField, ListReport, MessageStrip, ObjectStatus } from "../../ui/fiori";
-
-/** Customers and suppliers of the selected company (kept in Core, used by invoices). */
-export function useParties() {
-  const { company } = useSession();
-  return useQuery({
-    queryKey: ["parties", company?.id],
-    queryFn: () => api<PartyDto[]>(`/api/core/parties?companyId=${company!.id}`),
-    enabled: !!company,
-  });
-}
+import { useParties } from "../../lib/queries";
 
 /** List report of customers and suppliers; a row opens the party's object page. */
 export function Parties() {

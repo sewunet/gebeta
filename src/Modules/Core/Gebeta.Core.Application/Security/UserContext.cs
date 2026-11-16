@@ -110,8 +110,6 @@ public sealed class UserContext(
             user.AssignRole(admin);
         }
 
-        users.Add(user);
-        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return user;
+        return await users.AddOrGetExistingAsync(user, cancellationToken).ConfigureAwait(false);
     }
 }

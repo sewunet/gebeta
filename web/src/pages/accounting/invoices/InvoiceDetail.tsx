@@ -7,8 +7,8 @@ import { api, post } from "../../../lib/api";
 import { formatDate, formatMoney, todayIso } from "../../../lib/ethiopian";
 import { can, type InvoiceDto, type PaymentDto } from "../../../lib/types";
 import { Dialog, Fields, MessageStrip, ObjectPage, ObjectStatus } from "../../../ui/fiori";
-import { useBankAccounts } from "../Banking";
 import { paymentState, useInvoiceRefresh } from "./shared";
+import { useBankAccounts } from "../../../lib/queries";
 
 /** Object page of one invoice: header with key figures and actions, then General, Lines, Taxes and Payments. */
 export function InvoiceDetail() {

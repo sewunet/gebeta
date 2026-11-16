@@ -6,7 +6,7 @@ import { post } from "../../lib/api";
 import { formData } from "../../lib/hooks";
 import { can, type WarehouseDto } from "../../lib/types";
 import { Dialog, ListReport, MessageStrip } from "../../ui/fiori";
-import { useWarehouses } from "./hooks";
+import { useWarehouses } from "../../lib/queries";
 
 /** Warehouses and the stock account each one carries its stock value on. */
 export function Warehouses() {

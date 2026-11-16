@@ -94,48 +94,23 @@ public sealed class PurchaseOrder : DocumentBase
         IsClosed = false;
     }
 
-    /// <summary>Where the order stands, given what has been received and billed per item.</summary>
-    public OrderState StateFor(IReadOnlyDictionary<Guid, decimal> received, IReadOnlyDictionary<Guid, decimal> billed)
-    {
-        ArgumentNullException.ThrowIfNull(received);
-        ArgumentNullException.ThrowIfNull(billed);
-        if (DocStatus == DocStatus.Draft)
-        {
-            return OrderState.Draft;
-        }
+    private IReadOnlyCollection<(Guid ItemId, decimal Qty)> Ordered => _lines.Select(l => (l.ItemId, l.Qty)).ToList();
 
-        if (DocStatus == DocStatus.Cancelled)
+    /// <summary>Where the order stands, given what has been received and billed per item (the shared rules in <see cref="OrderProgress"/>).</summary>
+    public OrderState StateFor(IReadOnlyDictionary<Guid, decimal> received, IReadOnlyDictionary<Guid, decimal> billed) =>
+        OrderProgress.StateOf(DocStatus, IsClosed, Ordered, received, billed) switch
         {
-            return OrderState.Cancelled;
-        }
-
-        var allReceived = _lines.All(l => received.GetValueOrDefault(l.ItemId) >= l.Qty);
-        var allBilled = _lines.All(l => billed.GetValueOrDefault(l.ItemId) >= l.Qty);
-        if (allReceived && allBilled)
-        {
-            return OrderState.Completed;
-        }
-
-        if (IsClosed)
-        {
-            return OrderState.Closed;
-        }
-
-        return (allReceived, allBilled) switch
-        {
-            (true, false) => OrderState.ToBill,
-            (false, true) => OrderState.ToReceive,
+            OrderProgressState.Draft => OrderState.Draft,
+            OrderProgressState.Cancelled => OrderState.Cancelled,
+            OrderProgressState.Completed => OrderState.Completed,
+            OrderProgressState.Closed => OrderState.Closed,
+            OrderProgressState.ToBill => OrderState.ToBill,
+            OrderProgressState.ToFulfil => OrderState.ToReceive,
             _ => OrderState.ToReceiveAndBill,
         };
-    }
 
     /// <summary>Share of the ordered quantity covered (each line counted up to its ordered quantity), as a percentage.</summary>
-    public decimal PercentOf(IReadOnlyDictionary<Guid, decimal> done)
-    {
-        ArgumentNullException.ThrowIfNull(done);
-        var ordered = _lines.Sum(l => l.Qty);
-        return ordered == 0m ? 0m : Math.Round(_lines.Sum(l => Math.Min(done.GetValueOrDefault(l.ItemId), l.Qty)) * 100m / ordered, 1);
-    }
+    public decimal PercentOf(IReadOnlyDictionary<Guid, decimal> done) => OrderProgress.PercentOf(Ordered, done);
 
     protected override void OnCancel()
     {

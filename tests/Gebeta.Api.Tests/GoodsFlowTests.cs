@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gebeta.Api.Tests;
 
 /// <summary>Goods received against a supplier's invoice through 2150, and goods delivered to a customer at cost of sales.</summary>
-public class GoodsFlowTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class GoodsFlowTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

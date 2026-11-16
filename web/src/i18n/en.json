@@ -583,12 +583,14 @@
     "purposes": {
       "Receipt": "Receipt",
       "Issue": "Issue",
-      "Transfer": "Transfer"
+      "Transfer": "Transfer",
+      "Reconciliation": "Stock count"
     },
     "new": {
       "Receipt": "New receipt",
       "Issue": "New issue",
-      "Transfer": "New transfer"
+      "Transfer": "New transfer",
+      "Reconciliation": "New stock count"
     },
     "saveAndPost": "Save and post",
     "counterAccount": "Counter account",
@@ -604,7 +606,11 @@
     "valueAfter": "Value after",
     "noParty": "None (internal)",
     "receivedHint": "With a supplier, the value is credited to 2150 Stock Received But Not Billed until the supplier's invoice clears it.",
-    "deliveredHint": "With a customer, the value is charged to 5000 Cost of Sales."
+    "deliveredHint": "With a customer, the value is charged to 5000 Cost of Sales.",
+    "countedQty": "Counted qty",
+    "countRate": "Rate",
+    "currentRate": "current",
+    "countHint": "Enter what is really there. The difference from the books is booked against the counter account (default 5100 Stock Adjustment); leave the rate empty to keep the current rate. For opening stock at cut-over, give the rate and use the equity account your opening balances used."
   },
   "buy": {
     "searchHint": "Number, supplier or item",

@@ -57,18 +57,71 @@ public sealed class CompanyCreatedConsumer(ChartSetup chart, IAccountingUnitOfWo
 }
 
 /// <summary>
-/// The payroll journal of a submitted salary slip (docs/modules/accounting.md): earnings to salary expense,
-/// employer contributions to their expense and to pension payable, income tax and pension deductions to
-/// their payables, other deductions to other payroll deductions, and net pay to salaries payable.
-/// Runs inside the messaging transaction; a repeated event finds the journal already posted.
+/// Posts the journals other modules ask for (payroll, cash, stock), all the same way: a repeat of the same source is
+/// ignored, the company gets its chart if it has none yet, account codes are mapped to the company's accounts (an
+/// unknown or group account fails the message, which is retried and then dead-lettered), and the journal is numbered
+/// and posted in the message's transaction. One place for the rules instead of one copy per module.
 /// </summary>
-public sealed class SalarySlipSubmittedConsumer(
+public sealed class ModuleJournalPoster(
     ChartSetup chart,
     IAccountRepository accounts,
     IJournalRepository journals,
     IAccountingNumbers numbers,
     IAccountingUnitOfWork unitOfWork,
-    TimeProvider clock) : IIntegrationEventConsumer<SalarySlipSubmitted>
+    TimeProvider clock)
+{
+    public sealed record Line(string AccountCode, decimal Debit, decimal Credit, string? Description);
+
+    /// <returns>The posted journal, or null when this source was already posted.</returns>
+    public async Task<JournalEntry?> PostAsync(Guid companyId, Guid sourceId, string sourceNumber, JournalSource source, DateOnly postingDate, string remark,
+        IReadOnlyList<Line> lines, string postedBy, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        if (await journals.FindBySourceAsync(sourceId, cancellationToken).ConfigureAwait(false) is not null)
+        {
+            return null;
+        }
+
+        if (await chart.EnsureAsync(companyId, cancellationToken).ConfigureAwait(false))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var byCode = (await accounts.ListAsync(companyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
+        var journalLines = lines.Select(l => byCode.TryGetValue(l.AccountCode, out var account) && !account.IsGroup
+                ? new JournalLine(account.Id, l.Debit, l.Credit, l.Description ?? remark)
+                : throw new DomainException("accounting.unknown_account", $"Account {l.AccountCode} from {sourceNumber} is not a postable account."))
+            .ToList();
+        var journal = JournalEntry.Create(companyId, postingDate, remark, journalLines, source, sourceId, sourceNumber);
+        journal.AssignName(await numbers.NextAsync(companyId, journal.DocumentType, JournalHandler.DefaultPattern, postingDate, cancellationToken).ConfigureAwait(false));
+        journal.CreatedAt = clock.GetUtcNow();
+        journal.CreatedBy = postedBy;
+        journals.Add(journal);
+        journals.Add(journal.Post());
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return journal;
+    }
+
+    /// <summary>Reverses the journal posted for a source (its document was cancelled); nothing to do if there is none or it is already reversed.</summary>
+    public async Task ReverseAsync(Guid sourceId, CancellationToken cancellationToken)
+    {
+        var journal = await journals.FindBySourceAsync(sourceId, cancellationToken).ConfigureAwait(false);
+        if (journal is null || journal.DocStatus != DocStatus.Submitted)
+        {
+            return;
+        }
+
+        journals.Add(journal.Reverse());
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+}
+
+/// <summary>
+/// The payroll journal of a submitted salary slip (docs/modules/accounting.md): earnings to salary expense,
+/// employer contributions to their expense and to pension payable, income tax and pension deductions to
+/// their payables, other deductions to other payroll deductions, and net pay to salaries payable.
+/// </summary>
+public sealed class SalarySlipSubmittedConsumer(ModuleJournalPoster poster, IAccountingUnitOfWork unitOfWork) : IIntegrationEventConsumer<SalarySlipSubmitted>
 {
     private static readonly HashSet<string> TaxComponents = ["IT", "BP_TAX"];
     private static readonly HashSet<string> PensionComponents = ["PE", "BP_DED"];
@@ -76,17 +129,6 @@ public sealed class SalarySlipSubmittedConsumer(
     public async Task HandleAsync(SalarySlipSubmitted slip, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(slip);
-        if (await journals.FindBySourceAsync(slip.SlipId, cancellationToken).ConfigureAwait(false) is not null)
-        {
-            return;
-        }
-
-        if (await chart.EnsureAsync(slip.CompanyId, cancellationToken).ConfigureAwait(false))
-        {
-            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        var byCode = (await accounts.ListAsync(slip.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
         var signed = new Dictionary<string, decimal>(StringComparer.Ordinal); // + debit, − credit
         void Add(string code, decimal amount) => signed[code] = signed.GetValueOrDefault(code) + amount;
 
@@ -114,174 +156,72 @@ public sealed class SalarySlipSubmittedConsumer(
         }
 
         Add(EthiopianChartOfAccounts.SalaryPayable, -slip.NetPay);
-
         var lines = signed.Where(kv => kv.Value != 0m).OrderBy(kv => kv.Key, StringComparer.Ordinal)
-            .Select(kv => new JournalLine(byCode[kv.Key].Id, Math.Max(kv.Value, 0m), Math.Max(-kv.Value, 0m), $"Payroll {slip.Number}"))
-            .ToList();
-        var journal = JournalEntry.Create(slip.CompanyId, slip.PeriodEnd, $"Payroll journal for salary slip {slip.Number}", lines,
-            JournalSource.Payroll, slip.SlipId, slip.Number);
-        journal.AssignName(await numbers.NextAsync(slip.CompanyId, journal.DocumentType, JournalHandler.DefaultPattern, slip.PeriodEnd, cancellationToken).ConfigureAwait(false));
-        journal.CreatedAt = clock.GetUtcNow();
-        journal.CreatedBy = "payroll";
-        journals.Add(journal);
-        journals.Add(journal.Post());
-        unitOfWork.Publish(new JournalPosted(journal.Id, journal.Name!, journal.CompanyId, journal.Source.ToString(), journal.SourceId, journal.TotalDebit, journal.CreatedAt));
-        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-    }
-}
-
-/// <summary>
-/// A journal requested by Cash Management (receipt, payment, transfer, petty cash top-up). Account codes must
-/// exist in the company's chart; an unknown code fails the message, which is retried and then dead-lettered.
-/// </summary>
-public sealed class CashJournalRequestedConsumer(
-    ChartSetup chart,
-    IAccountRepository accounts,
-    IJournalRepository journals,
-    IAccountingNumbers numbers,
-    IAccountingUnitOfWork unitOfWork,
-    TimeProvider clock) : IIntegrationEventConsumer<Gebeta.Cash.Contracts.JournalRequested>
-{
-    public async Task HandleAsync(Gebeta.Cash.Contracts.JournalRequested request, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        if (await journals.FindBySourceAsync(request.SourceId, cancellationToken).ConfigureAwait(false) is not null)
+            .Select(kv => new ModuleJournalPoster.Line(kv.Key, Math.Max(kv.Value, 0m), Math.Max(-kv.Value, 0m), $"Payroll {slip.Number}")).ToList();
+        var journal = await poster.PostAsync(slip.CompanyId, slip.SlipId, slip.Number, JournalSource.Payroll, slip.PeriodEnd,
+            $"Payroll journal for salary slip {slip.Number}", lines, "payroll", cancellationToken).ConfigureAwait(false);
+        if (journal is not null)
         {
-            return;
-        }
-
-        if (await chart.EnsureAsync(request.CompanyId, cancellationToken).ConfigureAwait(false))
-        {
+            unitOfWork.Publish(new JournalPosted(journal.Id, journal.Name!, journal.CompanyId, journal.Source.ToString(), journal.SourceId, journal.TotalDebit, journal.CreatedAt));
             await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
-
-        var byCode = (await accounts.ListAsync(request.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
-        var lines = request.Lines.Select(l => byCode.TryGetValue(l.AccountCode, out var account) && !account.IsGroup
-                ? new JournalLine(account.Id, l.Debit, l.Credit, l.Description)
-                : throw new DomainException("accounting.unknown_account", $"Account {l.AccountCode} from {request.SourceNumber} is not a postable account."))
-            .ToList();
-        var journal = JournalEntry.Create(request.CompanyId, request.PostingDate, $"{request.SourceType} {request.SourceNumber}: {request.Remark}", lines,
-            JournalSource.Cash, request.SourceId, request.SourceNumber);
-        journal.AssignName(await numbers.NextAsync(request.CompanyId, journal.DocumentType, JournalHandler.DefaultPattern, request.PostingDate, cancellationToken).ConfigureAwait(false));
-        journal.CreatedAt = clock.GetUtcNow();
-        journal.CreatedBy = "cash";
-        journals.Add(journal);
-        journals.Add(journal.Post());
-        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-    }
-}
-
-/// <summary>
-/// A stock entry's value journal (perpetual inventory): stock accounts against the counter account or each other.
-/// An unknown account fails the message, which is retried and then dead-lettered.
-/// </summary>
-public sealed class StockJournalRequestedConsumer(
-    ChartSetup chart,
-    IAccountRepository accounts,
-    IJournalRepository journals,
-    IAccountingNumbers numbers,
-    IAccountingUnitOfWork unitOfWork,
-    TimeProvider clock) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockJournalRequested>
-{
-    public async Task HandleAsync(Gebeta.Stock.Contracts.StockJournalRequested request, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        if (await journals.FindBySourceAsync(request.SourceId, cancellationToken).ConfigureAwait(false) is not null)
-        {
-            return;
-        }
-
-        if (await chart.EnsureAsync(request.CompanyId, cancellationToken).ConfigureAwait(false))
-        {
-            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        var byCode = (await accounts.ListAsync(request.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
-        var lines = request.Lines.Select(l => byCode.TryGetValue(l.AccountCode, out var account) && !account.IsGroup
-                ? new JournalLine(account.Id, l.Debit, l.Credit, request.Remark)
-                : throw new DomainException("accounting.unknown_account", $"Account {l.AccountCode} from {request.SourceNumber} is not a postable account."))
-            .ToList();
-        var journal = JournalEntry.Create(request.CompanyId, request.PostingDate, request.Remark, lines, JournalSource.Stock, request.SourceId, request.SourceNumber);
-        journal.AssignName(await numbers.NextAsync(request.CompanyId, journal.DocumentType, JournalHandler.DefaultPattern, request.PostingDate, cancellationToken).ConfigureAwait(false));
-        journal.CreatedAt = clock.GetUtcNow();
-        journal.CreatedBy = "stock";
-        journals.Add(journal);
-        journals.Add(journal.Post());
-        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-    }
-}
-
-/// <summary>
-/// A stock value adjustment: reposting repriced an entry, or the entry was cancelled. Posted as its own journal (source
-/// <see cref="JournalSource.Stock"/>, source id = the adjustment), so the ledger stays append-only and a repeat does nothing.
-/// </summary>
-public sealed class StockJournalAdjustedConsumer(
-    ChartSetup chart,
-    IAccountRepository accounts,
-    IJournalRepository journals,
-    IAccountingNumbers numbers,
-    IAccountingUnitOfWork unitOfWork,
-    TimeProvider clock) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockJournalAdjusted>
-{
-    public async Task HandleAsync(Gebeta.Stock.Contracts.StockJournalAdjusted adjustment, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(adjustment);
-        if (await journals.FindBySourceAsync(adjustment.AdjustmentId, cancellationToken).ConfigureAwait(false) is not null)
-        {
-            return;
-        }
-
-        if (await chart.EnsureAsync(adjustment.CompanyId, cancellationToken).ConfigureAwait(false))
-        {
-            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        var byCode = (await accounts.ListAsync(adjustment.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
-        var lines = adjustment.Lines.Select(l => byCode.TryGetValue(l.AccountCode, out var account) && !account.IsGroup
-                ? new JournalLine(account.Id, l.Debit, l.Credit, adjustment.Remark)
-                : throw new DomainException("accounting.unknown_account", $"Account {l.AccountCode} from {adjustment.VoucherNumber} is not a postable account."))
-            .ToList();
-        var journal = JournalEntry.Create(adjustment.CompanyId, adjustment.PostingDate, adjustment.Remark, lines, JournalSource.Stock, adjustment.AdjustmentId, adjustment.VoucherNumber);
-        journal.AssignName(await numbers.NextAsync(adjustment.CompanyId, journal.DocumentType, JournalHandler.DefaultPattern, adjustment.PostingDate, cancellationToken).ConfigureAwait(false));
-        journal.CreatedAt = clock.GetUtcNow();
-        journal.CreatedBy = "stock";
-        journals.Add(journal);
-        journals.Add(journal.Post());
-        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-    }
-}
-
-/// <summary>A cancelled stock entry reverses its value journal (events from before step 30; cancelling now sends an adjustment).</summary>
-public sealed class StockEntryCancelledConsumer(IJournalRepository journals, IAccountingUnitOfWork unitOfWork) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockEntryCancelled>
-{
-    public async Task HandleAsync(Gebeta.Stock.Contracts.StockEntryCancelled cancelled, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(cancelled);
-        var journal = await journals.FindBySourceAsync(cancelled.SourceId, cancellationToken).ConfigureAwait(false);
-        if (journal is null || journal.DocStatus != DocStatus.Submitted)
-        {
-            return;
-        }
-
-        journals.Add(journal.Reverse());
-        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }
 
 /// <summary>A cancelled salary slip reverses its payroll journal.</summary>
-public sealed class SalarySlipCancelledConsumer(IJournalRepository journals, IAccountingUnitOfWork unitOfWork) : IIntegrationEventConsumer<SalarySlipCancelled>
+public sealed class SalarySlipCancelledConsumer(ModuleJournalPoster poster) : IIntegrationEventConsumer<SalarySlipCancelled>
 {
-    public async Task HandleAsync(SalarySlipCancelled slip, CancellationToken cancellationToken)
+    public Task HandleAsync(SalarySlipCancelled slip, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(slip);
-        var journal = await journals.FindBySourceAsync(slip.SlipId, cancellationToken).ConfigureAwait(false);
-        if (journal is null || journal.DocStatus != DocStatus.Submitted)
-        {
-            return;
-        }
+        return poster.ReverseAsync(slip.SlipId, cancellationToken);
+    }
+}
 
-        journals.Add(journal.Reverse());
-        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+/// <summary>A journal requested by Cash Management (receipt, payment, transfer, petty cash top-up).</summary>
+public sealed class CashJournalRequestedConsumer(ModuleJournalPoster poster) : IIntegrationEventConsumer<Gebeta.Cash.Contracts.JournalRequested>
+{
+    public Task HandleAsync(Gebeta.Cash.Contracts.JournalRequested request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return poster.PostAsync(request.CompanyId, request.SourceId, request.SourceNumber, JournalSource.Cash, request.PostingDate,
+            $"{request.SourceType} {request.SourceNumber}: {request.Remark}",
+            request.Lines.Select(l => new ModuleJournalPoster.Line(l.AccountCode, l.Debit, l.Credit, l.Description)).ToList(), "cash", cancellationToken);
+    }
+}
+
+/// <summary>A stock entry's value journal (perpetual inventory): stock accounts against the counter account or each other.</summary>
+public sealed class StockJournalRequestedConsumer(ModuleJournalPoster poster) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockJournalRequested>
+{
+    public Task HandleAsync(Gebeta.Stock.Contracts.StockJournalRequested request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return poster.PostAsync(request.CompanyId, request.SourceId, request.SourceNumber, JournalSource.Stock, request.PostingDate, request.Remark,
+            request.Lines.Select(l => new ModuleJournalPoster.Line(l.AccountCode, l.Debit, l.Credit, null)).ToList(), "stock", cancellationToken);
+    }
+}
+
+/// <summary>
+/// A stock value adjustment: reposting repriced an entry, or the entry was cancelled. Posted as its own journal (source id
+/// = the adjustment), so the ledger stays append-only and a repeat does nothing.
+/// </summary>
+public sealed class StockJournalAdjustedConsumer(ModuleJournalPoster poster) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockJournalAdjusted>
+{
+    public Task HandleAsync(Gebeta.Stock.Contracts.StockJournalAdjusted adjustment, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(adjustment);
+        return poster.PostAsync(adjustment.CompanyId, adjustment.AdjustmentId, adjustment.VoucherNumber, JournalSource.Stock, adjustment.PostingDate, adjustment.Remark,
+            adjustment.Lines.Select(l => new ModuleJournalPoster.Line(l.AccountCode, l.Debit, l.Credit, null)).ToList(), "stock", cancellationToken);
+    }
+}
+
+/// <summary>A cancelled stock entry reverses its value journal (events from before step 30; cancelling now sends an adjustment).</summary>
+public sealed class StockEntryCancelledConsumer(ModuleJournalPoster poster) : IIntegrationEventConsumer<Gebeta.Stock.Contracts.StockEntryCancelled>
+{
+    public Task HandleAsync(Gebeta.Stock.Contracts.StockEntryCancelled cancelled, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(cancelled);
+        return poster.ReverseAsync(cancelled.SourceId, cancellationToken);
     }
 }
 

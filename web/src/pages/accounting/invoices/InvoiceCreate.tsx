@@ -7,11 +7,8 @@ import { api, post } from "../../../lib/api";
 import { formatMoney, todayIso } from "../../../lib/ethiopian";
 import type { AccountDto, InvoiceDto } from "../../../lib/types";
 import { DynamicPage, MessageStrip } from "../../../ui/fiori";
-import { useParties } from "../Parties";
-import { useItems } from "../../stock/hooks";
-import { usePurchaseOrder } from "../../buying/PurchaseOrders";
-import { useSalesOrder } from "../../selling/SalesOrders";
 import { useInvoiceRefresh, type Kind } from "./shared";
+import { useItems, useParties, usePurchaseOrder, useSalesOrder } from "../../../lib/queries";
 
 type Line = { itemId: string; description: string; quantity: string; rate: string; accountCode: string; isService: boolean; vatApplicable: boolean };
 const emptyLine = (kind: Kind): Line => ({ itemId: "", description: "", quantity: "1", rate: "", accountCode: kind === "Sales" ? "4100" : "", isService: false, vatApplicable: true });

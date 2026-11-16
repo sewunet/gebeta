@@ -6,7 +6,7 @@ using Gebeta.Core.Contracts;
 namespace Gebeta.Api.Tests;
 
 /// <summary>One payment for several invoices, and bank charges and interest booked from the statement.</summary>
-public class PaymentAllocationTests(GebetaApiFactory factory) : IClassFixture<GebetaApiFactory>
+public class PaymentAllocationTests(GebetaApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

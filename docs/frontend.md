@@ -46,6 +46,8 @@
 >
 > **Sales orders** (step 33): the same pattern; Deliver goods and Create sales invoice open the stock issue and the
 > sales invoice pre-filled from the order (`?so=<id>`).
+> Data hooks shared between screens (parties, items, warehouses, bank accounts, cashiers, orders) live in
+> `src/lib/queries.ts`; screens never import each other.
 
 React 19 + TypeScript (strict) + Vite, in `web/`.
 

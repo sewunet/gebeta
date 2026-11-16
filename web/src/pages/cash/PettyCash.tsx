@@ -6,7 +6,7 @@ import { api, post } from "../../lib/api";
 import { formatMoney } from "../../lib/ethiopian";
 import { can, type PettyCashRequestDto } from "../../lib/types";
 import { Dialog, FilterBar, FilterField, ListReport, MessageStrip, ObjectStatus, type Tone } from "../../ui/fiori";
-import { useCashiers } from "./Cashiers";
+import { useCashiers } from "../../lib/queries";
 
 const TONE: Record<string, Tone> = { Draft: "neutral", Pending: "critical", ApprovedAndPaid: "positive", Rejected: "negative", Cancelled: "negative" };
 

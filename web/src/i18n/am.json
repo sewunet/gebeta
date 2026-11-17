@@ -39,7 +39,9 @@
     "buying": "ግዢ",
     "purchaseOrders": "የግዢ ትዕዛዞች",
     "selling": "ሽያጭ",
-    "salesOrders": "የሽያጭ ትዕዛዞች"
+    "salesOrders": "የሽያጭ ትዕዛዞች",
+    "salaryStructures": "የደመወዝ መዋቅሮች",
+    "salaryStructure": "የደመወዝ መዋቅር"
   },
   "common": {
     "company": "ኩባንያ",
@@ -67,7 +69,8 @@
     "Active": "በሥራ ላይ",
     "Left": "የለቀቀ",
     "Suspended": "የታገደ",
-    "Closed": "ተዘግቷል"
+    "Closed": "ተዘግቷል",
+    "Inactive": "ንቁ ያልሆነ"
   },
   "dashboard": {
     "welcome": "እንኳን ደህና መጡ፣ {{name}}",
@@ -528,7 +531,8 @@
     "warehouses": "መጋዘኖችና ቦታዎች",
     "inStock": "በክምችት",
     "purchaseOrders": "ለአቅራቢዎች የተሰጡ ትዕዛዞች",
-    "salesOrders": "ከደንበኞች የመጡ ትዕዛዞች"
+    "salesOrders": "ከደንበኞች የመጡ ትዕዛዞች",
+    "structures": "ክፍሎች እና ቀመሮች"
   },
   "ui": {
     "search": "ፈልግ",
@@ -540,7 +544,10 @@
     "payments": "ክፍያዎች",
     "remove": "አስወግድ",
     "edit": "አስተካክል",
-    "saved": "ለውጦቹ ተቀምጠዋል።"
+    "saved": "ለውጦቹ ተቀምጠዋል።",
+    "yes": "አዎ",
+    "no": "አይ",
+    "salary": "ደመወዝ"
   },
   "companies": {
     "current": "የአሁኑ",
@@ -660,5 +667,25 @@
     "deliveringAgainst": "ለ{{customer}} በ{{number}} መሠረት እያስረከቡ ነው፤ ዝርዝሮቹ ገና የሚረከበውን ያሳያሉ።",
     "invoicingAgainst": "ለ{{customer}} የ{{number}} ደረሰኝ፤ ዝርዝሮቹ ደረሰኝ ያልተቆረጠላቸውን ያሳያሉ።",
     "requiredBy": "የማስረከቢያ ቀን"
+  },
+  "structures": {
+    "new": "አዲስ የደመወዝ መዋቅር",
+    "components": "ክፍሎች",
+    "payValues": "የክፍያ እሴቶች",
+    "abbreviation": "ምህጻረ ቃል",
+    "condition": "ሁኔታ",
+    "taxable": "ግብር የሚከፈልበት",
+    "byDays": "በክፍያ ቀናት",
+    "addComponent": "ክፍል ጨምር",
+    "tryIt": "ይሞክሩ",
+    "notFound": "ይህ የደመወዝ መዋቅር አልተገኘም።",
+    "useStandard": "መደበኛውን የኢትዮጵያ መዋቅር ተጠቀም",
+    "standardHint": "መሠረታዊ ደመወዝ፣ የገቢ ግብር ከሕጋዊ ሰንጠረዥ፣ 7% የሠራተኛ ጡረታ እና 11% የአሠሪ ጡረታ።",
+    "formulaHint": "ቀመሮች base፣ payment_days፣ total_working_days፣ የቀደሙ ክፍሎችን ምህጻረ ቃላት እና እዚህ የተዘረዘሩትን የክፍያ እሴቶች ይጠቀማሉ፤ ተቀናሾች gross_pay፣ taxable_earnings እና income_tax(x) መጠቀም ይችላሉ።",
+    "payValuesHint": "እያንዳንዱ ምደባ ከመሠረታዊ ደመወዝ በተጨማሪ {{names}} ይሰጣል።",
+    "assign": "አዲስ ምደባ",
+    "assignHint": "ከዚህ ቀን ጀምሮ ሠራተኛው በዚህ መዋቅር እና በእነዚህ መጠኖች ይከፈላል። ጭማሪ አዲስ ምደባ ነው፤ ያለፉት ወራት እንደ ውዝፍ ክፍያ ሊከፈሉ ይችላሉ።",
+    "from": "የሚጀምርበት ቀን",
+    "noAssignment": "እስካሁን ደመወዝ አልተመደበም።"
   }
 }

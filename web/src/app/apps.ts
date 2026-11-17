@@ -36,6 +36,7 @@ export const APPS: AppEntry[] = [
 
   { id: "slips", group: "payroll", path: "/payroll/slips", title: "nav.salarySlips", subtitle: "tiles.slips", permission: "payroll.salary-slips.read", module: "payroll" },
   { id: "run", group: "payroll", path: "/payroll/run", title: "nav.payrollRun", subtitle: "tiles.run", permission: "payroll.runs.read", module: "payroll" },
+  { id: "structures", group: "payroll", path: "/payroll/structures", title: "nav.salaryStructures", subtitle: "tiles.structures", permission: "payroll.structures.read", module: "payroll" },
   { id: "calculator", group: "payroll", path: "/payroll/calculator", title: "nav.calculator", subtitle: "tiles.calculator", permission: "payroll.calculator.use", module: "payroll" },
 
   { id: "leave", group: "hr", path: "/hr/leave", title: "nav.leave", subtitle: "tiles.leave", permission: "hr.leave.read", module: "hr" },

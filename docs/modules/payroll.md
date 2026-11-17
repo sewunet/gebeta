@@ -117,4 +117,8 @@ amount) or `fuel_payment` (an allowance agreed per employee). Its formulas use t
 - A change to a pay value is a new assignment, like a raise. Back pay therefore recalculates past
   months with the new values.
 - API: `variables` on `POST /api/payroll/structures`, `values` on `POST /api/payroll/assignments`.
-- Debt: there are no setup screens for structures and assignments yet (API only).
+- Screens: Payroll → Salary structures (list, create with a "try it" calculation, details), and the
+  Salary section of each employee (assignment history, new assignment asking for the structure's pay
+  values).
+- Debt: a structure cannot be edited once saved (create a new one and reassign). That is on purpose
+  for now, because slips keep the structure's name, but a versioned edit will be wanted.

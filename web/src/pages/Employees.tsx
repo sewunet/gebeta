@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { lazy, Suspense, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -8,6 +8,9 @@ import { formatDate } from "../lib/ethiopian";
 import { useEmployees } from "../lib/hooks";
 import { can, type EmployeeDto } from "../lib/types";
 import { Dialog, EditFooter, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../ui/fiori";
+
+// Payroll's part of the employee page, loaded only when shown (and only when Payroll is installed).
+const EmployeeSalary = lazy(() => import("./payroll/EmployeeSalary").then((m) => ({ default: m.EmployeeSalary })));
 
 /** List report of employees with search and filters; "Create" opens a dialog, a row opens the employee. */
 export function Employees() {
@@ -91,7 +94,7 @@ export function Employees() {
 /** Object page of one employee: edit mode for names, gender, joining date and TIN; record or take back a leaving. */
 export function EmployeeDetail() {
   const { t, i18n } = useTranslation();
-  const { me } = useSession();
+  const { me, modules } = useSession();
   const queryClient = useQueryClient();
   const { id } = useParams({ from: "/employees/$id" });
   const [editing, setEditing] = useState(false);
@@ -161,7 +164,11 @@ export function EmployeeDetail() {
             { label: t("employees.left"), value: e.dateOfLeaving && formatDate(e.dateOfLeaving, me.calendar, am), hidden: !e.dateOfLeaving },
             { label: t("fields.tin"), value: e.tin && <span className="mono">{e.tin}</span> },
           ]} />
-        ) }]}
+        ) },
+        ...(modules.some((m) => m.id === "payroll") && can(me, "payroll.assignments.read") ? [{
+          id: "salary", title: t("ui.salary"),
+          content: <Suspense fallback={<p className="muted">{t("common.loading")}</p>}><EmployeeSalary employeeId={e.id} joined={e.dateOfJoining} /></Suspense>,
+        }] : [])]}
       />
       <Dialog open={leaving} title={t("employees.recordLeaving")} onClose={() => setLeaving(false)}
         footer={<><button type="submit" form="employee-leaving" className="danger" disabled={setLeavingDate.isPending}>{t("common.save")}</button>

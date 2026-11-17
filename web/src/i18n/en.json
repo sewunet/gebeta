@@ -39,7 +39,9 @@
     "buying": "Buying",
     "purchaseOrders": "Purchase orders",
     "selling": "Selling",
-    "salesOrders": "Sales orders"
+    "salesOrders": "Sales orders",
+    "salaryStructures": "Salary structures",
+    "salaryStructure": "Salary structure"
   },
   "common": {
     "company": "Company",
@@ -67,7 +69,8 @@
     "Active": "Active",
     "Left": "Left",
     "Suspended": "Suspended",
-    "Closed": "Closed"
+    "Closed": "Closed",
+    "Inactive": "Inactive"
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
@@ -528,7 +531,8 @@
     "warehouses": "Stores and locations",
     "inStock": "in stock",
     "purchaseOrders": "Orders to suppliers",
-    "salesOrders": "Orders from customers"
+    "salesOrders": "Orders from customers",
+    "structures": "Components and formulas"
   },
   "ui": {
     "search": "Search",
@@ -540,7 +544,10 @@
     "payments": "Payments",
     "remove": "Remove",
     "edit": "Edit",
-    "saved": "Changes saved."
+    "saved": "Changes saved.",
+    "yes": "Yes",
+    "no": "No",
+    "salary": "Salary"
   },
   "companies": {
     "current": "Current",
@@ -660,5 +667,25 @@
     "deliveringAgainst": "Delivering against {{number}} to {{customer}}: the lines show what is still to deliver.",
     "invoicingAgainst": "Invoicing {{number}} for {{customer}}: the lines show what is not invoiced yet.",
     "requiredBy": "Delivery date"
+  },
+  "structures": {
+    "new": "New salary structure",
+    "components": "Components",
+    "payValues": "Pay values",
+    "abbreviation": "Abbreviation",
+    "condition": "Condition",
+    "taxable": "Taxable",
+    "byDays": "By payment days",
+    "addComponent": "Add component",
+    "tryIt": "Try it",
+    "notFound": "This salary structure was not found.",
+    "useStandard": "Use the standard Ethiopian structure",
+    "standardHint": "Basic salary, income tax from the legal table, 7% employee pension and 11% employer pension.",
+    "formulaHint": "Formulas use base, payment_days, total_working_days, the abbreviations of earlier components and the pay values listed here; deductions may also use gross_pay and taxable_earnings, and income_tax(x).",
+    "payValuesHint": "Each assignment gives {{names}} besides the base salary.",
+    "assign": "New assignment",
+    "assignHint": "From this date the employee is paid with this structure and these amounts. A raise is a new assignment; earlier months can then be settled as back pay.",
+    "from": "From",
+    "noAssignment": "No salary assigned yet."
   }
 }

@@ -5,7 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "../app/context";
 import { api } from "./api";
-import { can, type BankAccountDto, type CashierDto, type ItemDto, type PartyDto, type PurchaseOrderDto, type SalesOrderDto, type WarehouseDto } from "./types";
+import { can, type BankAccountDto, type CashierDto, type ItemDto, type PartyDto, type PurchaseOrderDto, type SalaryStructureDto, type SalesOrderDto, type WarehouseDto } from "./types";
 
 /** Customers and suppliers of the selected company (kept in Core). */
 export function useParties() {
@@ -49,4 +49,14 @@ export function usePurchaseOrder(id: string | undefined) {
 
 export function useSalesOrder(id: string | undefined) {
   return useQuery({ queryKey: ["sales-order", id], queryFn: () => api<SalesOrderDto>(`/api/selling/sales-orders/${id}`), enabled: !!id });
+}
+
+/** Salary structures of the selected company, when Payroll is installed and the user may see them. */
+export function useSalaryStructures() {
+  const { company, me, modules } = useSession();
+  return useQuery({
+    queryKey: ["salary-structures", company?.id],
+    queryFn: () => api<SalaryStructureDto[]>(`/api/payroll/structures?companyId=${company!.id}`),
+    enabled: !!company && modules.some((m) => m.id === "payroll") && can(me, "payroll.structures.read"),
+  });
 }

@@ -14,6 +14,13 @@ export type EmployeeDto = {
   id: string; companyId: string; number: string; firstName: string; fatherName: string; grandfatherName?: string;
   fullName: string; gender: string; dateOfJoining: string; dateOfLeaving?: string; status: string; tin?: string;
 };
+export type SalaryComponentDto = {
+  name: string; abbreviation: string; type: "Earning" | "Deduction" | "EmployerContribution"; formula?: string | null; amount?: number | null;
+  condition?: string | null; isTaxable: boolean; dependsOnPaymentDays: boolean;
+};
+/** A salary structure; `variables` are the pay values (besides the base) every assignment gives its formulas. */
+export type SalaryStructureDto = { id: string; companyId: string; name: string; isActive: boolean; components: SalaryComponentDto[]; variables?: string[] };
+export type SalaryStructureAssignmentDto = { id: string; employeeId: string; structureId: string; base: number; fromDate: string; values?: Record<string, number> };
 export type SalaryLineDto = { component: string; abbreviation: string; type: string; amount: number; formula?: string };
 export type SalarySlipDto = {
   id: string; number?: string; companyId: string; employeeId: string; employeeNumber: string; employeeName: string;

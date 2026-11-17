@@ -4,7 +4,8 @@
 > below) built from installed modules and permissions, company switcher, English/Amharic and calendar
 > preference saved on the user profile, Ethiopian dates and birr formatting, and screens for home,
 > companies, employees (list and add), salary slips (list by month, detail, submit/cancel), payroll run
-> with CSV report downloads, the salary calculator; HR leave (apply, approve, cancel, balances, annual
+> with CSV report downloads, salary structures (list, create with a try-it calculation, details) and each
+> employee's salary assignments with pay values, the salary calculator; HR leave (apply, approve, cancel, balances, annual
 > allocation) and attendance; Cash cashiers (balances, receipts, payments, transfers, ledger) and petty
 > cash approval; Accounting chart of accounts, journals (list, details, balanced entry form) and trial balance; customers and suppliers, sales and purchase invoices with VAT and withholding (submit, cancel, receive or pay, credit and debit notes, payment history with cancel), receivables and payables ageing, open invoices at cut-over, banks (accounts, CSV statement import, reconciliation, booking charges and interest from the statement), one payment for several invoices, VAT and withholding report, profit and loss, balance sheet, general ledger, and closing (month close and reopen, year-end closing, opening balances). Styling is plain CSS with the Gebeta palette for
 > now; shadcn/ui and Tailwind can come later. The OpenAPI client is hand-typed in `src/lib/types.ts`

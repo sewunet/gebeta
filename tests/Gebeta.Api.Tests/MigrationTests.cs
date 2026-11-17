@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Gebeta.Accounting.Contracts;
 using Gebeta.Core.Contracts;
+using Gebeta.Hr.Contracts;
 using Gebeta.Migration;
 using Gebeta.Stock.Contracts;
 
@@ -73,6 +74,10 @@ public class MigrationTests(GebetaApiFactory factory)
         public Task<IReadOnlyList<ErpSalaryStructure>> SalaryStructuresAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpSalaryStructure>>(Structures);
         public Task<IReadOnlyList<ErpAssignment>> AssignmentsAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpAssignment>>(Assignments);
         public List<ErpSalarySlip> History { get; } = []; // slips before the latest payroll
+        public List<ErpLeaveBalance> Leaves { get; } = [];
+
+        public Task<IReadOnlyList<ErpLeaveBalance>> LeaveBalancesAsync(string c, DateOnly asOf, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ErpLeaveBalance>>(Leaves);
 
         public Task<IReadOnlyList<ErpSalarySlip>> SlipsAsync(string c, DateOnly? from, DateOnly to, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<ErpSalarySlip>>(History.Concat(Slips).Where(s => s.EndDate <= to && (from is null || s.StartDate >= from)).ToList());
@@ -465,6 +470,57 @@ public class MigrationTests(GebetaApiFactory factory)
         Assert.False(check.Ok);
         Assert.Equal("Sal Slip/HR-EMP-0002/00001 (HR-EMP-0002): IT Gebeta 300.00, ERPNext 301.00; net pay Gebeta 4,020.00, ERPNext 4,019.00", Assert.Single(check.Failures));
     }
+
+    [Fact]
+    public async Task Annual_leave_balances_come_over_once_and_the_years_allocation_is_not_given_twice()
+    {
+        const string name = "Tana Beles Leave Test";
+        var erp = new FakeErpNext(name, "0800000210");
+        erp.Employees.AddRange(
+        [
+            new("HR-EMP-0001", "Abebe", "Kebede", "Tesfaye", "Abebe Kebede Tesfaye", "Male", new(2015, 1, 1), "Active", null, null),
+            new("HR-EMP-0002", "Almaz", "Tadesse", null, "Almaz Tadesse", "Female", new(2024, 1, 1), "Active", null, null),
+            new("HR-EMP-0003", "Hana", "Girma", null, "Hana Girma", "Female", new(2020, 1, 1), "Active", null, null),
+        ]);
+        erp.Leaves.AddRange(
+        [
+            new("HR-EMP-0001", "Annual Leave 2016", 12m, false),                 // carried from an earlier year
+            new("HR-EMP-0001", "የአመት እረፍት 2018 (ሰራተኛ)", 8.5m, true),           // this year's, already allocated in ERPNext
+            new("HR-EMP-0001", "Compensatory", 2m, false),                     // no balance in Gebeta
+            new("HR-EMP-0002", "Annual Leave 2016", 0m, false),                // nothing to bring; Gebeta allocates the year
+            new("HR-EMP-0003", "Annual", -1m, true),                           // more taken than allocated
+        ]);
+        var options = new MigrationOptions(name, Steps: ["employees", "leave"], Cutover: new DateOnly(2026, 7, 7)); // Sene 30, 2018
+
+        var leave = (await Run(erp, options)).Single(r => r.Name == "leave");
+        Assert.Equal(1, leave.Created);
+        Assert.Equal("HR-EMP-0003: annual leave balance -1 days (more taken than allocated); correct it in ERPNext.", Assert.Single(leave.Failures));
+        Assert.Contains(leave.Warnings, w => w.StartsWith("Compensatory: 1 employees hold 2 days", StringComparison.Ordinal));
+        Assert.Contains("this run 1 of 1 balances equal ERPNext (20.5 days)", leave.Check, StringComparison.Ordinal);
+
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var company = (await admin.GetFromJsonAsync<List<CompanyDto>>(U("/api/core/companies"), Ct))!.Single(c => c.Name == name);
+        var employees = (await admin.GetFromJsonAsync<List<EmployeeDto>>(U($"/api/core/employees?companyId={company.Id}"), Ct))!;
+        var abebe = employees.Single(e => e.FirstName == "Abebe");
+        var balance = (await admin.GetFromJsonAsync<List<LeaveBalanceDto>>(U($"/api/hr/employees/{abebe.Id}/leave-balance"), Ct))!.Single(b => b.Type == "Annual");
+        Assert.Equal(20.5m, balance.Balance);
+
+        // Allocating 2018 now skips Abebe (his opening balance holds the year) and gives Almaz and Hana theirs.
+        var allocation = await (await admin.PostAsJsonAsync(U("/api/hr/leave-allocations"), new { companyId = company.Id, fiscalYear = 2018 }, Ct))
+            .Content.ReadFromJsonAsync<AllocationResultDto>(Ct);
+        Assert.Equal((2, 1), (allocation!.Allocated, allocation.AlreadyAllocated));
+
+        var again = (await Run(erp, options)).Single(r => r.Name == "leave");
+        Assert.Equal((0, 1), (again.Created, again.AlreadyMigrated));
+    }
+
+    [Theory]
+    [InlineData("Annual Leave 2016", true)]
+    [InlineData("anual", true)]
+    [InlineData("የአመት እረፍት 2016  (ስራ መሪ)", true)]
+    [InlineData("Compensatory", false)]
+    [InlineData("Leave without pay", false)]
+    public void Annual_leave_is_recognised_by_its_name(string leaveType, bool annual) => Assert.Equal(annual, MigrationRun.IsAnnualLeave(leaveType));
 
     [Fact]
     public void A_fifo_queue_becomes_layers_that_add_up_to_erpnexts_value_to_the_cent()

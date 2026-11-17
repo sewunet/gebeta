@@ -50,6 +50,7 @@ public sealed class HrModule : IErpModule
         services.AddScoped<IQueryHandler<ListLeaveQuery, IReadOnlyList<LeaveApplicationDto>>>(sp => sp.GetRequiredService<LeaveHandler>());
         services.AddScoped<IQueryHandler<LeaveBalanceQuery, IReadOnlyList<LeaveBalanceDto>>>(sp => sp.GetRequiredService<LeaveHandler>());
         services.AddScoped<ICommandHandler<AllocateAnnualLeaveCommand, AllocationResultDto>>(sp => sp.GetRequiredService<LeaveHandler>());
+        services.AddScoped<ICommandHandler<RecordOpeningLeaveCommand, LeaveBalanceDto>>(sp => sp.GetRequiredService<LeaveHandler>());
         services.AddScoped<AttendanceHandler>();
         services.AddScoped<ICommandHandler<MarkAttendanceCommand, AttendanceDto>>(sp => sp.GetRequiredService<AttendanceHandler>());
         services.AddScoped<IQueryHandler<ListAttendanceQuery, IReadOnlyList<AttendanceDto>>>(sp => sp.GetRequiredService<AttendanceHandler>());

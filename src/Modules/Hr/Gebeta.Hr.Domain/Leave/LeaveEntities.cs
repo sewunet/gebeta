@@ -90,6 +90,9 @@ public enum LeaveLedgerSource
     Allocation,
     Application,
     Cancellation,
+
+    /// <summary>The balance brought from the previous system at cut-over (docs/data-migration.md step 6).</summary>
+    Opening,
 }
 
 /// <summary>Append-only leave ledger (ADR 0004): allocations add days, approved leave takes them.</summary>

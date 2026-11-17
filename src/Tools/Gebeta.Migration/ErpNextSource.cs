@@ -22,6 +22,12 @@ public sealed record ErpOutstanding(string AccountType, string PartyType, string
 
 public sealed record ErpFifoLayer(decimal Qty, decimal Rate);
 
+/// <summary>
+/// An employee's balance of one leave type at cut-over, from ERPNext's leave ledger: every entry started by then (allocations add;
+/// applications, encashments and expiries take away). <see cref="AllocationCoversDate"/>: an allocation of this type runs over the day.
+/// </summary>
+public sealed record ErpLeaveBalance(string Employee, string LeaveType, decimal Balance, bool AllocationCoversDate);
+
 /// <summary>An employee. Ethiopian names as usually kept in ERPNext: first name, father's name (middle_name), grandfather's name (last_name).</summary>
 public sealed record ErpEmployee(string Name, string FirstName, string? FatherName, string? GrandfatherName, string FullName, string? Gender, DateOnly DateOfJoining,
     string Status, DateOnly? RelievingDate, string? Tin);
@@ -78,6 +84,8 @@ public interface IErpNextSource
     Task<IReadOnlyList<ErpStockBalance>> StockBalancesAsync(string company, DateOnly asOf, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ErpEmployee>> EmployeesAsync(string company, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ErpLeaveBalance>> LeaveBalancesAsync(string company, DateOnly asOf, CancellationToken cancellationToken);
 
     /// <summary>Submitted salary structures, active or still named by an assignment, with their earnings and deductions in order.</summary>
     Task<IReadOnlyList<ErpSalaryStructure>> SalaryStructuresAsync(string company, CancellationToken cancellationToken);
@@ -182,6 +190,18 @@ public sealed class MariaDbErpNextSource(string connectionString) : IErpNextSour
             r => new ErpEmployee(r.GetString(0), Text(r, 1) ?? r.GetString(4), Text(r, 2), Text(r, 3), r.GetString(4), Text(r, 5), DateOnly.FromDateTime(r.GetDateTime(6)),
                 r.GetString(7), r.IsDBNull(8) ? null : DateOnly.FromDateTime(r.GetDateTime(8)), Text(r, 9)), cancellationToken).ConfigureAwait(false);
     }
+
+    public Task<IReadOnlyList<ErpLeaveBalance>> LeaveBalancesAsync(string company, DateOnly asOf, CancellationToken cancellationToken) =>
+        QueryAsync("""
+            SELECT employee, leave_type, SUM(leaves),
+                   MAX(transaction_type = 'Leave Allocation' AND is_expired = 0 AND leaves > 0 AND to_date >= @asOf)
+            FROM `tabLeave Ledger Entry`
+            WHERE company = @p AND docstatus = 1 AND from_date <= @asOf
+            GROUP BY employee, leave_type
+            ORDER BY employee, leave_type
+            """, company,
+            r => new ErpLeaveBalance(r.GetString(0), r.GetString(1), r.GetDecimal(2), r.GetInt64(3) == 1),
+            cancellationToken, ("@asOf", asOf.ToDateTime(TimeOnly.MinValue)));
 
     private const string DetailColumns = """
         d.parent, d.parentfield = 'deductions', d.salary_component, d.abbr, CASE WHEN d.amount_based_on_formula = 1 THEN d.formula END, d.amount, d.`condition`,

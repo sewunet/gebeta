@@ -108,7 +108,8 @@ internal sealed class LeaveRepository(HrDbContext db) : ILeaveRepository
         await db.LeaveLedger.AsNoTracking().Where(e => e.EmployeeId == employeeId).OrderBy(e => e.Date).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public Task<bool> AllocatedAsync(Guid employeeId, LeaveType type, int fiscalYear, CancellationToken cancellationToken) =>
-        db.LeaveLedger.AnyAsync(e => e.EmployeeId == employeeId && e.Type == type && e.FiscalYear == fiscalYear && e.Source == LeaveLedgerSource.Allocation, cancellationToken);
+        db.LeaveLedger.AnyAsync(e => e.EmployeeId == employeeId && e.Type == type && e.FiscalYear == fiscalYear
+            && (e.Source == LeaveLedgerSource.Allocation || e.Source == LeaveLedgerSource.Opening), cancellationToken); // an opening balance may include the year
 
     public void Add(LeaveApplication application) => db.LeaveApplications.Add(application);
 

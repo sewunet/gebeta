@@ -9,9 +9,10 @@ dedicated opening-balance import.
 > - masters: the company (part of step 1), customers and suppliers, items with their valuation method, warehouses;
 > - employees, salary structures and the assignment history (steps 3–4), proved by recalculating the latest payroll;
 > - salary slip history (step 5), so back payments and reports see the months paid before the cut-over;
+> - annual leave balances at the cut-over (step 6);
 > - cut-over balances, with `--cutover`: open invoices (step 8), opening stock (step 9) and the opening trial balance (step 7).
 >
-> Not yet built: users and roles, HR masters (grades, steps), the leave ledger, open orders and assets. Each run prints, for every step, how many records were created,
+> Not yet built: users and roles, HR masters (grades, steps), open orders and assets. Each run prints, for every step, how many records were created,
 > adopted (an existing Gebeta record with the same code was used) or already migrated, plus warnings, failures and the
 > step's check.
 >
@@ -26,7 +27,7 @@ dedicated opening-balance import.
 >     --steps parties,items    only these steps (company always runs first):
 >     --history-from 2024-07-08  slip history from this date (default: all, up to the cut-over)
 >                              parties, items, warehouses, employees, structures, assignments, history, payroll,
->                              invoices, stock, opening
+>                              leave, invoices, stock, opening
 > ```
 >
 > How the masters come over:
@@ -81,6 +82,19 @@ dedicated opening-balance import.
 >     cancelled in Gebeta;
 >   - a raise entered after a month was paid in ERPNext becomes an ordinary Gebeta back payment,
 >     worked out against the history slip.
+>
+> - **Leave balances** (with `--cutover`): only annual leave has a balance in Gebeta. The law sets
+>   the maximum of the other kinds, so only the days taken count.
+>   - ERPNext sites often keep one leave type per year ("Annual Leave 2016", "የአመት እረፍት 2016"). Every
+>     type whose name says annual (English or Amharic) is added into one Gebeta annual balance. The
+>     report lists the types it counted.
+>   - The balance is ERPNext's leave ledger up to the cut-over: allocations, less applications,
+>     encashments and expiries.
+>   - If ERPNext already allocated the year that contains the cut-over, the opening balance stands
+>     for that year, and Gebeta's yearly allocation skips the employee. Otherwise Gebeta allocates
+>     the year as usual.
+>   - A negative balance (more taken than allocated) is a failure to correct in ERPNext.
+>   - Balances are kept to a tenth of a day.
 >
 > How the cut-over balances come over (all dated the cut-over day):
 > - **Open invoices** come from ERPNext's Payment Ledger as at the cut-over day. Each becomes a

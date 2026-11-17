@@ -25,6 +25,13 @@ public sealed record LeaveBalanceQuery(Guid EmployeeId) : IQuery<IReadOnlyList<L
 
 public sealed record AllocateAnnualLeaveCommand(Guid CompanyId, int FiscalYear) : ICommand<AllocationResultDto>;
 
+/// <summary>
+/// The leave balance an employee brings from the previous system at cut-over: one opening entry per leave type that has a balance
+/// (annual leave). <paramref name="IncludesThisYear"/>: the previous system already gave this Ethiopian fiscal year's allocation, so
+/// the yearly allocation must not give it again.
+/// </summary>
+public sealed record RecordOpeningLeaveCommand(Guid EmployeeId, LeaveType Type, DateOnly Date, decimal Days, bool IncludesThisYear) : ICommand<LeaveBalanceDto>;
+
 public sealed class LeaveHandler(
     ILeaveRepository leave,
     IEmployeeDirectory employees,
@@ -39,7 +46,8 @@ public sealed class LeaveHandler(
       ICommandHandler<CancelLeaveCommand, LeaveApplicationDto>,
       IQueryHandler<ListLeaveQuery, IReadOnlyList<LeaveApplicationDto>>,
       IQueryHandler<LeaveBalanceQuery, IReadOnlyList<LeaveBalanceDto>>,
-      ICommandHandler<AllocateAnnualLeaveCommand, AllocationResultDto>
+      ICommandHandler<AllocateAnnualLeaveCommand, AllocationResultDto>,
+      ICommandHandler<RecordOpeningLeaveCommand, LeaveBalanceDto>
 {
     public const string DefaultPattern = "LV-.FY.-.#####";
 
@@ -151,8 +159,8 @@ public sealed class LeaveHandler(
         var ledger = await leave.LedgerAsync(employee.Id, cancellationToken).ConfigureAwait(false);
         return Result.Success<IReadOnlyList<LeaveBalanceDto>>(ledger.GroupBy(e => e.Type).OrderBy(g => g.Key).Select(g =>
         {
-            var allocated = g.Where(e => e.Source == LeaveLedgerSource.Allocation).Sum(e => e.Days);
-            var taken = -g.Where(e => e.Source != LeaveLedgerSource.Allocation).Sum(e => e.Days);
+            var allocated = g.Where(e => e.Source is LeaveLedgerSource.Allocation or LeaveLedgerSource.Opening).Sum(e => e.Days);
+            var taken = -g.Where(e => e.Source is not (LeaveLedgerSource.Allocation or LeaveLedgerSource.Opening)).Sum(e => e.Days);
             // Only annual leave has a balance; for other types the days taken are what matters.
             var balance = EthiopianLeaveRules.Rules[g.Key].UsesBalance ? allocated - taken : 0m;
             return new LeaveBalanceDto(g.Key.ToString(), allocated, taken, balance);
@@ -198,6 +206,39 @@ public sealed class LeaveHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return new AllocationResultDto(command.FiscalYear, allocated, already, total);
+    }
+
+    public async Task<Result<LeaveBalanceDto>> Handle(RecordOpeningLeaveCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var employee = await employees.GetAsync(command.EmployeeId, cancellationToken).ConfigureAwait(false);
+        if (employee is null || !await access.CanAccessAsync(employee.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.NotFound("Employee", command.EmployeeId);
+        }
+
+        if (!EthiopianLeaveRules.Rules[command.Type].UsesBalance)
+        {
+            return Error.Validation($"{command.Type} leave has no balance to bring over; only the days taken count, against the legal maximum.");
+        }
+
+        if (command.Days < 0m || decimal.Round(command.Days, 1) != command.Days)
+        {
+            return Error.Validation("An opening leave balance is zero or more days, in steps of half a day at most.");
+        }
+
+        var ledger = await leave.LedgerAsync(employee.Id, cancellationToken).ConfigureAwait(false);
+        if (ledger.Any(e => e.Type == command.Type && e.Source == LeaveLedgerSource.Opening))
+        {
+            return Error.Conflict($"{employee.FullName} already has an opening {command.Type} leave balance.");
+        }
+
+        int? fiscalYear = command.IncludesThisYear ? EthiopianFiscalYear.Containing(command.Date).Year : null;
+        leave.Add(LeaveLedgerEntry.Create(employee.CompanyId, employee.Id, command.Type, command.Date, command.Days, LeaveLedgerSource.Opening, null, fiscalYear));
+        await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        var balances = await Handle(new LeaveBalanceQuery(employee.Id), cancellationToken).ConfigureAwait(false);
+        return balances.IsFailure ? balances.Error! : balances.Value.Single(b => b.Type == command.Type.ToString());
     }
 
     private async Task<LeaveApplication?> AccessibleAsync(Guid id, CancellationToken cancellationToken)

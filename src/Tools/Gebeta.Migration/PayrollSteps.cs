@@ -49,7 +49,7 @@ public sealed partial class MigrationRun
         var employees = all.Where(e => e.Status != "Left").ToList();
         if (all.Count > employees.Count)
         {
-            report.Warnings.Add($"{all.Count - employees.Count} employees who left are not migrated (their slip history comes with step 5).");
+            report.Warnings.Add($"{all.Count - employees.Count} employees who left are not migrated; their slips stay in ERPNext.");
         }
 
         var known = await KnownAsync("Employee", cancellationToken).ConfigureAwait(false);
@@ -266,10 +266,7 @@ public sealed partial class MigrationRun
         var differences = new List<string>();
         foreach (var slip in slips)
         {
-            // The base the slip was made with: an assignment entered later (a backdated raise) is back pay, not part of this slip.
-            var valid = bases[slip.Employee].Where(a => a.FromDate <= slip.StartDate).ToList();
-            var assignment = valid.Where(a => a.Created is null || slip.Created is null || a.Created <= slip.Created).MaxBy(a => (a.FromDate, a.Created));
-            var current = valid.MaxBy(a => (a.FromDate, a.Created));
+            var (assignment, current) = PaidWith(slip, bases[slip.Employee]);
             if (assignment is not null && current is not null && current.Base != assignment.Base)
             {
                 report.Warnings.Add($"{slip.Name} ({slip.Employee}): paid on base {assignment.Base:N2}; the base from {current.FromDate:yyyy-MM-dd} was later set to {current.Base:N2}, so {(current.Base > assignment.Base ? "back pay is due" : "an overpayment is to be recovered")}.");
@@ -381,5 +378,116 @@ public sealed partial class MigrationRun
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// The assignment a slip was paid with, and the one valid for its period now. They differ when a raise was entered after the
+    /// slip was made (a backdated raise): that is back pay, not part of the slip.
+    /// </summary>
+    private static (ErpAssignment? PaidWith, ErpAssignment? Now) PaidWith(ErpSalarySlip slip, IEnumerable<ErpAssignment> assignments)
+    {
+        var valid = assignments.Where(a => a.FromDate <= slip.StartDate).ToList();
+        return (valid.Where(a => a.Created is null || slip.Created is null || a.Created <= slip.Created).MaxBy(a => (a.FromDate, a.Created)),
+            valid.MaxBy(a => (a.FromDate, a.Created)));
+    }
+
+    /// <summary>
+    /// Salary slips paid in ERPNext up to the cut-over (docs/data-migration.md step 5), kept as history so back payments and reports
+    /// see those months. Lines are kept as paid, under the old slip number; the recorded net pay must equal ERPNext's or the slip is
+    /// not recorded. Nothing is posted: the opening balances already hold those months.
+    /// </summary>
+    private async Task<StepReport> SlipHistoryAsync(CancellationToken cancellationToken)
+    {
+        var report = new StepReport("history");
+        var to = options.Cutover ?? DateOnly.MaxValue;
+        var slips = await source.SlipsAsync(options.Company, options.HistoryFrom, to, cancellationToken).ConfigureAwait(false);
+        var employee = await ResolverAsync("Employee", cancellationToken).ConfigureAwait(false);
+        var structure = await ResolverAsync("Salary Structure", cancellationToken).ConfigureAwait(false);
+        var known = await KnownAsync("Salary Slip", cancellationToken).ConfigureAwait(false);
+        var pay = await PayAsync(cancellationToken).ConfigureAwait(false);
+        var bases = (await source.AssignmentsAsync(options.Company, cancellationToken).ConfigureAwait(false)).ToLookup(a => a.Employee, StringComparer.Ordinal);
+        var expected = 0;
+        var forLeavers = 0;
+        decimal net = 0m;
+        foreach (var slip in slips)
+        {
+            if (employee(slip.Employee) is not { } employeeId)
+            {
+                forLeavers++;
+                continue;
+            }
+
+            expected++;
+            if (known.ContainsKey(slip.Name))
+            {
+                report.AlreadyMigrated++;
+                continue;
+            }
+
+            var mapped = pay.Structures.GetValueOrDefault(slip.Structure);
+            var renames = SlipAbbreviations(slip, mapped?.Components ?? [], mapped?.Renamed);
+            var lines = new List<SalaryLineDto>();
+            var additional = new List<SlipAdditionalDto>();
+            decimal taxable = 0m;
+            foreach (var row in slip.Rows)
+            {
+                if (row.Statistical && !row.IsDeduction)
+                {
+                    continue; // worked out, never paid
+                }
+
+                var type = !row.IsDeduction ? ComponentType.Earning : row.Statistical || row.NotInTotal ? ComponentType.EmployerContribution : ComponentType.Deduction;
+                lines.Add(new SalaryLineDto(row.Component, renames[row.Abbreviation], type.ToString(), row.Amount, null));
+                var onTop = row.AdditionalAmount != 0m ? row.AdditionalAmount : row.FromAdditionalSalary ? row.Amount : 0m;
+                if (onTop != 0m)
+                {
+                    additional.Add(new SlipAdditionalDto(row.Component, renames[row.Abbreviation], type.ToString(), row.IsTaxable, onTop));
+                }
+
+                if (type == ComponentType.Earning && row.IsTaxable)
+                {
+                    taxable += row.Amount;
+                }
+            }
+
+            decimal Sum(ComponentType t) => lines.Where(l => l.Type == t.ToString()).Sum(l => l.Amount);
+            var recordedNet = Sum(ComponentType.Earning) - Sum(ComponentType.Deduction);
+            if (recordedNet != slip.NetPay)
+            {
+                report.Failures.Add($"{slip.Name} ({slip.Employee}): its lines give net pay {recordedNet:N2} but ERPNext paid {slip.NetPay:N2}; not recorded.");
+                continue;
+            }
+
+            var paidWith = PaidWith(slip, bases[slip.Employee]).PaidWith;
+            if (options.DryRun)
+            {
+                report.Created++;
+                net += slip.NetPay;
+                continue;
+            }
+
+            var recorded = await Handle<RecordSalarySlipHistoryCommand, SalarySlipDto>(new RecordSalarySlipHistoryCommand(employeeId, slip.StartDate, slip.EndDate,
+                structure(slip.Structure), slip.Structure, paidWith?.Base ?? 0m, slip.PaymentDays, slip.TotalWorkingDays, lines, taxable, slip.Name, additional), cancellationToken)
+                .ConfigureAwait(false);
+            if (recorded.IsFailure)
+            {
+                report.Failures.Add($"{slip.Name} ({slip.Employee}): {recorded.Error!.Message}");
+                continue;
+            }
+
+            await idMap.AddAsync(options.Company, "Salary Slip", slip.Name, recorded.Value.Id, cancellationToken).ConfigureAwait(false);
+            report.Created++;
+            net += slip.NetPay;
+        }
+
+        if (forLeavers > 0)
+        {
+            report.Warnings.Add($"{forLeavers} slips of employees who are not migrated (left, or failed the employees step) are not brought.");
+        }
+
+        var done = report.Created + report.AlreadyMigrated;
+        report.CheckPassed = done == expected;
+        report.Check = $"{(options.DryRun ? "dry run: " : "")}{done} of {expected} slips" + (report.Created > 0 ? $" (this run: net pay {net:N2}, equal to ERPNext slip by slip)" : "");
+        return report;
     }
 }

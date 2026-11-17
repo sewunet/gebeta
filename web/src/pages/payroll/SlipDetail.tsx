@@ -56,9 +56,10 @@ export function SlipDetail() {
       ]}
       actions={<>
         {s.status === "Draft" && can(me, "payroll.salary-slips.submit") && <button onClick={() => act.mutate("submit")} disabled={act.isPending}>{t("slips.submit")}</button>}
-        {s.status === "Submitted" && can(me, "payroll.salary-slips.cancel") && <button className="secondary" onClick={() => act.mutate("cancel")} disabled={act.isPending}>{t("slips.cancelSlip")}</button>}
+        {s.status === "Submitted" && !s.isHistory && can(me, "payroll.salary-slips.cancel") && <button className="secondary" onClick={() => act.mutate("cancel")} disabled={act.isPending}>{t("slips.cancelSlip")}</button>}
       </>}
       messages={<>
+        {s.isHistory && <MessageStrip tone="information">{t("slips.history")}</MessageStrip>}
         {notice && <MessageStrip tone="positive" onClose={() => setNotice(null)}>{notice}</MessageStrip>}
         {act.isError && <MessageStrip tone="negative">{act.error.message}</MessageStrip>}
       </>}

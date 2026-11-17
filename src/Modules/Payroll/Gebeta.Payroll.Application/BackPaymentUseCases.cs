@@ -100,7 +100,7 @@ public sealed class BackPaymentHandler(
                 .OrderByDescending(x => x.bp.CreatedAt)
                 .FirstOrDefault();
             return latest.m is not null
-                ? BackPaymentCalculator.BaselineFromEarlier(latest.m, latest.bp.Name ?? string.Empty, slip.PaymentDays, slip.TotalWorkingDays)
+                ? BackPaymentCalculator.BaselineFromEarlier(latest.m, latest.bp.Name ?? string.Empty, slip.PaymentDays, slip.TotalWorkingDays, slip.Additional)
                 : BackPaymentCalculator.BaselineFromSlip(slip, structure);
         }).ToList();
 

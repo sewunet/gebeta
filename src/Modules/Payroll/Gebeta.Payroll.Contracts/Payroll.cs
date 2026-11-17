@@ -92,7 +92,8 @@ public sealed record SalarySlipDto(
     decimal TotalDeductions,
     decimal NetPay,
     decimal EmployerContributions,
-    string TaxTable);
+    string TaxTable,
+    bool IsHistory = false);
 
 /// <summary>Line of a submitted slip in the integration event (Accounting builds the payroll journal from these).</summary>
 public sealed record SalarySlipLineData(string Abbreviation, string Component, string Type, decimal Amount);
@@ -204,3 +205,6 @@ public sealed record BankTransferRow(string EmployeeNumber, string EmployeeName,
 
 public sealed record BankTransferDto(string CompanyName, DateOnly PeriodStart, DateOnly PeriodEnd, IReadOnlyList<BankTransferRow> BankTransfers,
     IReadOnlyList<BankTransferRow> Cash, IReadOnlyList<string> Issues, decimal TotalBank, decimal TotalCash);
+
+/// <summary>An amount paid on top of the formulas in one month (overtime, a one-off allowance or deduction).</summary>
+public sealed record SlipAdditionalDto(string Component, string Abbreviation, string Type, bool IsTaxable, decimal Amount);

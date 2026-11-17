@@ -138,7 +138,8 @@
       "Earning": "Earning",
       "Deduction": "Deduction",
       "EmployerContribution": "Employer contribution"
-    }
+    },
+    "history": "Paid in the previous system before the cut-over and kept as history, so back payments and reports see this month. It posts nothing and cannot be cancelled here."
   },
   "run": {
     "create": "Start payroll run",

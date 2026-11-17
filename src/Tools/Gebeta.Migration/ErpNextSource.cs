@@ -91,6 +91,9 @@ public interface IErpNextSource
     Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, string?>>> FieldValuesAsync(string doctype, string company, IReadOnlyCollection<string> fields,
         CancellationToken cancellationToken);
 
+    /// <summary>Every submitted salary slip whose period starts on or after <paramref name="from"/> (any, when null) and ends by <paramref name="to"/>.</summary>
+    Task<IReadOnlyList<ErpSalarySlip>> SlipsAsync(string company, DateOnly? from, DateOnly to, CancellationToken cancellationToken);
+
     /// <summary>The submitted salary slips of the latest payroll period ending on or before <paramref name="asOf"/> (any, when null).</summary>
     Task<IReadOnlyList<ErpSalarySlip>> LatestSlipsAsync(string company, DateOnly? asOf, CancellationToken cancellationToken);
 }
@@ -252,22 +255,28 @@ public sealed class MariaDbErpNextSource(string connectionString) : IErpNextSour
         return result;
     }
 
-    public async Task<IReadOnlyList<ErpSalarySlip>> LatestSlipsAsync(string company, DateOnly? asOf, CancellationToken cancellationToken)
+    public Task<IReadOnlyList<ErpSalarySlip>> LatestSlipsAsync(string company, DateOnly? asOf, CancellationToken cancellationToken) =>
+        SlipsWhereAsync(company, """
+            s.end_date = (SELECT MAX(end_date) FROM `tabSalary Slip` WHERE company = @p AND docstatus = 1 AND end_date <= @to)
+            """, null, asOf ?? DateOnly.MaxValue, cancellationToken);
+
+    public Task<IReadOnlyList<ErpSalarySlip>> SlipsAsync(string company, DateOnly? from, DateOnly to, CancellationToken cancellationToken) =>
+        SlipsWhereAsync(company, "s.end_date <= @to AND (@from IS NULL OR s.start_date >= @from)", from, to, cancellationToken);
+
+    private async Task<IReadOnlyList<ErpSalarySlip>> SlipsWhereAsync(string company, string filter, DateOnly? from, DateOnly to, CancellationToken cancellationToken)
     {
-        var day = (asOf ?? DateOnly.MaxValue).ToDateTime(TimeOnly.MinValue);
-        const string Latest = """
-            s.company = @p AND s.docstatus = 1
-            AND s.end_date = (SELECT MAX(end_date) FROM `tabSalary Slip` WHERE company = @p AND docstatus = 1 AND end_date <= @asOf)
-            """;
+        var where = $"s.company = @p AND s.docstatus = 1 AND {filter}";
+        (string, object)[] parameters = [("@to", to.ToDateTime(TimeOnly.MinValue)), ("@from", from is { } f ? f.ToDateTime(TimeOnly.MinValue) : DBNull.Value)];
         var details = (await QueryAsync(
-                $"SELECT {DetailColumns} FROM `tabSalary Detail` d JOIN `tabSalary Slip` s ON s.name = d.parent AND d.parenttype = 'Salary Slip' WHERE {Latest} ORDER BY d.parent, d.idx",
-                company, Detail, cancellationToken, ("@asOf", day)).ConfigureAwait(false))
+                $"SELECT {DetailColumns} FROM `tabSalary Detail` d JOIN `tabSalary Slip` s ON s.name = d.parent AND d.parenttype = 'Salary Slip' WHERE {where} ORDER BY d.parent, d.idx",
+                company, Detail, cancellationToken, parameters).ConfigureAwait(false))
             .ToLookup(d => d.Parent, StringComparer.Ordinal);
-        return await QueryAsync($"SELECT s.name, s.employee, s.salary_structure, s.start_date, s.end_date, s.payment_days, s.total_working_days, s.gross_pay, s.net_pay, s.creation FROM `tabSalary Slip` s WHERE {Latest} ORDER BY s.employee",
+        return await QueryAsync(
+            $"SELECT s.name, s.employee, s.salary_structure, s.start_date, s.end_date, s.payment_days, s.total_working_days, s.gross_pay, s.net_pay, s.creation FROM `tabSalary Slip` s WHERE {where} ORDER BY s.start_date, s.employee",
             company,
             r => new ErpSalarySlip(r.GetString(0), r.GetString(1), r.GetString(2), DateOnly.FromDateTime(r.GetDateTime(3)), DateOnly.FromDateTime(r.GetDateTime(4)),
                 r.GetDecimal(5), r.GetDecimal(6), r.GetDecimal(7), r.GetDecimal(8), details[r.GetString(0)].ToList(), r.GetDateTime(9)),
-            cancellationToken, ("@asOf", day)).ConfigureAwait(false);
+            cancellationToken, parameters).ConfigureAwait(false);
     }
 
     /// <summary>ERPNext's stock_queue: JSON <c>[[qty, rate], ...]</c> for FIFO items; empty or unreadable gives no layers.</summary>

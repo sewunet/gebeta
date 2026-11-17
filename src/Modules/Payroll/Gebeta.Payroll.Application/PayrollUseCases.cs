@@ -366,6 +366,6 @@ internal static class PayrollMapping
         return new SalarySlipDto(s.Id, s.Name, s.CompanyId, s.EmployeeId, s.EmployeeNumber, s.EmployeeName, s.PeriodStart, s.PeriodEnd,
             $"{EthiopianMonthNames.English(start.MonthName)} {start.Year}", s.DocStatus.ToString(), s.StructureName, s.Base, s.PaymentDays, s.TotalWorkingDays,
             s.Lines.Select(l => new SalaryLineDto(l.Component, l.Abbreviation, l.Type.ToString(), l.Amount, l.Formula)).ToList(),
-            s.GrossPay, s.TaxableEarnings, s.TotalDeductions, s.NetPay, s.EmployerContributions, s.TaxTable);
+            s.GrossPay, s.TaxableEarnings, s.TotalDeductions, s.NetPay, s.EmployerContributions, s.TaxTable, s.IsHistory);
     }
 }

@@ -133,6 +133,12 @@ public sealed class SalaryStructureAssignment : Entity
 }
 
 /// <summary>
+/// An amount paid on top of the structure's formulas in one month (overtime, a one-off allowance or deduction). Kept on the slip
+/// so a back payment recalculating the month pays it again: it does not change with the base, but it changes the tax.
+/// </summary>
+public sealed record AdditionalPay(string Component, string Abbreviation, ComponentType Type, bool IsTaxable, decimal Amount);
+
+/// <summary>
 /// One stored line of a salary slip. <see cref="IsAdditional"/> lines come from outside the structure
 /// (back payment arrears and their tax, recoveries) and are not taxed again in this month.
 /// </summary>
@@ -145,6 +151,7 @@ public sealed record SalarySlipLine(string Component, string Abbreviation, Compo
 public sealed class SalarySlip : DocumentBase
 {
     private List<SalarySlipLine> _lines = [];
+    private List<AdditionalPay> _additional = [];
 
     private SalarySlip()
         : base()
@@ -183,6 +190,15 @@ public sealed class SalarySlip : DocumentBase
     public decimal EmployerContributions { get; private set; }
     public string TaxTable { get; private set; }
     public IReadOnlyList<SalarySlipLine> Lines => _lines;
+
+    /// <summary>
+    /// Paid in the previous system and brought in at cut-over (docs/data-migration.md step 5), so back payments and reports see the
+    /// months before Gebeta. It posts nothing (the opening balances already hold its effect) and cannot be cancelled here.
+    /// </summary>
+    public bool IsHistory { get; private set; }
+
+    /// <summary>What was paid this month on top of the formulas (already inside <see cref="Lines"/>).</summary>
+    public IReadOnlyList<AdditionalPay> Additional => _additional;
 
     public decimal AmountOf(string abbreviation) => _lines.Where(l => l.Abbreviation == abbreviation).Sum(l => l.Amount);
 
@@ -242,7 +258,80 @@ public sealed class SalarySlip : DocumentBase
             _lines = result.Lines.Select(l => new SalarySlipLine(l.Component, l.Abbreviation, l.Type, l.Amount, l.Formula))
                 .Concat(extras.Select(l => l with { IsAdditional = true }))
                 .ToList(),
+            _additional = (additional ?? new Dictionary<string, decimal>()).Where(a => a.Value != 0m)
+                .Join(structure.Components, a => a.Key, c => c.Abbreviation, (a, c) => new AdditionalPay(c.Name, c.Abbreviation, c.Type, c.IsTaxable, a.Value))
+                .ToList(),
         };
+    }
+
+    /// <summary>
+    /// A slip as the previous system paid it: the lines are kept exactly (not recalculated) under the old number, and it is
+    /// submitted at once. <paramref name="taxableEarnings"/> comes with the lines because a line does not say whether it was taxed.
+    /// </summary>
+    public static SalarySlip Record(
+        Guid companyId,
+        Guid employeeId,
+        string employeeNumber,
+        string employeeName,
+        DateOnly periodStart,
+        DateOnly periodEnd,
+        Guid structureId,
+        string structureName,
+        decimal baseAmount,
+        decimal paymentDays,
+        decimal totalWorkingDays,
+        IReadOnlyList<SalarySlipLine> lines,
+        decimal taxableEarnings,
+        string number,
+        IReadOnlyList<AdditionalPay>? additional = null)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        ArgumentException.ThrowIfNullOrWhiteSpace(number);
+        if (periodEnd < periodStart)
+        {
+            throw new DomainException("payroll.period", "The period cannot end before it starts.");
+        }
+
+        if (lines.Count == 0)
+        {
+            throw new DomainException("payroll.history_lines", "A salary slip from the previous system needs its lines.");
+        }
+
+        decimal Sum(ComponentType type) => lines.Where(l => l.Type == type).Sum(l => l.Amount);
+        var slip = new SalarySlip(companyId, periodEnd)
+        {
+            EmployeeId = employeeId,
+            EmployeeNumber = employeeNumber,
+            EmployeeName = employeeName,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            StructureId = structureId,
+            StructureName = structureName,
+            Base = baseAmount,
+            PaymentDays = paymentDays,
+            TotalWorkingDays = totalWorkingDays,
+            GrossPay = Sum(ComponentType.Earning),
+            TaxableEarnings = taxableEarnings,
+            TotalDeductions = Sum(ComponentType.Deduction),
+            NetPay = Sum(ComponentType.Earning) - Sum(ComponentType.Deduction),
+            EmployerContributions = Sum(ComponentType.EmployerContribution),
+            TaxTable = EthiopianIncomeTax.All.FirstOrDefault(t => t.IsValidOn(periodEnd))?.Code ?? "history",
+            IsHistory = true,
+            _lines = lines.ToList(),
+            _additional = (additional ?? []).ToList(),
+        };
+        slip.AssignName(number.Trim());
+        slip.Submit();
+        return slip;
+    }
+
+    protected override void OnCancel()
+    {
+        if (IsHistory)
+        {
+            throw new DomainException("payroll.history_cancel",
+                $"{Name} was paid in the previous system and only kept as history; it cannot be cancelled. Correct a later month instead (a back payment or recovery).");
+        }
     }
 
     protected override void ValidateForSubmit()

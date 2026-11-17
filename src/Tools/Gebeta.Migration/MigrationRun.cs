@@ -23,7 +23,8 @@ public sealed record MigrationOptions(
     IReadOnlyCollection<string>? Steps = null,
     DateOnly? Cutover = null,
     string? AccountMapPath = null,
-    TimeSpan? SettleWait = null)
+    TimeSpan? SettleWait = null,
+    DateOnly? HistoryFrom = null)
 {
     /// <summary>How long the opening check waits for the server to post the opening stock journals (default one minute).</summary>
     public TimeSpan SettleTimeout => SettleWait ?? TimeSpan.FromMinutes(1);
@@ -51,7 +52,7 @@ public sealed class StepReport(string name)
 /// </summary>
 public sealed partial class MigrationRun(IServiceProvider services, IErpNextSource source, IdMap idMap, MigrationOptions options)
 {
-    public static readonly string[] MasterSteps = ["parties", "items", "warehouses", "employees", "structures", "assignments", "payroll"];
+    public static readonly string[] MasterSteps = ["parties", "items", "warehouses", "employees", "structures", "assignments", "history", "payroll"];
     public static readonly string[] CutoverSteps = ["invoices", "stock", "opening"];
     public static readonly string[] AllSteps = ["company", .. MasterSteps, .. CutoverSteps];
 
@@ -76,7 +77,7 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
 
         Func<CancellationToken, Task<StepReport>>[] runners =
         [
-            PartiesAsync, ItemsAsync, WarehousesAsync, EmployeesAsync, SalaryStructuresAsync, AssignmentsAsync, PayrollCheckAsync,
+            PartiesAsync, ItemsAsync, WarehousesAsync, EmployeesAsync, SalaryStructuresAsync, AssignmentsAsync, SlipHistoryAsync, PayrollCheckAsync,
             ct => Cutover("invoices", OpenInvoicesAsync, ct),
             ct => Cutover("stock", OpeningStockAsync, ct),
             ct => Cutover("opening", OpeningBalancesAsync, ct),

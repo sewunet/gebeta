@@ -27,6 +27,8 @@ export type SalarySlipDto = {
   periodStart: string; periodEnd: string; ethiopianPeriod: string; status: string; structureName: string; base: number;
   paymentDays: number; totalWorkingDays: number; lines: SalaryLineDto[]; grossPay: number; taxableEarnings: number;
   totalDeductions: number; netPay: number; employerContributions: number; taxTable: string;
+  /** Paid in the previous system and kept as history: posts nothing, cannot be cancelled. */
+  isHistory?: boolean;
 };
 export type SalaryCalculationDto = {
   lines: SalaryLineDto[]; grossPay: number; taxableEarnings: number; totalDeductions: number; netPay: number;

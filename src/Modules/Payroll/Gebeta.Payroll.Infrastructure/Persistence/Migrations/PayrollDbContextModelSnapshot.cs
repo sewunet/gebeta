@@ -442,6 +442,10 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(21,2)")
                         .HasColumnName("gross_pay");
 
+                    b.Property<bool>("IsHistory")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_history");
+
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("modified_at");
@@ -508,6 +512,11 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
                         .HasPrecision(9, 3)
                         .HasColumnType("numeric(9,3)")
                         .HasColumnName("total_working_days");
+
+                    b.Property<string>("_additional")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("additional");
 
                     b.Property<string>("_lines")
                         .IsRequired()

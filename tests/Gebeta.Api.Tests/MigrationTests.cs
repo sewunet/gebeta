@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Gebeta.Accounting.Application;
@@ -71,6 +72,11 @@ public class MigrationTests(GebetaApiFactory factory)
         public Task<IReadOnlyList<ErpEmployee>> EmployeesAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpEmployee>>(Employees);
         public Task<IReadOnlyList<ErpSalaryStructure>> SalaryStructuresAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpSalaryStructure>>(Structures);
         public Task<IReadOnlyList<ErpAssignment>> AssignmentsAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpAssignment>>(Assignments);
+        public List<ErpSalarySlip> History { get; } = []; // slips before the latest payroll
+
+        public Task<IReadOnlyList<ErpSalarySlip>> SlipsAsync(string c, DateOnly? from, DateOnly to, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ErpSalarySlip>>(History.Concat(Slips).Where(s => s.EndDate <= to && (from is null || s.StartDate >= from)).ToList());
+
         public Task<IReadOnlyList<ErpSalarySlip>> LatestSlipsAsync(string c, DateOnly? asOf, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpSalarySlip>>(Slips);
 
         public Task<IReadOnlyList<ErpAccountBalance>> TrialBalanceAsync(string c, DateOnly asOf, DateOnly yearStart, CancellationToken cancellationToken)
@@ -419,6 +425,38 @@ public class MigrationTests(GebetaApiFactory factory)
         Assert.Equal([8_000m, 10_000m, 11_000m], history.OrderBy(a => a.FromDate).Select(a => a.Base));
         Assert.Contains(reports.Single(r => r.Name == "payroll").Warnings,
             w => w == "Sal Slip/HR-EMP-0001/00012 (HR-EMP-0001): paid on base 10,000.00; the base from 2026-06-08 was later set to 11,000.00, so back pay is due.");
+
+        // Sene came over as history: lines as paid, old numbers, nothing posted.
+        Assert.Equal("2 of 2 slips (this run: net pay 13,320.00, equal to ERPNext slip by slip)", reports.Single(r => r.Name == "history").Check);
+        var slips = (await admin.GetFromJsonAsync<List<SalarySlipDto>>(U($"/api/payroll/salary-slips?companyId={company.Id}"), Ct))!;
+        Assert.All(slips, s => Assert.True(s.IsHistory));
+        var abebeSene = slips.Single(s => s.Number == "Sal Slip/HR-EMP-0001/00012");
+        Assert.Equal(("Submitted", 12_100m, 9_300m, 1_100m), (abebeSene.Status, abebeSene.GrossPay, abebeSene.NetPay, abebeSene.EmployerContributions));
+        await using (var connection = new NpgsqlConnection(factory.ConnectionString))
+        {
+            await connection.OpenAsync(Ct);
+            await using var outbox = new NpgsqlCommand(
+                $"SELECT count(*) FROM payroll.{MessagingModel.OutboxTable} WHERE payload::text LIKE '%' || @slip || '%'", connection);
+            outbox.Parameters.AddWithValue("slip", abebeSene.Id.ToString());
+            Assert.Equal(0L, (long)(await outbox.ExecuteScalarAsync(Ct))!); // no journal: the opening balances hold those months
+        }
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsync(U($"/api/payroll/salary-slips/{abebeSene.Id}/cancel"), null, Ct)).StatusCode);
+
+        // The raise entered after Sene was paid becomes a back payment against the history slip, overtime included:
+        // paid 10,000 + 600 + 1,500 OT (tax on 11,500 = 2,100); now 11,000 + 600 + 1,500 (tax on 12,500 = 2,400), pension 770.
+        var abebe = employees.Single(e => e.FirstName == "Abebe");
+        var raise = (await admin.GetFromJsonAsync<List<SalaryStructureAssignmentDto>>(U($"/api/payroll/employees/{abebe.Id}/assignments"), Ct))!
+            .Single(a => a.Base == 11_000m);
+        var backPay = await admin.PostAsJsonAsync(U("/api/payroll/back-payments"), new
+        {
+            employeeId = abebe.Id, assignmentId = raise!.Id, effectiveFrom = "2026-06-08", effectiveTo = "2026-07-07", payrollDate = "2026-11-25",
+            reason = "Raise entered after Sene was paid", reference = (string?)null,
+        }, Ct);
+        Assert.Equal(HttpStatusCode.Created, backPay.StatusCode);
+        var arrears = (await backPay.Content.ReadFromJsonAsync<SalaryBackPaymentDto>(Ct))!;
+        Assert.Equal((1_000m, 300m, 70m, 630m), (arrears.TotalGrossArrears, arrears.TotalAdditionalTax, arrears.TotalOtherDeductions, arrears.NetArrears));
+        Assert.Equal("Sal Slip/HR-EMP-0001/00012", Assert.Single(arrears.Months).Source);
 
         // ERPNext worked the tax out differently for one slip (annual projection): the check names the slip and the component.
         var slip = erp.Slips[1];

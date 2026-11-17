@@ -77,6 +77,8 @@ internal sealed class SalarySlipConfiguration : IEntityTypeConfiguration<SalaryS
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).ValueGeneratedNever();
         builder.Property(s => s.Name).HasMaxLength(60);
+        builder.Property<List<AdditionalPay>>("_additional").HasColumnName("additional").IsJsonList();
+        builder.Ignore(s => s.Additional);
         builder.HasIndex(s => new { s.CompanyId, s.Name }).IsUnique();
         builder.HasIndex(s => new { s.EmployeeId, s.PeriodStart });
         builder.HasIndex(s => new { s.CompanyId, s.PeriodStart });
@@ -142,6 +144,9 @@ internal sealed class SalarySlipRepository(PayrollDbContext db) : ISalarySlipRep
     public Task<bool> HasActiveSlipAsync(Guid employeeId, DateOnly periodStart, DateOnly periodEnd, CancellationToken cancellationToken) =>
         db.SalarySlips.AnyAsync(s => s.EmployeeId == employeeId && s.DocStatus != Gebeta.SharedKernel.DocStatus.Cancelled
             && s.PeriodStart <= periodEnd && s.PeriodEnd >= periodStart, cancellationToken);
+
+    public Task<bool> NumberExistsAsync(Guid companyId, string number, CancellationToken cancellationToken) =>
+        db.SalarySlips.AnyAsync(s => s.CompanyId == companyId && s.Name == number, cancellationToken);
 
     public async Task<IReadOnlyList<SalarySlip>> SubmittedForEmployeeAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
         await db.SalarySlips.AsNoTracking()

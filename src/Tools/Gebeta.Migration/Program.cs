@@ -18,7 +18,7 @@ internal static class MigrationProgram
         var target = arguments.Get("target") ?? Environment.GetEnvironmentVariable("ConnectionStrings__Main");
         if (company is null || source is null || target is null)
         {
-            Console.Error.WriteLine("Usage: gebeta-migrate --company <ERPNext company> [--target-company <id>] [--tin <TIN>] [--legal-form <form>] [--steps parties,items,warehouses,employees,structures,assignments,payroll,invoices,stock,opening] [--cutover yyyy-MM-dd] [--account-map file.csv] [--dry-run]");
+            Console.Error.WriteLine("Usage: gebeta-migrate --company <ERPNext company> [--target-company <id>] [--tin <TIN>] [--legal-form <form>] [--steps parties,items,warehouses,employees,structures,assignments,history,payroll,invoices,stock,opening] [--history-from yyyy-MM-dd] [--cutover yyyy-MM-dd] [--account-map file.csv] [--dry-run]");
             Console.Error.WriteLine("       ERPNext source: --source or ERPNEXT_DB; Gebeta database: --target or ConnectionStrings__Main.");
             return 2;
         }
@@ -35,6 +35,18 @@ internal static class MigrationProgram
             cutover = parsed;
         }
 
+        DateOnly? historyFrom = null;
+        if (arguments.Get("history-from") is { } fromText)
+        {
+            if (!DateOnly.TryParseExact(fromText, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsedFrom))
+            {
+                Console.Error.WriteLine($"--history-from {fromText}: use yyyy-MM-dd (Gregorian).");
+                return 2;
+            }
+
+            historyFrom = parsedFrom;
+        }
+
         var options = new MigrationOptions(
             company,
             Guid.TryParse(arguments.Get("target-company"), out var targetCompany) ? targetCompany : null,
@@ -43,7 +55,8 @@ internal static class MigrationProgram
             arguments.Has("dry-run"),
             arguments.Get("steps")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             cutover,
-            arguments.Get("account-map"));
+            arguments.Get("account-map"),
+            HistoryFrom: historyFrom);
 
         await using var services = MigrationHost.Build(target);
         var run = new MigrationRun(services, new MariaDbErpNextSource(source), new IdMap(target), options);

@@ -31,6 +31,8 @@ public interface ISalarySlipRepository
     /// <summary>Submitted slips of the employee whose period starts between the two dates.</summary>
     Task<IReadOnlyList<SalarySlip>> SubmittedForEmployeeAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
 
+    Task<bool> NumberExistsAsync(Guid companyId, string number, CancellationToken cancellationToken);
+
     void Add(SalarySlip slip);
 }
 

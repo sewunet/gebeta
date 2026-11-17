@@ -8,9 +8,10 @@ dedicated opening-balance import.
 > **Built so far** (`src/Tools/Gebeta.Migration`):
 > - masters: the company (part of step 1), customers and suppliers, items with their valuation method, warehouses;
 > - employees, salary structures and the assignment history (steps 3–4), proved by recalculating the latest payroll;
+> - salary slip history (step 5), so back payments and reports see the months paid before the cut-over;
 > - cut-over balances, with `--cutover`: open invoices (step 8), opening stock (step 9) and the opening trial balance (step 7).
 >
-> Not yet built: users and roles, HR masters (grades, steps), slip history, the leave ledger, open orders and assets. Each run prints, for every step, how many records were created,
+> Not yet built: users and roles, HR masters (grades, steps), the leave ledger, open orders and assets. Each run prints, for every step, how many records were created,
 > adopted (an existing Gebeta record with the same code was used) or already migrated, plus warnings, failures and the
 > step's check.
 >
@@ -23,7 +24,8 @@ dedicated opening-balance import.
 >     --cutover 2026-07-07     also bring the balances at the end of that day (the last day kept in ERPNext)
 >     --account-map file.csv   ERPNext account → Gebeta account; written with suggestions when missing
 >     --steps parties,items    only these steps (company always runs first):
->                              parties, items, warehouses, employees, structures, assignments, payroll,
+>     --history-from 2024-07-08  slip history from this date (default: all, up to the cut-over)
+>                              parties, items, warehouses, employees, structures, assignments, history, payroll,
 >                              invoices, stock, opening
 > ```
 >
@@ -70,6 +72,15 @@ dedicated opening-balance import.
 >   component and the net pay must match to the cent. Differences are listed per slip, e.g.
 >   `IT Gebeta 300.00, ERPNext 301.00`. Typical causes are ERPNext's annual tax projection or a
 >   tax slab set up differently. The first 25 are shown.
+>
+> - **Slip history** brings every submitted slip up to the cut-over, for the migrated employees:
+>   - lines exactly as paid, under the old slip number, with what was paid on top of the formulas
+>     that month (overtime, one-offs);
+>   - a slip is recorded only when its lines give ERPNext's net pay;
+>   - history slips post nothing (the opening balances already hold those months) and cannot be
+>     cancelled in Gebeta;
+>   - a raise entered after a month was paid in ERPNext becomes an ordinary Gebeta back payment,
+>     worked out against the history slip.
 >
 > How the cut-over balances come over (all dated the cut-over day):
 > - **Open invoices** come from ERPNext's Payment Ledger as at the cut-over day. Each becomes a

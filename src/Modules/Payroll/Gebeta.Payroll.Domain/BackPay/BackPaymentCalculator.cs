@@ -15,7 +15,8 @@ public sealed record MonthBaseline(
     decimal Taxable,
     decimal Tax,
     decimal OtherDeductions,
-    decimal EmployerContributions);
+    decimal EmployerContributions,
+    IReadOnlyList<AdditionalPay>? Additional = null);
 
 /// <summary>One month of a back payment: old and new figures and the differences.</summary>
 public sealed record BackPaymentMonth(
@@ -71,7 +72,10 @@ public static class BackPaymentCalculator
         foreach (var month in months.OrderBy(m => m.PeriodStart))
         {
             var table = taxTableFor(month.PeriodEnd);
-            var slip = SalaryCalculator.Calculate(structure, new SalaryInput(newBase, month.PaymentDays, month.TotalWorkingDays, month.PeriodEnd, Variables: values), table);
+            var paidOnTop = month.Additional ?? [];
+            var slip = SalaryCalculator.Calculate(WithComponentsOf(structure, paidOnTop, values),
+                new SalaryInput(newBase, month.PaymentDays, month.TotalWorkingDays, month.PeriodEnd,
+                    paidOnTop.GroupBy(a => a.Abbreviation).ToDictionary(g => g.Key, g => g.Sum(a => a.Amount)), values), table);
             var (tax, other) = SplitDeductions(slip.Lines.Select(l => (l.Abbreviation, l.Type, l.Amount)), taxComponents);
 
             result.Add(new BackPaymentMonth(month.PeriodStart, month.PeriodEnd, month.Source, table.Code,
@@ -91,17 +95,37 @@ public static class BackPaymentCalculator
         var taxComponents = TaxComponents(structure);
         var (tax, other) = SplitDeductions(own.Select(l => (l.Abbreviation, l.Type, l.Amount)), taxComponents);
         var taxable = own.Where(l => l.Type == ComponentType.Earning && IsTaxable(structure, l.Abbreviation)).Sum(l => l.Amount);
+        var outside = slip.Additional.Where(a => structure.Components.All(c => c.Abbreviation != a.Abbreviation));
+        taxable += outside.Where(a => a.Type == ComponentType.Earning && a.IsTaxable).Sum(a => a.Amount); // e.g. overtime from the previous system
         return new MonthBaseline(slip.PeriodStart, slip.PeriodEnd, slip.Name ?? slip.Id.ToString(), slip.PaymentDays, slip.TotalWorkingDays,
             own.Where(l => l.Type == ComponentType.Earning).Sum(l => l.Amount), taxable, tax, other,
-            own.Where(l => l.Type == ComponentType.EmployerContribution).Sum(l => l.Amount));
+            own.Where(l => l.Type == ComponentType.EmployerContribution).Sum(l => l.Amount), slip.Additional);
     }
 
     /// <summary>After an earlier back payment, its "new" figures are what was really paid for the month.</summary>
-    public static MonthBaseline BaselineFromEarlier(BackPaymentMonth earlier, string backPaymentNumber, decimal paymentDays, decimal totalWorkingDays)
+    /// <param name="additional">The month's own additional pay (from its slip): it is part of the month whichever back payment recalculates it.</param>
+    public static MonthBaseline BaselineFromEarlier(BackPaymentMonth earlier, string backPaymentNumber, decimal paymentDays, decimal totalWorkingDays,
+        IReadOnlyList<AdditionalPay>? additional = null)
     {
         ArgumentNullException.ThrowIfNull(earlier);
         return new MonthBaseline(earlier.PeriodStart, earlier.PeriodEnd, backPaymentNumber, paymentDays, totalWorkingDays,
-            earlier.NewGross, earlier.NewTaxable, earlier.NewTax, earlier.NewOtherDeductions, earlier.NewEmployerContributions);
+            earlier.NewGross, earlier.NewTaxable, earlier.NewTax, earlier.NewOtherDeductions, earlier.NewEmployerContributions, additional);
+    }
+
+    /// <summary>The structure, plus a zero component for each additional pay it does not have (it then only carries the amount).</summary>
+    private static SalaryStructure WithComponentsOf(SalaryStructure structure, IReadOnlyList<AdditionalPay> additional, IReadOnlyDictionary<string, decimal>? values)
+    {
+        var missing = additional.Where(a => structure.Components.All(c => c.Abbreviation != a.Abbreviation)).DistinctBy(a => a.Abbreviation).ToList();
+        if (missing.Count == 0)
+        {
+            return structure;
+        }
+
+        var lines = structure.Components.Select(c => c.Line)
+            .Concat(missing.Select(a => new SalaryComponentLine(a.Component, a.Abbreviation, a.Type, Amount: 0m, IsTaxable: a.IsTaxable)))
+            .ToList();
+        var extended = SalaryStructure.Create(structure.Name, lines, values?.Keys.ToList());
+        return extended.IsSuccess ? extended.Value : throw new DomainException("payroll.back_payment_additional", extended.Error!.Message);
     }
 
     private static HashSet<string> TaxComponents(SalaryStructure structure) =>

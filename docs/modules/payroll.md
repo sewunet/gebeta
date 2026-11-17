@@ -122,3 +122,20 @@ amount) or `fuel_payment` (an allowance agreed per employee). Its formulas use t
   values).
 - Debt: a structure cannot be edited once saved (create a new one and reassign). That is on purpose
   for now, because slips keep the structure's name, but a versioned edit will be wanted.
+
+## Additional pay and back payments
+
+A slip keeps what was paid on top of the formulas that month (overtime, a one-off allowance or
+deduction). A back payment recalculating the month pays it again: it does not change with the base,
+but it changes the tax.
+
+Before step 40 the recalculation left it out, so a raise over a month with overtime gave arrears
+that were too low, or even negative. Slips made before step 40 have no record of their additional
+pay; their back payments still have that problem. That only matters for test data, because no
+company is live yet.
+
+## Salary slip history
+
+Slips paid in the previous system come over at cut-over as history (`IsHistory`, see
+docs/data-migration.md step 5). They are submitted, keep their old number and lines, post nothing,
+and cannot be cancelled. Back payments and reports read them like any other slip.

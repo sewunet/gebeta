@@ -163,3 +163,19 @@ A review of steps 25–34 with a senior engineer's eye led to these changes:
 - *Account codes are conventions* shared by modules (1300, 2150, 5000, 5100…). Fine for the template chart; build the account-mapping screen (docs/modules/accounting.md) before a customer with its own chart goes live.
 - *Order fulfilment is computed on read* by asking Stock and Accounting. Fine for lists of hundreds of orders per period; add a read model fed by events if order lists grow into thousands per page view.
 - *The advisory lock key* for stock postings is a 64-bit hash of item and warehouse; a collision only serialises two unrelated postings, it never corrupts data.
+
+### Stock ledger order (step 42)
+
+The stock ledger's `sequence` gives the posting order within a day, and readers take the last row
+of an item and warehouse as its stock. The database used to number new rows as it received them,
+but EF Core sends the inserts of one save sorted by primary key (a GUID), not in the order the code
+added them. `StockDbContext.SaveChangesAsync` now takes the numbers from the column's own sequence,
+in one round trip, and gives them to the rows in the order they were added; the column is identity
+"by default" so explicit numbers are allowed.
+
+The same pitfall applies anywhere the order of rows written in one save matters. Do not rely on an
+identity column for it; give the order explicitly.
+
+Rows written before the fix keep their old numbers. That only affects test data on development
+databases.
+

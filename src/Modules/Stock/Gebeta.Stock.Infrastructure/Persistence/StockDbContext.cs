@@ -21,6 +21,36 @@ public sealed class StockDbContext(DbContextOptions<StockDbContext> options, Tim
     public DbSet<StockEntry> Entries => Set<StockEntry>();
     public DbSet<StockLedgerEntry> Ledger => Set<StockLedgerEntry>();
 
+    // New ledger rows in the order the domain added them; numbered in that order on save (see AssignSequence).
+    private readonly List<StockLedgerEntry> _newLedgerRows = [];
+
+    internal void AddLedgerRows(IEnumerable<StockLedgerEntry> rows)
+    {
+        var list = rows.ToList();
+        _newLedgerRows.AddRange(list);
+        Ledger.AddRange(list);
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        var unnumbered = _newLedgerRows.Where(r => r.Sequence == 0).ToList();
+        if (unnumbered.Count > 0)
+        {
+            // One round trip: the column's own sequence, so numbers stay unique with rows numbered by the database.
+            var numbers = (await Database.SqlQueryRaw<long>(
+                    "SELECT nextval(pg_get_serial_sequence('stock.stock_ledger_entry', 'sequence')) AS \"Value\" FROM generate_series(1, {0})", unnumbered.Count)
+                .ToListAsync(cancellationToken).ConfigureAwait(false)).Order().ToList();
+            for (var i = 0; i < unnumbered.Count; i++)
+            {
+                unnumbered[i].AssignSequence(numbers[i]);
+            }
+        }
+
+        var saved = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
+        _newLedgerRows.Clear();
+        return saved;
+    }
+
     internal static void Configure(DbContextOptionsBuilder options, string connectionString) =>
         options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(MigrationsHistoryTable, SchemaName))
             .UseSnakeCaseNamingConvention();
@@ -92,7 +122,7 @@ internal sealed class StockLedgerEntryConfiguration : IEntityTypeConfiguration<S
         builder.ToTable("stock_ledger_entry");
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).ValueGeneratedNever();
-        builder.Property(e => e.Sequence).UseIdentityAlwaysColumn();
+        builder.Property(e => e.Sequence).UseIdentityByDefaultColumn(); // numbered by the application in posting order (StockDbContext.SaveChangesAsync)
         builder.HasIndex(e => new { e.ItemId, e.WarehouseId, e.Sequence });
         builder.HasIndex(e => new { e.CompanyId, e.PostingDate });
         builder.HasIndex(e => e.VoucherId);
@@ -181,7 +211,7 @@ internal sealed class StockRepository(StockDbContext db) : IStockRepository
                 && (warehouseId == null || e.WarehouseId == warehouseId))
             .OrderBy(e => e.PostingDate).ThenBy(e => e.Sequence).ToListAsync(cancellationToken).ConfigureAwait(false);
 
-    public void Add(IEnumerable<StockLedgerEntry> rows) => db.Ledger.AddRange(rows);
+    public void Add(IEnumerable<StockLedgerEntry> rows) => db.AddLedgerRows(rows);
 
     public Task<StockEntry?> GetEntryAsync(Guid id, CancellationToken cancellationToken) => db.Entries.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 

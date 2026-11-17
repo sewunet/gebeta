@@ -142,6 +142,18 @@ dedicated opening-balance import.
 > - Open, data to fix in ERPNext: 36 employees with a single name (Gebeta needs the father's
 >   name); 10 balance-sheet accounts the accountant has to map.
 
+> **First rehearsal** (step 42): a real run of the same company into a scratch Gebeta database,
+> everything except the opening balances (which wait for the account map).
+> - The first run took 2 minutes. A second run took 14 seconds, created nothing, and kept every
+>   check green.
+> - It found a stock bug no dry run could find. Ledger rows of one entry were numbered in the order
+>   the database received them, not in line order. With FIFO layers of one item, the stock balance
+>   read a row from the middle (9 of 37 warehouses were off). Fixed in Stock, with a regression
+>   test; now 37 of 37 warehouses match.
+> - A dry run counts records that depend on employees as if every employee were created. The real
+>   run only counts those that were, so its assignments, history and leave figures are lower while
+>   employees still fail.
+
 > Debt:
 > - Each record is its own command and transaction. That's fine for thousands of masters and open
 >   invoices, but tens of thousands of open invoices would want batching.

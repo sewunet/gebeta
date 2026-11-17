@@ -219,6 +219,21 @@ public sealed class StockLedgerEntry : Entity
     /// <summary>Posting order (database sequence); later movements have higher numbers.</summary>
     public long Sequence { get; private set; }
 
+    /// <summary>
+    /// Gives a new row its place in the posting order. Done by persistence just before saving, in the order the rows were added: the
+    /// order matters (the last row of an item and warehouse is its stock), and the database would otherwise number rows in the order
+    /// they happen to be sent.
+    /// </summary>
+    public void AssignSequence(long sequence)
+    {
+        if (Sequence != 0)
+        {
+            throw new DomainException("stock.sequence_assigned", "This stock ledger row already has its place in the posting order.");
+        }
+
+        Sequence = sequence;
+    }
+
     public Guid CompanyId { get; private set; }
     public Guid ItemId { get; private set; }
     public Guid WarehouseId { get; private set; }

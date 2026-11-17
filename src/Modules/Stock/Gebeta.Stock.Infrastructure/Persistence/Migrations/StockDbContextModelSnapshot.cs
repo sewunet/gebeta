@@ -330,7 +330,7 @@ namespace Gebeta.Stock.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("sequence");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequence"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Sequence"));
 
                     b.Property<decimal>("ValueAfter")
                         .HasPrecision(21, 2)

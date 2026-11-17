@@ -27,6 +27,43 @@ public class StockFlowTests(GebetaApiFactory factory)
         await transaction.CommitAsync(Ct);
     }
 
+    /// <summary>
+    /// Regression: a receipt with several lines of one item and warehouse (FIFO layers, as opening stock has) must keep its rows in
+    /// line order. The database used to number them in the order they were sent, which is not the line order, so the stock balance
+    /// read a row from the middle.
+    /// </summary>
+    [Fact]
+    public async Task Lines_of_one_item_in_one_entry_keep_their_order_in_the_ledger()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var company = await (await admin.PostAsJsonAsync(U("/api/core/companies"),
+            new { name = "Stock Order PLC", abbreviation = "SOP", legalForm = "PrivateLimitedCompany", tin = "0800000102" }, Ct)).Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        var id = company!.Id;
+        var item = await (await admin.PostAsJsonAsync(U("/api/core/items"), new { companyId = id, code = "LAYERED", name = "Layered", uom = "kg", isStockItem = true }, Ct))
+            .Content.ReadFromJsonAsync<ItemDto>(Ct);
+        await admin.PutAsJsonAsync(U($"/api/stock/items/{item!.Id}/settings"), new { method = "Fifo" }, Ct);
+        var store = await (await admin.PostAsJsonAsync(U("/api/stock/warehouses"), new { companyId = id, code = "STORE", name = "Store" }, Ct)).Content.ReadFromJsonAsync<WarehouseDto>(Ct);
+
+        // Six layers: 1..6 kg at 10, 20, ... 60 (value 910). One chance in 720 that the old numbering kept this order.
+        var lines = Enumerable.Range(1, 6).Select(n => new { itemId = item.Id, qty = (decimal)n, rate = 10m * n, sourceWarehouseId = (Guid?)null, targetWarehouseId = (Guid?)store!.Id }).ToArray();
+        var draft = await (await admin.PostAsJsonAsync(U("/api/stock/entries"), new { companyId = id, purpose = "Receipt", postingDate = "2026-11-10", lines }, Ct))
+            .Content.ReadFromJsonAsync<StockEntryDto>(Ct);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PostAsync(U($"/api/stock/entries/{draft!.Id}/submit"), null, Ct)).StatusCode);
+
+        var balance = (await admin.GetFromJsonAsync<StockBalanceDto>(U($"/api/stock/reports/balance?companyId={id}&asOf=2026-11-30"), Ct))!;
+        var row = Assert.Single(balance.Rows);
+        Assert.Equal((21m, 910m), (row.Qty, row.Value));
+
+        // FIFO takes the first layers first: 3 kg out = 1×10 + 2×20 = 50.
+        var issue = await (await admin.PostAsJsonAsync(U("/api/stock/entries"), new
+        {
+            companyId = id, purpose = "Issue", postingDate = "2026-11-11",
+            lines = new[] { new { itemId = item.Id, qty = 3m, rate = (decimal?)null, sourceWarehouseId = (Guid?)store!.Id, targetWarehouseId = (Guid?)null } },
+        }, Ct)).Content.ReadFromJsonAsync<StockEntryDto>(Ct);
+        var issued = await (await admin.PostAsync(U($"/api/stock/entries/{issue!.Id}/submit"), null, Ct)).Content.ReadFromJsonAsync<StockEntryDto>(Ct);
+        Assert.Equal(50m, issued!.TotalValue);
+    }
+
     [Fact]
     public async Task Fifo_stock_moves_through_warehouses_and_its_value_reaches_the_ledger()
     {

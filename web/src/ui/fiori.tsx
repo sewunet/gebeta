@@ -24,13 +24,24 @@ export function MessageStrip({ tone = "information", children, onClose }: { tone
   );
 }
 
-/** Shrinks the page header once the content scrolls under it. */
+/**
+ * Shrinks the page header once the content scrolls under it. Two thresholds (snap below SNAP_AT, expand only back near the top) so the
+ * header cannot flip on every scroll event; the page is padded by the height the header gives up (see DynamicPage), so snapping never
+ * shortens the page, pulls the scroll position back and un-snaps it again (the "shaking" this used to cause).
+ */
+const SNAP_AT = 64;
+const EXPAND_AT = 8;
+
 function useScrolled() {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setScrolled((was) => (was ? window.scrollY > EXPAND_AT : window.scrollY > SNAP_AT)));
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("scroll", onScroll); };
   }, []);
   return scrolled;
 }
@@ -57,10 +68,19 @@ export function DynamicPage({ title, subtitle, breadcrumb, actions, header, foot
   const scrolled = useScrolled();
   const page = useRef<HTMLDivElement>(null);
   const head = useRef<HTMLElement>(null);
+  const fullHeight = useRef(0);
+  const snapped = useRef(scrolled);
+  snapped.current = scrolled;
   useEffect(() => {
-    // the anchor bar sticks right under the header, whatever its height
+    // The anchor bar sticks right under the header, whatever its height. While snapped, the page keeps the height the header gave up
+    // as padding at the bottom, so the document never gets shorter under the reader.
     if (!head.current || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) => page.current?.style.setProperty("--header-h", `${Math.round(entry!.borderBoxSize[0]!.blockSize)}px`));
+    const observer = new ResizeObserver(([entry]) => {
+      const height = Math.round(entry!.borderBoxSize[0]!.blockSize);
+      if (!snapped.current) fullHeight.current = height;
+      page.current?.style.setProperty("--header-h", `${height}px`);
+      page.current?.style.setProperty("--snap-gap", `${snapped.current ? Math.max(0, fullHeight.current - height) : 0}px`);
+    });
     observer.observe(head.current);
     return () => observer.disconnect();
   }, []);

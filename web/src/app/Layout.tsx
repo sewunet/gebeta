@@ -3,8 +3,23 @@ import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
 import { can } from "../lib/types";
-import { APPS, GROUPS } from "./apps";
+import { APPS, GROUPS, type Group } from "./apps";
 import { useSession } from "./context";
+
+const FOLDED_KEY = "gebeta.menu.folded";
+
+/** The menu groups the user folded, remembered in this browser (a convenience: everything works without it). */
+function useFolded() {
+  const [folded, setFolded] = useState<Group[]>(() => {
+    try { return JSON.parse(localStorage.getItem(FOLDED_KEY) ?? "[]") as Group[]; } catch { return []; }
+  });
+  const toggle = (g: Group) => setFolded((f) => {
+    const next = f.includes(g) ? f.filter((x) => x !== g) : [...f, g];
+    try { localStorage.setItem(FOLDED_KEY, JSON.stringify(next)); } catch { /* storage unavailable */ }
+    return next;
+  });
+  return [folded, toggle] as const;
+}
 
 /**
  * Fiori-style shell: a shell bar across the top (menu, Gebeta, the current app, company, user menu) and a
@@ -16,6 +31,7 @@ export function Layout() {
   const { me, modules, companies, company, setCompanyId, savePreferences } = useSession();
   const [menu, setMenu] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
+  const [folded, toggleGroup] = useFolded();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const userRef = useRef<HTMLDivElement>(null);
   const installed = (m?: string) => !m || modules.some((x) => x.id === m);
@@ -70,10 +86,14 @@ export function Layout() {
         <Link to="/" className="nav-link" activeOptions={{ exact: true }}>{t("nav.home")}</Link>
         {GROUPS.map((g) => {
           const items = apps.filter((a) => a.group === g);
+          // the group of the page you are on always shows
+          const open = !folded.includes(g) || current?.group === g;
           return items.length ? (
             <div key={g}>
-              <div className="nav-group">{t(`nav.${g}`)}</div>
-              {items.map((a) => <Link key={a.id} to={a.path} className="nav-link">{t(a.title)}</Link>)}
+              <button type="button" className="nav-group" aria-expanded={open} onClick={() => toggleGroup(g)}>
+                {t(`nav.${g}`)}<span className="chevron" aria-hidden>▾</span>
+              </button>
+              {open && <div className="nav-items">{items.map((a) => <Link key={a.id} to={a.path} className="nav-link">{t(a.title)}</Link>)}</div>}
             </div>
           ) : null;
         })}

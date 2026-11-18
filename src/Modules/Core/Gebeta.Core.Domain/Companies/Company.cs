@@ -7,7 +7,7 @@ namespace Gebeta.Core.Domain.Companies;
 /// A legal entity that keeps its own books. Defaults follow Ethiopian practice: birr (ETB),
 /// the Hamle–Sene fiscal year and the Addis Ababa time zone (docs/ethiopia.md).
 /// </summary>
-public sealed class Company : Entity
+public sealed class Company : Entity, IAudited
 {
     public const string DefaultCurrency = "ETB";
     public const string DefaultTimeZone = "Africa/Addis_Ababa";

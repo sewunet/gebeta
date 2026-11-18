@@ -86,7 +86,7 @@ public sealed class SalaryStructureDefinition : Entity
 }
 
 /// <summary>Which structure and base salary an employee has from a date (a raise is a new assignment).</summary>
-public sealed class SalaryStructureAssignment : Entity
+public sealed class SalaryStructureAssignment : Entity, IAudited
 {
     private SalaryStructureAssignment()
     {
@@ -105,6 +105,9 @@ public sealed class SalaryStructureAssignment : Entity
 
     public Guid CompanyId { get; private set; }
     public Guid EmployeeId { get; private set; }
+
+    /// <summary>Salary changes show in the employee's history.</summary>
+    Guid? IAudited.HistoryOwnerId => EmployeeId;
     public Guid StructureId { get; private set; }
     public decimal Base { get; private set; }
     public DateOnly FromDate { get; private set; }

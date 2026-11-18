@@ -21,7 +21,7 @@ public enum Gender
 /// directory, modules add their own details). Names follow Ethiopian practice: given name, father's name,
 /// grandfather's name. HR adds personal data and history; Payroll adds the salary profile.
 /// </summary>
-public sealed class Employee : Entity
+public sealed class Employee : Entity, IAudited
 {
     private Employee()
     {

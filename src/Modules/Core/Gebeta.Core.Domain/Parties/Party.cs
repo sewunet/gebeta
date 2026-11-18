@@ -14,7 +14,7 @@ public enum PartyType
 /// A customer or supplier in the shared directory (docs/plugin-architecture.md). Tax invoices to and from
 /// Ethiopian businesses need the TIN; VAT applies only when the party (or we) are VAT-registered.
 /// </summary>
-public sealed class Party : Entity
+public sealed class Party : Entity, IAudited
 {
     private Party()
     {

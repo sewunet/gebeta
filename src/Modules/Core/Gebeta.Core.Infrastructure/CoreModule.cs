@@ -44,6 +44,7 @@ public sealed class CoreModule : IErpModule
         services.AddSingleton(TimeProvider.System);
 
         services.AddDbContext<CoreDbContext>(options => ConfigureDbContext(options, connectionString));
+        services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<CoreDbContext>>(); // this module's records in /api/history
         services.AddScoped<ICoreUnitOfWork>(sp => sp.GetRequiredService<CoreDbContext>());
         services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IUserRepository, UserRepository>();

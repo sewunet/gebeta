@@ -32,6 +32,7 @@ public sealed class StockModule : IErpModule
             ?? throw new ModuleLoadException("Connection string 'Main' is missing.");
 
         services.AddDbContext<StockDbContext>(options => StockDbContext.Configure(options, connectionString));
+        services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<StockDbContext>>(); // this module's records in /api/history
         services.AddScoped<IStockUnitOfWork>(sp => sp.GetRequiredService<StockDbContext>());
         services.AddScoped<IStockNumbers, StockNumbers>();
         services.AddScoped<IStockRepository, StockRepository>();

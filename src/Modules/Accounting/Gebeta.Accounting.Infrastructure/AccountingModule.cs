@@ -35,6 +35,7 @@ public sealed class AccountingModule : IErpModule
             ?? throw new ModuleLoadException("Connection string 'Main' is missing.");
 
         services.AddDbContext<AccountingDbContext>(options => AccountingDbContext.Configure(options, connectionString));
+        services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<AccountingDbContext>>(); // this module's records in /api/history
         services.AddScoped<IAccountingUnitOfWork>(sp => sp.GetRequiredService<AccountingDbContext>());
         services.AddScoped<IAccountingNumbers, AccountingNumbers>();
         services.AddScoped<IAccountRepository, AccountRepository>();

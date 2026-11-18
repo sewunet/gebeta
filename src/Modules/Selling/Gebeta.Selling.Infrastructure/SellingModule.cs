@@ -32,6 +32,7 @@ public sealed class SellingModule : IErpModule
             ?? throw new ModuleLoadException("Connection string 'Main' is missing.");
 
         services.AddDbContext<SellingDbContext>(options => SellingDbContext.Configure(options, connectionString));
+        services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<SellingDbContext>>(); // this module's records in /api/history
         services.AddScoped<ISellingUnitOfWork>(sp => sp.GetRequiredService<SellingDbContext>());
         services.AddScoped<ISellingNumbers, SellingNumbers>();
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();

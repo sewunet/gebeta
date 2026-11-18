@@ -9,6 +9,7 @@ import { seesAllCompanies, useRoles, useUsers } from "../lib/queries";
 import { can, type UserDto } from "../lib/types";
 import { Dialog, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus } from "../ui/fiori";
 import { userStatus } from "./userStatus";
+import { historySection } from "../app/history";
 
 /** List report of users with search and status; "Invite" sets someone up before their first sign-in. */
 export function Users() {
@@ -207,6 +208,7 @@ export function UserDetail() {
             )}
           </>
         ) },
+        ...historySection(t, me, id, "User")
       ]}
     />
   );

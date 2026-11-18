@@ -43,6 +43,7 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => fa
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { ResultStatusCodes = { [HealthStatus.Degraded] = StatusCodes.Status200OK } }).AllowAnonymous();
 
 app.MapGebetaModules();
+app.MapChangeHistory();
 
 // "--migrate": update every module's schema and exit (the migrate container).
 // Database:MigrateOnStartup: update, then keep running (development).

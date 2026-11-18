@@ -9,6 +9,7 @@ import { can, type PurchaseOrderDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, type Tone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useParties, usePurchaseOrder, useWarehouses } from "../../lib/queries";
+import { historySection } from "../../app/history";
 
 const TONE: Record<PurchaseOrderDto["state"], Tone> = {
   Draft: "critical", ToReceiveAndBill: "information", ToReceive: "information", ToBill: "information", Completed: "positive", Closed: "neutral", Cancelled: "negative",
@@ -229,6 +230,7 @@ export function PurchaseOrderDetail() {
             { label: t("acc.remark"), value: o.remark },
           ]} />
         ) },
+        ...historySection(t, me, id, "PurchaseOrder")
       ]}
     />
   );

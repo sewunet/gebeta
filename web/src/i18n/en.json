@@ -944,5 +944,17 @@
     "missing": "missing",
     "pension": "Pension number",
     "mainDefault": "Main (default)"
+  },
+  "history": {
+    "title": "History",
+    "none": "No changes recorded yet.",
+    "when": "When",
+    "who": "Who",
+    "what": "What",
+    "from": "From",
+    "to": "To",
+    "Created": "Created",
+    "Deleted": "Deleted",
+    "listChanged": "(lines changed)"
   }
 }

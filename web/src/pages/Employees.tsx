@@ -8,6 +8,7 @@ import { formatDate } from "../lib/ethiopian";
 import { useEmployees } from "../lib/hooks";
 import { can, type EmployeeDto } from "../lib/types";
 import { Dialog, EditFooter, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../ui/fiori";
+import { historySection } from "../app/history";
 
 // Payroll's part of the employee page, loaded only when shown (and only when Payroll is installed).
 const EmployeeSalary = lazy(() => import("./payroll/EmployeeSalary").then((m) => ({ default: m.EmployeeSalary })));
@@ -172,7 +173,9 @@ export function EmployeeDetail() {
         }, {
           id: "payment", title: t("payment.title"),
           content: <Suspense fallback={<p className="muted">{t("common.loading")}</p>}><EmployeePayment employeeId={e.id} /></Suspense>,
-        }] : [])]}
+        }] : []),
+        ...historySection(t, me, id, "Employee")
+      ]}
       />
       <Dialog open={leaving} title={t("employees.recordLeaving")} onClose={() => setLeaving(false)}
         footer={<><button type="submit" form="employee-leaving" className="danger" disabled={setLeavingDate.isPending}>{t("common.save")}</button>

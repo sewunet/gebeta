@@ -9,6 +9,7 @@ import { formData } from "../../lib/hooks";
 import { can, type InvoiceDto, type PartyDto } from "../../lib/types";
 import { EditFooter, Fields, MessageStrip, ObjectPage, ObjectStatus } from "../../ui/fiori";
 import { paymentState } from "./invoices/shared";
+import { historySection } from "../../app/history";
 
 /** Object page of a customer or supplier: details with an edit mode, open amounts and their invoices. */
 export function PartyDetail() {
@@ -104,6 +105,7 @@ export function PartyDetail() {
             })}</tbody>
           </table>
         ) : <div className="empty">{invoices.isPending ? t("common.loading") : t("inv.noneFound")}</div> },
+        ...historySection(t, me, id, "Party")
       ]}
     />
   );

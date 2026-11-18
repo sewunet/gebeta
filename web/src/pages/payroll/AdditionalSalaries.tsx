@@ -9,6 +9,7 @@ import { useEmployees } from "../../lib/hooks";
 import { can, type AdditionalSalaryDto } from "../../lib/types";
 import { DynamicPage, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
 import { parsePastedRows } from "./pasteRows";
+import { historySection } from "../../app/history";
 
 const monthStart = (iso: string) => `${iso.slice(0, 7)}-01`;
 
@@ -187,7 +188,9 @@ export function AdditionalSalaryDetail() {
           <tbody>{a.lines.map((l) => <tr key={l.employeeId}><td className="mono">{l.employeeNumber}</td><td>{l.employeeName}</td><td className="num">{formatMoney(l.amount)}</td></tr>)}</tbody>
           <tfoot><tr><td colSpan={2}>{t("additional.total")}</td><td className="num">{formatMoney(a.total)}</td></tr></tfoot>
         </table>
-      ) }]}
+      ) },
+        ...historySection(t, me, id, "AdditionalSalary")
+      ]}
     />
   );
 }

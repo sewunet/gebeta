@@ -131,7 +131,7 @@ internal static class CoreSeed
         ("Cash Manager", "Manages cashiers and settings; approves petty cash.", ["cash.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.CostCentersRead]),
         ("Accountant", "Keeps the books: chart of accounts, journals and financial reports.",
             ["accounting.*", "stock.reports.read", "buying.orders.read", "selling.orders.read", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.PartiesRead, CorePermissions.PartiesManage,
-             CorePermissions.ItemsRead, CorePermissions.CostCentersRead, CorePermissions.CostCentersManage]),
+             CorePermissions.ItemsRead, CorePermissions.CostCentersRead, CorePermissions.CostCentersManage, CorePermissions.HistoryRead]),
         ("Store Keeper", "Keeps stock: items, warehouses, stock entries and stock reports.",
             ["stock.*", "buying.orders.read", "selling.orders.read", CorePermissions.CompaniesRead, CorePermissions.ItemsRead, CorePermissions.ItemsManage, CorePermissions.PartiesRead]),
         ("Sales Officer", "Takes and follows sales orders from customers.",
@@ -142,9 +142,10 @@ internal static class CoreSeed
         ("Employee", "Self-service: sees their own payslips and leave, and applies for leave for themselves.",
             ["payroll.self.read", "hr.self.read", "hr.self.apply"]),
         ("HR Officer", "Manages leave and attendance.",
-            ["hr.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.HolidaysRead]),
+            ["hr.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.HolidaysRead, CorePermissions.HistoryRead]),
         ("Payroll Officer", "Prepares and submits payroll: salary structures, assignments and salary slips.",
-            ["payroll.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.HolidaysRead, CorePermissions.CostCentersRead]),
+            ["payroll.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.HolidaysRead, CorePermissions.CostCentersRead,
+             CorePermissions.HistoryRead]),
     ];
 
     public static async Task EnsureSystemRolesAsync(CoreDbContext db, TimeProvider clock, CancellationToken cancellationToken)

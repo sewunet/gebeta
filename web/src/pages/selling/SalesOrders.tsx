@@ -9,6 +9,7 @@ import { can, type SalesOrderDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, type Tone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useParties, useSalesOrder, useWarehouses } from "../../lib/queries";
+import { historySection } from "../../app/history";
 
 const TONE: Record<SalesOrderDto["state"], Tone> = {
   Draft: "critical", ToDeliverAndBill: "information", ToDeliver: "information", ToBill: "information", Completed: "positive", Closed: "neutral", Cancelled: "negative",
@@ -229,6 +230,7 @@ export function SalesOrderDetail() {
             { label: t("acc.remark"), value: o.remark },
           ]} />
         ) },
+        ...historySection(t, me, id, "SalesOrder")
       ]}
     />
   );

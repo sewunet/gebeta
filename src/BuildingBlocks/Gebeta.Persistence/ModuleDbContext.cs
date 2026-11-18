@@ -21,6 +21,34 @@ public abstract class ModuleDbContext(DbContextOptions options, TimeProvider? cl
         modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly, t => IsOwnConfiguration(t));
         modelBuilder.AddNamingSeriesCounters();
         modelBuilder.AddOutboxAndInbox();
+        modelBuilder.AddChangeHistory();
+    }
+
+    /// <summary>Saves, writing the change history of audited records (<see cref="Gebeta.SharedKernel.IAudited"/>) in the same save.</summary>
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        RecordHistory();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        RecordHistory();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    private void RecordHistory()
+    {
+        if (!ChangeTracker.Entries().Any(e => e.Entity is Gebeta.SharedKernel.IAudited))
+        {
+            return;
+        }
+
+        var rows = ChangeHistoryModel.Collect(ChangeTracker, ChangeHistoryModel.UserOf(this), _clock.GetUtcNow());
+        if (rows.Count > 0)
+        {
+            Set<AuditChange>().AddRange(rows);
+        }
     }
 
     /// <summary>Only configurations written for this context (a module may have one context per assembly).</summary>

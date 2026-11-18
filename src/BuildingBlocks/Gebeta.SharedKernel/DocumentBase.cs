@@ -12,7 +12,7 @@ public enum DocStatus
 /// A business document: Draft → Submitted → Cancelled, with amendment of cancelled documents.
 /// Submitted documents are immutable; subclasses call <see cref="EnsureDraft"/> before every change.
 /// </summary>
-public abstract class DocumentBase : Entity
+public abstract class DocumentBase : Entity, IAudited
 {
     /// <summary>For the persistence layer only (EF Core materialisation).</summary>
     protected DocumentBase()

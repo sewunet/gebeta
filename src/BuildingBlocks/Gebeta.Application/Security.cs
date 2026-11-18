@@ -42,3 +42,14 @@ public interface ICurrentEmployee
 {
     Task<Guid?> EmployeeIdAsync(CancellationToken cancellationToken);
 }
+
+/// <summary>One recorded change of an audited record. Action: Created, Changed or Deleted; Field and values only for Changed.</summary>
+public sealed record ChangeRecord(Guid EntityId, string EntityType, Guid? CompanyId, DateTimeOffset At, string By, string Action, string? Field, string? OldValue,
+    string? NewValue);
+
+/// <summary>The change history a module keeps of its own records (each module's schema has its own); the platform endpoint asks them all.</summary>
+public interface IChangeHistory
+{
+    Task<IReadOnlyList<ChangeRecord>> ForAsync(Guid entityId, CancellationToken cancellationToken);
+}
+

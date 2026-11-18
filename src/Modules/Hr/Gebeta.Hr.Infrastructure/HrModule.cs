@@ -33,6 +33,7 @@ public sealed class HrModule : IErpModule
             ?? throw new ModuleLoadException("Connection string 'Main' is missing.");
 
         services.AddDbContext<HrDbContext>(options => HrDbContext.Configure(options, connectionString));
+        services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<HrDbContext>>(); // this module's records in /api/history
         services.AddScoped<IHrUnitOfWork>(sp => sp.GetRequiredService<HrDbContext>());
         services.AddScoped<IHrNumbers, HrNumbers>();
         services.AddScoped<ILeaveRepository, LeaveRepository>();

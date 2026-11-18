@@ -225,6 +225,29 @@ pattern.
 
 ## 4. Change history (M, value 5)
 
+> **Built (step 55).** Every save through a module's database context writes an `audit_change` row, in that
+> module's own schema and in the same transaction, for each record marked `IAudited`.
+> - **What is recorded:**
+>   - "Created" or "Deleted" for a whole record;
+>   - for a change, one row per field, with the old and new value;
+>   - for a list column, such as lines, only that it changed;
+>   - in every case, who did it, taken from the signed-in user, or "system" for event consumers.
+> - **What is left out:** the bookkeeping fields (CreatedAt, ModifiedAt and so on).
+> - **What is audited:**
+>   - every document, through `DocumentBase`, so submit and cancel show as a status change;
+>   - companies, employees, parties, items, cost centres, users, accounts and bank accounts;
+>   - payroll profiles and salary assignments, which show **in the employee's history**.
+> - **Reading it:** `GET /api/history/{id}` collects the rows from every installed module (`IChangeHistory`).
+>   It needs `core.history.read`, which Core Administrator, Accountant, Payroll Officer and HR Officer have,
+>   and it returns 404 for a record of a company the user cannot access.
+> - **Screens:** a **History** section on 13 object pages.
+>
+> Not yet:
+> - **Cashiers** are not audited: their balance changes with every movement and would bury the real changes.
+>   This needs a per-field exclusion first.
+> - **Field names** show as words built from the code ("Bank account number"), not translated labels.
+> - **No retention limit:** rows are kept for good.
+
 **In one line:** a "History" section on every object page lists each change, newest first: date and time, user,
 field, old value and new value. Submit and cancel also appear, with the user.
 

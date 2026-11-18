@@ -26,6 +26,9 @@ public static class CorePermissions
     public const string CostCentersRead = "core.cost-centers.read";
     public const string CostCentersManage = "core.cost-centers.manage";
 
+    /// <summary>The change history of any record (who changed what, when); checked by the platform endpoint /api/history.</summary>
+    public const string HistoryRead = "core.history.read";
+
     public static IReadOnlyList<string> All { get; } =
-        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage, ItemsRead, ItemsManage, CostCentersRead, CostCentersManage];
+        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage, ItemsRead, ItemsManage, CostCentersRead, CostCentersManage, HistoryRead];
 }

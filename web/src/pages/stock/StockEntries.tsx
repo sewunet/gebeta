@@ -9,6 +9,7 @@ import { can, type StockEntryDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useParties, usePurchaseOrder, useSalesOrder, useWarehouses } from "../../lib/queries";
+import { historySection } from "../../app/history";
 
 const refreshKeys = ["stock-entries", "stock-entry", "stock-balance", "stock-ledger", "item-setting"];
 
@@ -285,6 +286,7 @@ export function StockEntryDetail() {
             { label: t("acc.remark"), value: e.remark },
           ]} />
         ) },
+        ...historySection(t, me, id, "StockEntry")
       ]}
     />
   );

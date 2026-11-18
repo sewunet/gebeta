@@ -12,7 +12,7 @@ public enum RootType
 }
 
 /// <summary>An account of a company's chart of accounts. Only leaf accounts (not groups) can be posted to.</summary>
-public sealed class Account : Entity
+public sealed class Account : Entity, IAudited
 {
     private Account()
     {

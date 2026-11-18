@@ -6,7 +6,7 @@ namespace Gebeta.Core.Domain.Security;
 /// A person who signs in. The identity (password, MFA) lives in Keycloak; Gebeta keeps the profile,
 /// preferences and role assignments, linked by the Keycloak subject id (docs/platform.md).
 /// </summary>
-public sealed class User : Entity
+public sealed class User : Entity, IAudited
 {
     private readonly List<Guid> _roleIds = [];
     private readonly List<Guid> _companyIds = [];

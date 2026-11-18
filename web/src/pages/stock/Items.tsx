@@ -9,6 +9,7 @@ import { formData } from "../../lib/hooks";
 import { can, type ItemDto, type ItemStockSettingDto, type StockBalanceDto } from "../../lib/types";
 import { Dialog, EditFooter, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus } from "../../ui/fiori";
 import { useItems } from "../../lib/queries";
+import { historySection } from "../../app/history";
 
 const UOMS = ["pcs", "kg", "quintal", "ton", "litre", "metre", "bag", "box", "set", "trip", "hour"];
 
@@ -187,6 +188,7 @@ export function ItemDetail() {
             ) : <div className="empty">{t("stock.noStock")}</div>}
           </>
         ) },
+        ...historySection(t, me, id, "Item")
       ]}
     />
   );

@@ -7,6 +7,7 @@ import { api, put } from "../lib/api";
 import { formData } from "../lib/hooks";
 import { can, type CompanyDto } from "../lib/types";
 import { EditFooter, Fields, ListReport, MessageStrip, ObjectPage, ObjectStatus } from "../ui/fiori";
+import { historySection } from "../app/history";
 
 /** List report of the companies this user can work in. */
 export function Companies() {
@@ -103,7 +104,9 @@ export function CompanyDetail() {
           { label: t("fields.fiscalYear"), value: c.fiscalYearType },
           { label: t("companies.timeZone"), value: c.timeZone },
         ]} />
-      ) }]}
+      ) },
+        ...historySection(t, me, id, "Company")
+      ]}
     />
   );
 }

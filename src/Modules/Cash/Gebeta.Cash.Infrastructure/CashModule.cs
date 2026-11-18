@@ -33,6 +33,7 @@ public sealed class CashModule : IErpModule
             ?? throw new ModuleLoadException("Connection string 'Main' is missing.");
 
         services.AddDbContext<CashDbContext>(options => CashDbContext.Configure(options, connectionString));
+        services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<CashDbContext>>(); // this module's records in /api/history
         services.AddScoped<ICashUnitOfWork>(sp => sp.GetRequiredService<CashDbContext>());
         services.AddScoped<ICashNumbers, CashNumbers>();
         services.AddScoped<ICashRepository, CashRepository>();

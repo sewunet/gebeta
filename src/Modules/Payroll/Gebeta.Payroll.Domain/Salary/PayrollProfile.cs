@@ -12,7 +12,7 @@ public enum PaymentMethod
 /// Payroll's own details for an employee (docs/plugin-architecture.md: modules extend Core's employee
 /// in their own tables): how salary is paid and the pension registration number.
 /// </summary>
-public sealed class EmployeePayrollProfile : Entity
+public sealed class EmployeePayrollProfile : Entity, IAudited
 {
     private EmployeePayrollProfile()
     {
@@ -26,6 +26,9 @@ public sealed class EmployeePayrollProfile : Entity
 
     public Guid CompanyId { get; private set; }
     public Guid EmployeeId { get; private set; }
+
+    /// <summary>Changes show in the employee's history.</summary>
+    Guid? IAudited.HistoryOwnerId => EmployeeId;
     public PaymentMethod PaymentMethod { get; private set; } = PaymentMethod.BankTransfer;
     public string? BankName { get; private set; }
     public string? BankAccountNumber { get; private set; }

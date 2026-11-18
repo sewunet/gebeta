@@ -8,6 +8,7 @@ import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
 import { useEmployees } from "../../lib/hooks";
 import { can, type EmployeeLoanDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
+import { historySection } from "../../app/history";
 
 type Kind = "Loan" | "StandingDeduction";
 const loanTone = (status: string) => (status === "Running" ? "positive" : status === "Paused" ? "critical" : statusTone(status));
@@ -209,6 +210,7 @@ export function LoanDetail() {
             <tfoot><tr><td colSpan={3}>{t("loans.recovered")}</td><td className="num">{formatMoney(l.recovered)}</td></tr></tfoot>
           </table>
         ) : <div className="empty">{t("loans.noRepayments")}</div> },
+        ...historySection(t, me, id, "EmployeeLoan")
       ]}
     />
   );

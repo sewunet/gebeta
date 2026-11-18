@@ -6,7 +6,7 @@ namespace Gebeta.Core.Domain.Items;
 /// A product or service the company buys, sells, stocks or uses (docs/modules/stock.md: Core keeps the item,
 /// Stock adds its own settings such as the valuation method). Codes are unique per company.
 /// </summary>
-public sealed class Item : Entity
+public sealed class Item : Entity, IAudited
 {
     private Item()
     {

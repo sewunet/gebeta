@@ -33,6 +33,7 @@ public sealed class PayrollModule : IErpModule
             ?? throw new ModuleLoadException("Connection string 'Main' is missing.");
 
         services.AddDbContext<PayrollDbContext>(options => PayrollDbContext.Configure(options, connectionString));
+        services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<PayrollDbContext>>(); // this module's records in /api/history
         services.AddScoped<IPayrollUnitOfWork>(sp => sp.GetRequiredService<PayrollDbContext>());
         services.AddScoped<IPayrollNumbers, PayrollNumbers>();
         services.AddScoped<ISalaryStructureRepository, SalaryStructureRepository>();

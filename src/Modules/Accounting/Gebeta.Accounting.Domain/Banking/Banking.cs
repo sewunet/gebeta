@@ -4,7 +4,7 @@ using Gebeta.SharedKernel;
 namespace Gebeta.Accounting.Domain.Banking;
 
 /// <summary>A company's account at a bank, with its own ledger account (a leaf under 1100 Cash and Bank).</summary>
-public sealed class BankAccount : Entity
+public sealed class BankAccount : Entity, IAudited
 {
     private BankAccount()
     {

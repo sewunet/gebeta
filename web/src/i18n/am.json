@@ -944,5 +944,17 @@
     "missing": "የለም",
     "pension": "የጡረታ ቁጥር",
     "mainDefault": "ዋና (ነባሪ)"
+  },
+  "history": {
+    "title": "ታሪክ",
+    "none": "እስካሁን የተመዘገበ ለውጥ የለም።",
+    "when": "መቼ",
+    "who": "ማን",
+    "what": "ምን",
+    "from": "ከ",
+    "to": "ወደ",
+    "Created": "ተፈጠረ",
+    "Deleted": "ተሰረዘ",
+    "listChanged": "(መስመሮች ተለውጠዋል)"
   }
 }

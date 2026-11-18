@@ -7,7 +7,7 @@ namespace Gebeta.Core.Domain.CostCenters;
 /// (docs/requirements/sap-features.md #3). Every company has one Main cost centre, made with the company; a profit and loss posting that names
 /// none belongs to Main. Codes are unique per company. One level only for now: no tree and no percentage distribution.
 /// </summary>
-public sealed class CostCenter : Entity
+public sealed class CostCenter : Entity, IAudited
 {
     public const string MainCode = "MAIN";
 

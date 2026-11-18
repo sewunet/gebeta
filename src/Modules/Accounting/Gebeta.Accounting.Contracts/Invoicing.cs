@@ -47,3 +47,15 @@ public sealed record AgeingReportDto(string Kind, DateOnly AsOf, IReadOnlyList<A
 public sealed record WithholdingReceiptDto(Guid InvoiceId, string ReceiptNumber, DateOnly Date, string Status, string AgentName, string AgentTin,
     string SupplierName, string? SupplierTin, string? InvoiceNumber, string? SupplierInvoiceNumber, string SupplyType, decimal TaxableAmount, decimal RatePercent,
     decimal Withheld);
+
+/// <summary>
+/// One line of a customer's or supplier's statement. Debit and credit are as the party's account stands in our books: a sales invoice is a
+/// debit to the customer, a purchase invoice a credit to the supplier. <see cref="Balance"/> is what is owed after the line (positive = the
+/// customer owes us, or we owe the supplier).
+/// </summary>
+public sealed record PartyStatementLine(DateOnly Date, string Type, string? Number, Guid? DocumentId, string? Reference, DateOnly? DueDate, decimal Debit,
+    decimal Credit, decimal Balance);
+
+/// <summary>A statement of account for one party and a date range, with the ageing of what is open at the end (docs/requirements/competitive-features.md #4).</summary>
+public sealed record PartyStatementDto(Guid CompanyId, Guid PartyId, string PartyName, string? PartyTin, string Kind, DateOnly From, DateOnly To, decimal Opening,
+    IReadOnlyList<PartyStatementLine> Lines, decimal TotalDebit, decimal TotalCredit, decimal Closing, AgeingRow Ageing);

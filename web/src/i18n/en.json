@@ -813,5 +813,38 @@
     "invoice": "Invoice",
     "cashier": "Cashier",
     "notFound": "This document was not found."
+  },
+  "statement": {
+    "open": "Statement of account",
+    "title": "Statement of account",
+    "confirmationTitle": "Balance confirmation",
+    "printAs": "Print as",
+    "customer": "Customer",
+    "supplier": "Supplier",
+    "document": "Document",
+    "reference": "Reference",
+    "balance": "Balance",
+    "due": "due",
+    "closing": "Closing balance",
+    "owesUs": "Balance due to us",
+    "weOwe": "Balance due from us",
+    "settled": "Nothing is owed",
+    "type": {
+      "opening": "Opening balance",
+      "invoice": "Invoice",
+      "withholding": "Withholding",
+      "creditNote": "Credit note",
+      "withholdingReversed": "Withholding reversed",
+      "payment": "Payment"
+    },
+    "queries": "Please tell us within 15 days if any line on this statement does not agree with your records.",
+    "confirmationText": "Our auditors are reviewing our accounts. According to our records the balance between us on {{date}} is ETB {{amount}}, as shown above. Please confirm whether this agrees with your records by signing below and returning this letter, and send details of any difference.",
+    "reply": "Your reply",
+    "agree": "The balance above agrees with our records.",
+    "disagree": "The balance does not agree with our records; the details are attached.",
+    "replyName": "Name",
+    "replySignature": "Signature",
+    "replyStamp": "Stamp",
+    "replyDate": "Date"
   }
 }

@@ -813,5 +813,38 @@
     "invoice": "ደረሰኝ",
     "cashier": "ገንዘብ ያዥ",
     "notFound": "ይህ ሰነድ አልተገኘም።"
+  },
+  "statement": {
+    "open": "የሂሳብ መግለጫ",
+    "title": "የሂሳብ መግለጫ",
+    "confirmationTitle": "የሂሳብ ቀሪ ማረጋገጫ",
+    "printAs": "የሚታተመው",
+    "customer": "ደንበኛ",
+    "supplier": "አቅራቢ",
+    "document": "ሰነድ",
+    "reference": "ማጣቀሻ",
+    "balance": "ቀሪ",
+    "due": "የሚከፈልበት",
+    "closing": "የመዝጊያ ቀሪ",
+    "owesUs": "ለእኛ የሚከፈል ቀሪ",
+    "weOwe": "ከእኛ የሚከፈል ቀሪ",
+    "settled": "የሚከፈል ቀሪ የለም",
+    "type": {
+      "opening": "የመክፈቻ ቀሪ",
+      "invoice": "ደረሰኝ",
+      "withholding": "ቅድመ ግብር ተቀናሽ",
+      "creditNote": "የተመላሽ ማስታወሻ",
+      "withholdingReversed": "የተመለሰ ቅድመ ግብር",
+      "payment": "ክፍያ"
+    },
+    "queries": "በዚህ መግለጫ ላይ ያለ ማንኛውም መስመር ከእርስዎ መዝገብ ጋር የማይስማማ ከሆነ በ15 ቀናት ውስጥ ያሳውቁን።",
+    "confirmationText": "ኦዲተሮቻችን ሂሳባችንን እየመረመሩ ነው። በእኛ መዝገብ መሠረት በ{{date}} በመካከላችን ያለው ቀሪ ሂሳብ ብር {{amount}} ነው። ይህ ከእርስዎ መዝገብ ጋር የሚስማማ መሆኑን ከታች ፈርመው ይህን ደብዳቤ በመመለስ ያረጋግጡልን፤ ልዩነት ካለ ዝርዝሩን ይላኩልን።",
+    "reply": "የእርስዎ ምላሽ",
+    "agree": "ከላይ ያለው ቀሪ ከመዝገባችን ጋር ይስማማል።",
+    "disagree": "ቀሪው ከመዝገባችን ጋር አይስማማም፤ ዝርዝሩ ተያይዟል።",
+    "replyName": "ስም",
+    "replySignature": "ፊርማ",
+    "replyStamp": "ማኅተም",
+    "replyDate": "ቀን"
   }
 }

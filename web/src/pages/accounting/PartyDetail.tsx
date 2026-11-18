@@ -58,7 +58,10 @@ export function PartyDetail() {
         { label: t("inv.overdue"), value: formatMoney(overdue), tone: overdue > 0 ? "negative" : undefined },
         { label: t("nav.invoices"), value: String(list.length) },
       ]}
-      actions={!editing && can(me, "core.parties.manage") && <button onClick={() => { setNotice(null); setEditing(true); }}>{t("ui.edit")}</button>}
+      actions={!editing && <>
+        {can(me, "accounting.invoices.read") && <Link to="/accounting/parties/$id/statement" params={{ id }} className="button secondary">{t("statement.open")}</Link>}
+        {can(me, "core.parties.manage") && <button onClick={() => { setNotice(null); setEditing(true); }}>{t("ui.edit")}</button>}
+      </>}
       footer={editing && <EditFooter form="party-edit" saving={save.isPending} error={save.error?.message} onCancel={() => setEditing(false)}
         saveLabel={t("common.save")} cancelLabel={t("common.cancel")} />}
       messages={notice && <MessageStrip tone="positive" onClose={() => setNotice(null)}>{notice}</MessageStrip>}

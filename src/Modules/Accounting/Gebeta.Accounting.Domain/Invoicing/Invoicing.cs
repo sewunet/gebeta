@@ -480,6 +480,12 @@ public interface IInvoiceRepository
     Task<Payment?> GetPaymentAsync(Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyList<Payment>> PaymentsForInvoiceAsync(Guid invoiceId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Invoice>> ReturnsAgainstAsync(Guid invoiceId, CancellationToken cancellationToken);
+
+    /// <summary>Every invoice and return of one party dated up to <paramref name="to"/>, any status.</summary>
+    Task<IReadOnlyList<Invoice>> ForPartyAsync(Guid companyId, Guid partyId, DateOnly to, CancellationToken cancellationToken);
+
+    /// <summary>Every payment to or from one party dated up to <paramref name="to"/>, any status.</summary>
+    Task<IReadOnlyList<Payment>> PaymentsForPartyAsync(Guid companyId, Guid partyId, DateOnly to, CancellationToken cancellationToken);
     void Add(Invoice invoice);
     void Add(Payment payment);
 }

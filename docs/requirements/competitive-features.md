@@ -433,6 +433,21 @@ against the same span of FY 2018 (8 Jul – 9 Dec 2025).
 
 ### 4. Statement of account per customer or supplier (S, value 4)
 
+> **Built (step 51).** `GET /api/accounting/reports/party-statement?companyId&partyId&kind&from&to` (CSV with
+> `?format=csv`) and a printable page opened from the customer or supplier page, which can print as a
+> **balance confirmation** letter with a reply box for the party to sign. The closing balance is shown in
+> figures and in words, with the ageing underneath.
+>
+> Differences from this note:
+> - **Built from the documents, not the GL:** ledger rows carry no party, so the statement lists the party's
+>   submitted invoices, withholding, credit or debit notes and payments. A test checks that the closing balance
+>   always equals the party's ageing total. Journals posted straight to a receivable or payable account do not
+>   appear, because they name no party.
+> - **One kind at a time:** a party that is both customer and supplier gets two statements (receivable and
+>   payable), chosen on the page. They are not netted.
+> - **Not built yet:** sending statements to many customers at once (Zoho), because Gebeta does not send
+>   e-mail yet.
+
 - **Feature:** a printable statement for one party and a date range: opening balance, every invoice,
   payment, credit or debit note and withholding certificate with a running balance, closing balance, and the
   ageing buckets at the bottom. It can also be used as a **balance confirmation letter**.

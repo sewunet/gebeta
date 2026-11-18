@@ -377,6 +377,9 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                     b.HasIndex("CompanyId", "Kind", "PostingDate")
                         .HasDatabaseName("ix_invoice_company_id_kind_posting_date");
 
+                    b.HasIndex("CompanyId", "PartyId", "PostingDate")
+                        .HasDatabaseName("ix_invoice_company_id_party_id_posting_date");
+
                     b.ToTable("invoice", "accounting");
                 });
 
@@ -465,6 +468,9 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                     b.HasIndex("CompanyId", "Name")
                         .IsUnique()
                         .HasDatabaseName("ix_payment_company_id_name");
+
+                    b.HasIndex("CompanyId", "PartyId", "PostingDate")
+                        .HasDatabaseName("ix_payment_company_id_party_id_posting_date");
 
                     b.ToTable("payment", "accounting");
                 });

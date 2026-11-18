@@ -114,6 +114,11 @@ export type PaymentDto = {
   bankAccountCode: string; reference?: string; status: string; allocations?: { invoiceId: string; invoiceNumber?: string; amount: number }[];
 };
 export type AgeingRow = { partyId: string; partyName: string; partyTin?: string; notDue: number; days1To30: number; days31To60: number; days61To90: number; over90: number; total: number };
+export type PartyStatementLine = { date: string; type: string; number?: string; documentId?: string; reference?: string; dueDate?: string; debit: number; credit: number; balance: number };
+export type PartyStatementDto = {
+  companyId: string; partyId: string; partyName: string; partyTin?: string; kind: "Sales" | "Purchase"; from: string; to: string; opening: number;
+  lines: PartyStatementLine[]; totalDebit: number; totalCredit: number; closing: number; ageing: AgeingRow;
+};
 export type AgeingReportDto = { kind: string; asOf: string; rows: AgeingRow[]; totals: AgeingRow };
 export type VatReportDto = {
   from: string; to: string; outputVat: number; inputVat: number; netPayable: number;

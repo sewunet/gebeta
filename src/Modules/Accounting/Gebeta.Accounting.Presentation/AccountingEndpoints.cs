@@ -89,6 +89,22 @@ public static class AccountingEndpoints
                 IQueryHandler<AgeingReportQuery, AgeingReportDto> h, CancellationToken ct) =>
                 (await h.Handle(new AgeingReportQuery(companyId, kind, asOf), ct).ConfigureAwait(false)).ToHttp())
             .WithName("AgeingReport").RequirePermission(AccountingPermissions.ReportsRead);
+        acc.MapGet("/reports/party-statement", async (Guid companyId, Guid partyId, Gebeta.Accounting.Domain.Invoicing.InvoiceKind kind, DateOnly from, DateOnly to,
+                string? format, IQueryHandler<PartyStatementQuery, PartyStatementDto> h, CancellationToken ct) =>
+            {
+                var result = await h.Handle(new PartyStatementQuery(companyId, partyId, kind, from, to), ct).ConfigureAwait(false);
+                if (!result.IsSuccess || !CsvFile.Requested(format))
+                {
+                    return result.ToHttp();
+                }
+
+                var s = result.Value;
+                return CsvFile.Create($"statement-{from:yyyy-MM-dd}-{to:yyyy-MM-dd}.csv", ["Date", "Type", "Number", "Reference", "Due", "Debit", "Credit", "Balance"],
+                    s.Lines.Select(l => new object?[] { l.Date, l.Type, l.Number, l.Reference, l.DueDate, l.Debit, l.Credit, l.Balance })
+                        .Prepend([from, PartyStatementHandler.Opening, null, s.PartyName, null, null, null, s.Opening])
+                        .Append([to, "Closing balance", null, null, null, s.TotalDebit, s.TotalCredit, s.Closing]));
+            })
+            .WithName("PartyStatement").RequirePermission(InvoicingPermissions.InvoicesRead);
         acc.MapPost("/payments", async (CreatePaymentCommand command, ICommandHandler<CreatePaymentCommand, PaymentDto> h, CancellationToken ct) =>
                 (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
             .WithName("CreatePayment").RequirePermission(InvoicingPermissions.PaymentsCreate);

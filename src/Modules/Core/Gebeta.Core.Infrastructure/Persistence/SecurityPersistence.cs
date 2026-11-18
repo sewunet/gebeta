@@ -14,6 +14,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Id).ValueGeneratedNever();
         builder.Property(u => u.ExternalId).HasMaxLength(100); // empty for invited users until their first sign-in
         builder.Ignore(u => u.IsInvited);
+        builder.HasIndex(u => u.EmployeeId).IsUnique(); // one user per employee
         builder.HasIndex(u => u.ExternalId).IsUnique();
         builder.Property(u => u.Username).HasMaxLength(140).IsRequired();
         builder.HasIndex(u => u.Username).IsUnique();
@@ -65,6 +66,9 @@ internal sealed class UserRepository(CoreDbContext db) : IUserRepository
         var name = username.Trim().ToLowerInvariant();
         return db.Users.FirstOrDefaultAsync(u => u.ExternalId == null && u.Username == name, cancellationToken);
     }
+
+    public Task<User?> GetByEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        db.Users.FirstOrDefaultAsync(u => u.EmployeeId == employeeId, cancellationToken);
 
     public Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken)
     {
@@ -135,6 +139,8 @@ internal static class CoreSeed
              CorePermissions.PartiesManage]),
         ("Purchaser", "Raises and follows purchase orders to suppliers.",
             ["buying.*", "stock.warehouses.read", CorePermissions.CompaniesRead, CorePermissions.ItemsRead, CorePermissions.PartiesRead, CorePermissions.PartiesManage]),
+        ("Employee", "Self-service: sees their own payslips and leave, and applies for leave for themselves.",
+            ["payroll.self.read", "hr.self.read", "hr.self.apply"]),
         ("HR Officer", "Manages leave and attendance.",
             ["hr.*", CorePermissions.CompaniesRead, CorePermissions.EmployeesRead, CorePermissions.HolidaysRead]),
         ("Payroll Officer", "Prepares and submits payroll: salary structures, assignments and salary slips.",

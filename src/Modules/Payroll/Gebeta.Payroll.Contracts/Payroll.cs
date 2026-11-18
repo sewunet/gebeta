@@ -22,9 +22,12 @@ public static class PayrollPermissions
     public const string RunsManage = "payroll.runs.manage";
     public const string ReportsRead = "payroll.reports.read";
 
+    /// <summary>Self-service: an employee sees their own submitted payslips.</summary>
+    public const string SelfRead = "payroll.self.read";
+
     public static IReadOnlyList<string> All { get; } =
         [CalculatorUse, TaxTablesRead, StructuresRead, StructuresManage, AssignmentsRead, AssignmentsManage, SlipsRead, SlipsCreate, SlipsSubmit, SlipsCancel,
-         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel, ProfilesManage, RunsRead, RunsManage, ReportsRead];
+         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel, ProfilesManage, RunsRead, RunsManage, ReportsRead, SelfRead];
 }
 
 /// <summary>A salary component. Type: Earning, Deduction or EmployerContribution.</summary>

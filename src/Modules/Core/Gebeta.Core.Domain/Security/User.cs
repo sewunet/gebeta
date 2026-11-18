@@ -25,6 +25,11 @@ public sealed class User : Entity
     /// <summary>The <c>sub</c> claim from Keycloak; empty for an invited user until their first sign-in.</summary>
     public string? ExternalId { get; private set; }
 
+    /// <summary>The employee this user is, for self-service (their own payslips and leave); empty for users who are not employees.</summary>
+    public Guid? EmployeeId { get; private set; }
+
+    public void LinkEmployee(Guid? employeeId) => EmployeeId = employeeId;
+
     /// <summary>Invited (roles and companies set up ahead) but not signed in yet.</summary>
     public bool IsInvited => ExternalId is null;
 

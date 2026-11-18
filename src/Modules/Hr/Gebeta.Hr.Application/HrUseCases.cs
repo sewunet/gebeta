@@ -247,7 +247,7 @@ public sealed class LeaveHandler(
         return application is not null && await access.CanAccessAsync(application.CompanyId, cancellationToken).ConfigureAwait(false) ? application : null;
     }
 
-    private static LeaveApplicationDto ToDto(LeaveApplication a) => new(a.Id, a.Name, a.CompanyId, a.EmployeeId, a.EmployeeName, a.Type.ToString(),
+    internal static LeaveApplicationDto ToDto(LeaveApplication a) => new(a.Id, a.Name, a.CompanyId, a.EmployeeId, a.EmployeeName, a.Type.ToString(),
         a.FromDate, a.ToDate, a.Days, EthiopianLeaveRules.Rules[a.Type].IsPaid, a.Reason, a.DocStatus.ToString(), a.ApprovedBy);
 }
 

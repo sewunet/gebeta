@@ -30,7 +30,7 @@ permissions, audit and naming series, end to end in the React app.
 - Payroll entry and salary slips; payslip PDF; bank file.
 - Salary back payment.
 - Payroll journal posted **to ERPNext** through the connector (accounting stays in ERPNext).
-- Employee self-service: payslips, leave balance.
+- Employee self-service: payslips, leave balance. *(Built: "For me" — my payslips (printable), my leave and applying for it; a user is linked to their employee record and given the Employee role.)*
 
 **Done when:** three payroll months run in parallel with ERPNext give the same net pay, tax and
 pension for every employee to the cent, and the payroll journal matches.

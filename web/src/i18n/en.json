@@ -43,7 +43,10 @@
     "salaryStructures": "Salary structures",
     "salaryStructure": "Salary structure",
     "users": "Users",
-    "roles": "Roles"
+    "roles": "Roles",
+    "me": "For me",
+    "myPayslips": "My payslips",
+    "myLeave": "My leave"
   },
   "common": {
     "company": "Company",
@@ -537,7 +540,9 @@
     "salesOrders": "Orders from customers",
     "structures": "Components and formulas",
     "users": "Who signs in, roles, companies",
-    "roles": "What each role allows"
+    "roles": "What each role allows",
+    "myPayslips": "Your pay, month by month",
+    "myLeave": "Your balance and requests"
   },
   "ui": {
     "search": "Search",
@@ -716,7 +721,13 @@
     "addRole": "Add a role…",
     "addCompany": "Add a company…",
     "deactivate": "Deactivate",
-    "activate": "Activate"
+    "activate": "Activate",
+    "employee": "Employee record",
+    "employeeHint": "Link the user to the employee they are, so they see their own payslips and leave (give them the Employee role too).",
+    "pickEmployee": "Choose an employee…",
+    "link": "Link",
+    "unlink": "Unlink",
+    "otherCompanyEmployee": "An employee of another company"
   },
   "roles": {
     "description": "Description",
@@ -725,5 +736,18 @@
     "permissions": "Permissions",
     "notFound": "This role was not found.",
     "permissionsHint": "A permission ending in * covers everything in that area (accounting.* covers every accounting action)."
+  },
+  "me": {
+    "period": "Month",
+    "payslip": "Payslip",
+    "employee": "Employee",
+    "print": "Print",
+    "noPayslips": "No payslips yet.",
+    "employerPaid": "Paid by the employer on top of your salary: {{items}}.",
+    "daysLeft": "days left",
+    "daysTaken": "days taken",
+    "noLeave": "No leave requests yet.",
+    "leaveApplied": "Your request for {{days}} days is sent to HR for approval.",
+    "applyHint": "HR approves your request. Annual leave counts working days (Sundays and public holidays are not counted)."
   }
 }

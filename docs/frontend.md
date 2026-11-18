@@ -3,7 +3,8 @@
 > **Built so far** (`web/`): Keycloak sign-in (authorization code + PKCE, tokens in memory), Fiori-style shell (see
 > below) built from installed modules and permissions, company switcher, English/Amharic and calendar
 > preference saved on the user profile, Ethiopian dates and birr formatting, and screens for home,
-> companies, employees (list and add), users (list, invite, roles, company access, deactivate) and roles
+> companies, employees (list and add), employee self-service ("For me": my payslips, printable, and my leave with
+> applying for myself), users (list, invite, roles, company access, link to an employee, deactivate) and roles
 > (permissions, who holds them), salary slips (list by month, detail, submit/cancel), payroll run
 > with CSV report downloads, salary structures (list, create with a try-it calculation, details) and each
 > employee's salary assignments with pay values, the salary calculator; HR leave (apply, approve, cancel, balances, annual

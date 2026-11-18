@@ -426,6 +426,10 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(254)")
                         .HasColumnName("email");
 
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("employee_id");
+
                     b.Property<string>("ExternalId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -473,6 +477,10 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_app_user");
+
+                    b.HasIndex("EmployeeId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_app_user_employee_id");
 
                     b.HasIndex("ExternalId")
                         .IsUnique()

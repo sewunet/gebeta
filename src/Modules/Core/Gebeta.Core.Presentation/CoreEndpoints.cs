@@ -187,6 +187,11 @@ public static class CoreEndpoints
             .WithName("InviteUser")
             .RequirePermission(CorePermissions.UsersManage);
 
+        users.MapPut("/{userId:guid}/employee", async (Guid userId, EmployeeLinkBody body, ICommandHandler<LinkUserEmployeeCommand, UserDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new LinkUserEmployeeCommand(userId, body.EmployeeId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("LinkUserEmployee")
+            .RequirePermission(CorePermissions.UsersManage);
+
         users.MapPost("/{userId:guid}/deactivate", async (Guid userId, ICommandHandler<SetUserActiveCommand, UserDto> handler, CancellationToken ct) =>
                 (await handler.Handle(new SetUserActiveCommand(userId, false), ct).ConfigureAwait(false)).ToHttp())
             .WithName("DeactivateUser")
@@ -259,3 +264,6 @@ public sealed record LeavingBody(DateOnly? DateOfLeaving);
 public sealed record CompanyBody(string Name, string? VatRegistrationNumber, string? TradeLicenseNumber);
 
 public sealed record ItemBody(string Name, string Uom, string? Group, bool IsStockItem, bool IsActive = true);
+
+public sealed record EmployeeLinkBody(Guid? EmployeeId);
+

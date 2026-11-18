@@ -43,7 +43,10 @@
     "salaryStructures": "የደመወዝ መዋቅሮች",
     "salaryStructure": "የደመወዝ መዋቅር",
     "users": "ተጠቃሚዎች",
-    "roles": "ሚናዎች"
+    "roles": "ሚናዎች",
+    "me": "ለእኔ",
+    "myPayslips": "የእኔ የደመወዝ ወረቀቶች",
+    "myLeave": "የእኔ ፈቃድ"
   },
   "common": {
     "company": "ኩባንያ",
@@ -537,7 +540,9 @@
     "salesOrders": "ከደንበኞች የመጡ ትዕዛዞች",
     "structures": "ክፍሎች እና ቀመሮች",
     "users": "የሚገቡ ሰዎች፣ ሚናዎች፣ ኩባንያዎች",
-    "roles": "እያንዳንዱ ሚና የሚፈቅደው"
+    "roles": "እያንዳንዱ ሚና የሚፈቅደው",
+    "myPayslips": "ደመወዝዎ በየወሩ",
+    "myLeave": "ቀሪ ፈቃድዎ እና ጥያቄዎችዎ"
   },
   "ui": {
     "search": "ፈልግ",
@@ -716,7 +721,13 @@
     "addRole": "ሚና ጨምር…",
     "addCompany": "ኩባንያ ጨምር…",
     "deactivate": "አቦዝን",
-    "activate": "አንቃ"
+    "activate": "አንቃ",
+    "employee": "የሠራተኛ መዝገብ",
+    "employeeHint": "የራሳቸውን የደመወዝ ወረቀቶች እና ፈቃድ እንዲያዩ ተጠቃሚውን ከሠራተኛ መዝገቡ ጋር ያገናኙ (የሠራተኛ ሚናም ይስጧቸው)።",
+    "pickEmployee": "ሠራተኛ ይምረጡ…",
+    "link": "አገናኝ",
+    "unlink": "ግንኙነቱን አቋርጥ",
+    "otherCompanyEmployee": "የሌላ ኩባንያ ሠራተኛ"
   },
   "roles": {
     "description": "መግለጫ",
@@ -725,5 +736,18 @@
     "permissions": "ፈቃዶች",
     "notFound": "ይህ ሚና አልተገኘም።",
     "permissionsHint": "በ* የሚያልቅ ፈቃድ በዚያ ዘርፍ ያለውን ሁሉ ይሸፍናል (accounting.* ሁሉንም የሂሳብ ሥራዎች ይሸፍናል)።"
+  },
+  "me": {
+    "period": "ወር",
+    "payslip": "የደመወዝ ወረቀት",
+    "employee": "ሠራተኛ",
+    "print": "አትም",
+    "noPayslips": "እስካሁን የደመወዝ ወረቀት የለም።",
+    "employerPaid": "ከደመወዝዎ በተጨማሪ በአሠሪው የተከፈለ፡ {{items}}።",
+    "daysLeft": "ቀሪ ቀናት",
+    "daysTaken": "የተወሰዱ ቀናት",
+    "noLeave": "እስካሁን የፈቃድ ጥያቄ የለም።",
+    "leaveApplied": "የ{{days}} ቀናት ጥያቄዎ ለማጽደቅ ወደ ሰው ኃይል ተልኳል።",
+    "applyHint": "ጥያቄዎን የሰው ኃይል ያጸድቃል። የዓመት ፈቃድ የሥራ ቀናትን ይቆጥራል (እሑድ እና ሕዝባዊ በዓላት አይቆጠሩም)።"
   }
 }

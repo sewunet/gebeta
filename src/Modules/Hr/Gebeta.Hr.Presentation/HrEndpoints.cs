@@ -39,6 +39,18 @@ public static class HrEndpoints
                 (await h.Handle(new LeaveBalanceQuery(employeeId), ct).ConfigureAwait(false)).ToHttp())
             .WithName("LeaveBalance").RequirePermission(HrPermissions.LeaveRead);
 
+        // Self-service: always the signed-in employee's own leave.
+        hr.MapGet("/my/leave", async (IQueryHandler<MyLeaveQuery, MyLeaveDto> h, CancellationToken ct) =>
+                (await h.Handle(new MyLeaveQuery(), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("MyLeave").RequirePermission(HrPermissions.SelfRead);
+
+        hr.MapPost("/my/leave-applications", async (ApplyMyLeaveCommand command, ICommandHandler<ApplyMyLeaveCommand, LeaveApplicationDto> h, CancellationToken ct) =>
+            {
+                var result = await h.Handle(command, ct).ConfigureAwait(false);
+                return result.IsSuccess ? Results.Created($"/api/hr/leave-applications/{result.Value.Id}", result.Value) : result.ToHttp();
+            })
+            .WithName("ApplyMyLeave").RequirePermission(HrPermissions.SelfApply);
+
         hr.MapPost("/leave-allocations", async (AllocateAnnualLeaveCommand command, ICommandHandler<AllocateAnnualLeaveCommand, AllocationResultDto> h, CancellationToken ct) =>
                 (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
             .WithName("AllocateAnnualLeave").RequirePermission(HrPermissions.LeaveAllocate);

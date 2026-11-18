@@ -1,7 +1,7 @@
 /** Every screen as an "app": the navigation menu and the home page tiles are both built from this list. */
 export type AppEntry = {
   id: string;
-  group: "core" | "accounting" | "selling" | "buying" | "stock" | "payroll" | "hr" | "cash";
+  group: "me" | "core" | "accounting" | "selling" | "buying" | "stock" | "payroll" | "hr" | "cash";
   path: string;
   title: string;      // i18n key
   subtitle?: string;  // i18n key
@@ -10,6 +10,10 @@ export type AppEntry = {
 };
 
 export const APPS: AppEntry[] = [
+  // Self-service: always the signed-in employee's own records.
+  { id: "my-payslips", group: "me", path: "/me/payslips", title: "nav.myPayslips", subtitle: "tiles.myPayslips", permission: "payroll.self.read", module: "payroll" },
+  { id: "my-leave", group: "me", path: "/me/leave", title: "nav.myLeave", subtitle: "tiles.myLeave", permission: "hr.self.read", module: "hr" },
+
   { id: "companies", group: "core", path: "/companies", title: "nav.companies", subtitle: "tiles.companies", permission: "core.companies.read" },
   { id: "users", group: "core", path: "/users", title: "nav.users", subtitle: "tiles.users", permission: "core.users.read" },
   { id: "roles", group: "core", path: "/roles", title: "nav.roles", subtitle: "tiles.roles", permission: "core.roles.read" },
@@ -48,4 +52,4 @@ export const APPS: AppEntry[] = [
   { id: "petty-cash", group: "cash", path: "/cash/petty-cash", title: "nav.pettyCash", subtitle: "tiles.pettyCash", permission: "cash.cashiers.read", module: "cash" },
 ];
 
-export const GROUPS: AppEntry["group"][] = ["accounting", "selling", "buying", "stock", "payroll", "hr", "cash", "core"];
+export const GROUPS: AppEntry["group"][] = ["me", "accounting", "selling", "buying", "stock", "payroll", "hr", "cash", "core"];

@@ -202,3 +202,15 @@ deactivate themselves). Roles are read-only on screen: there is no catalogue of 
 custom-role editor would mean typing permission names blind. Add one when a company asks for custom
 roles: each module would declare its permissions with a label, and the editor would offer them.
 
+### Employee self-service (step 46)
+
+A user can be linked to the employee they are (`User.EmployeeId`, one user per employee). Core
+provides `ICurrentEmployee`, like `ICompanyAccess`. Self-service endpoints (`/api/payroll/my/...`,
+`/api/hr/my/...`) never take an employee id from the request: they ask `ICurrentEmployee`, so
+nobody can see or act for someone else. Another person's slip, and an unsubmitted one, answer 404.
+The **Employee** system role carries the self-service permissions (`payroll.self.read`,
+`hr.self.read`, `hr.self.apply`); `payroll.*` and `hr.*` include them.
+
+Payslips print from the browser (Print → Save as PDF); there is no server-side PDF yet. Add one
+when payslips must be emailed in bulk.
+

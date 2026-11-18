@@ -4,7 +4,7 @@ export type ModuleDto = { id: string; name: string; version: string; enhances: s
 export type MeDto = {
   id: string; username: string; email?: string; fullName?: string; language: "en" | "am";
   calendar: "Ethiopian" | "Gregorian" | "Both"; defaultCompanyId?: string; roles: string[]; permissions: string[];
-  accessAllCompanies: boolean; companyIds: string[];
+  accessAllCompanies: boolean; companyIds: string[]; employeeId?: string;
 };
 export type CompanyDto = {
   id: string; name: string; abbreviation: string; legalForm: string; tin: string; vatRegistrationNumber?: string; tradeLicenseNumber?: string;
@@ -41,7 +41,12 @@ export type PayrollRunDto = {
 };
 
 /** A Gebeta user; <c>isInvited</c>: set up ahead, not signed in yet. */
-export type UserDto = { id: string; username: string; email?: string; fullName?: string; isActive: boolean; roles: string[]; companyIds: string[]; isInvited?: boolean };
+export type UserDto = {
+  id: string; username: string; email?: string; fullName?: string; isActive: boolean; roles: string[]; companyIds: string[]; isInvited?: boolean;
+  /** The employee this user is, for self-service. */
+  employeeId?: string;
+};
+export type MyLeaveDto = { balances: LeaveBalanceDto[]; applications: LeaveApplicationDto[] };
 export type RoleDto = { id: string; name: string; description?: string; isSystem: boolean; permissions: string[] };
 
 export const can = (me: MeDto | undefined, permission: string) =>

@@ -15,6 +15,14 @@ public static class PayrollEndpoints
         ArgumentNullException.ThrowIfNull(endpoints);
         var payroll = endpoints.MapGroup("/api/payroll").WithTags("Payroll");
 
+        // Self-service: always the signed-in employee's own payslips.
+        payroll.MapGet("/my/salary-slips", async (IQueryHandler<MySalarySlipsQuery, IReadOnlyList<SalarySlipDto>> handler, CancellationToken ct) =>
+                (await handler.Handle(new MySalarySlipsQuery(), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("MySalarySlips").RequirePermission(PayrollPermissions.SelfRead);
+        payroll.MapGet("/my/salary-slips/{id:guid}", async (Guid id, IQueryHandler<MySalarySlipQuery, SalarySlipDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new MySalarySlipQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("MySalarySlip").RequirePermission(PayrollPermissions.SelfRead);
+
         payroll.MapPost("/calculator", async (CalculateSalaryRequest request, IQueryHandler<CalculateSalaryQuery, SalaryCalculationDto> handler, CancellationToken ct) =>
                 (await handler.Handle(new CalculateSalaryQuery(request), ct).ConfigureAwait(false)).ToHttp())
             .WithName("CalculateSalary")

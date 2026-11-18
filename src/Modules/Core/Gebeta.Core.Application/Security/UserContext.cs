@@ -27,8 +27,11 @@ public sealed class UserContext(
     IRoleRepository roles,
     ICoreUnitOfWork unitOfWork,
     SecurityOptions options,
-    TimeProvider clock) : IPermissionChecker, ICompanyAccess
+    TimeProvider clock) : IPermissionChecker, ICompanyAccess, ICurrentEmployee
 {
+    public async Task<Guid?> EmployeeIdAsync(CancellationToken cancellationToken) =>
+        (await GetAsync(cancellationToken).ConfigureAwait(false))?.User.EmployeeId; // null when not signed in, inactive or not an employee
+
     private (User User, IReadOnlyList<Role> Roles)? _loaded;
 
     public async Task<(User User, IReadOnlyList<Role> Roles)?> GetAsync(CancellationToken cancellationToken)

@@ -9,6 +9,8 @@ public interface IUserRepository
     Task<User?> GetInvitedAsync(string username, CancellationToken cancellationToken);
 
     Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken);
+
+    Task<User?> GetByEmployeeAsync(Guid employeeId, CancellationToken cancellationToken);
     Task<IReadOnlyList<User>> ListAsync(CancellationToken cancellationToken);
     void Add(User user);
 

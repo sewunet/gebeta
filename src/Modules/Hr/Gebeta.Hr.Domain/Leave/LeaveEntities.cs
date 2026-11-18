@@ -173,6 +173,9 @@ public interface ILeaveRepository
     Task<bool> HasOverlapAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
 
     Task<decimal> BalanceAsync(Guid employeeId, LeaveType type, CancellationToken cancellationToken);
+
+    /// <summary>Every leave application of the employee, latest first.</summary>
+    Task<IReadOnlyList<LeaveApplication>> ForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken);
     Task<IReadOnlyList<LeaveLedgerEntry>> LedgerAsync(Guid employeeId, CancellationToken cancellationToken);
     Task<bool> AllocatedAsync(Guid employeeId, LeaveType type, int fiscalYear, CancellationToken cancellationToken);
     void Add(LeaveApplication application);

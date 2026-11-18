@@ -89,6 +89,9 @@ internal sealed class LeaveRepository(HrDbContext db) : ILeaveRepository
     public Task<LeaveApplication?> GetAsync(Guid id, CancellationToken cancellationToken) =>
         db.LeaveApplications.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<LeaveApplication>> ForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        await db.LeaveApplications.AsNoTracking().Where(a => a.EmployeeId == employeeId).OrderByDescending(a => a.FromDate).ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public async Task<IReadOnlyList<LeaveApplication>> ListAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
         await db.LeaveApplications.AsNoTracking().Where(a => a.CompanyId == companyId && a.FromDate <= to && a.ToDate >= from)
             .OrderBy(a => a.FromDate).ToListAsync(cancellationToken).ConfigureAwait(false);

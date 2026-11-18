@@ -44,6 +44,9 @@ public sealed class HrModule : IErpModule
         context.Capabilities.Provide<IPaymentDaysProvider, HrPaymentDays>();
 
         services.AddScoped<LeaveHandler>();
+        services.AddScoped<HrSelfServiceHandler>();
+        services.AddScoped<IQueryHandler<MyLeaveQuery, MyLeaveDto>>(sp => sp.GetRequiredService<HrSelfServiceHandler>());
+        services.AddScoped<ICommandHandler<ApplyMyLeaveCommand, LeaveApplicationDto>>(sp => sp.GetRequiredService<HrSelfServiceHandler>());
         services.AddScoped<ICommandHandler<ApplyLeaveCommand, LeaveApplicationDto>>(sp => sp.GetRequiredService<LeaveHandler>());
         services.AddScoped<ICommandHandler<ApproveLeaveCommand, LeaveApplicationDto>>(sp => sp.GetRequiredService<LeaveHandler>());
         services.AddScoped<ICommandHandler<CancelLeaveCommand, LeaveApplicationDto>>(sp => sp.GetRequiredService<LeaveHandler>());

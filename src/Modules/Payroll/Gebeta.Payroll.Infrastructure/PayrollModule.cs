@@ -64,6 +64,9 @@ public sealed class PayrollModule : IErpModule
         services.AddScoped<IQueryHandler<ListAssignmentsQuery, IReadOnlyList<SalaryStructureAssignmentDto>>>(sp => sp.GetRequiredService<AssignmentHandler>());
 
         services.AddScoped<SalarySlipHandler>();
+        services.AddScoped<PayrollSelfServiceHandler>();
+        services.AddScoped<IQueryHandler<MySalarySlipsQuery, IReadOnlyList<SalarySlipDto>>>(sp => sp.GetRequiredService<PayrollSelfServiceHandler>());
+        services.AddScoped<IQueryHandler<MySalarySlipQuery, SalarySlipDto>>(sp => sp.GetRequiredService<PayrollSelfServiceHandler>());
         services.AddScoped<ICommandHandler<CreateSalarySlipCommand, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());
         services.AddScoped<ICommandHandler<SubmitSalarySlipCommand, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());
         services.AddScoped<ICommandHandler<CancelSalarySlipCommand, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());

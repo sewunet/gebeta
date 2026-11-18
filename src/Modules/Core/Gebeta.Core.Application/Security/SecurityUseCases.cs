@@ -25,7 +25,7 @@ public sealed class GetMeHandler(UserContext context) : IQueryHandler<GetMeQuery
         var accessible = await context.GetAccessibleCompanyIdsAsync(cancellationToken).ConfigureAwait(false);
         return new MeDto(l.User.Id, l.User.Username, l.User.Email, l.User.FullName, l.User.Language, l.User.Calendar.ToString(),
             l.User.DefaultCompanyId, l.Roles.Select(r => r.Name).Order(StringComparer.Ordinal).ToList(), permissions,
-            AccessAllCompanies: accessible is null, CompanyIds: l.User.CompanyIds.ToList());
+            AccessAllCompanies: accessible is null, CompanyIds: l.User.CompanyIds.ToList(), EmployeeId: l.User.EmployeeId);
     }
 }
 
@@ -71,7 +71,7 @@ public sealed class ListUsersHandler(IUserRepository users, IRoleRepository role
         var allRoles = (await roles.ListAsync(cancellationToken).ConfigureAwait(false)).ToDictionary(r => r.Id, r => r.Name);
         var all = await users.ListAsync(cancellationToken).ConfigureAwait(false);
         return Result.Success<IReadOnlyList<UserDto>>(all.Select(u => new UserDto(u.Id, u.Username, u.Email, u.FullName, u.IsActive,
-            u.RoleIds.Where(allRoles.ContainsKey).Select(id => allRoles[id]).Order(StringComparer.Ordinal).ToList(), u.CompanyIds.ToList(), u.IsInvited)).ToList());
+            u.RoleIds.Where(allRoles.ContainsKey).Select(id => allRoles[id]).Order(StringComparer.Ordinal).ToList(), u.CompanyIds.ToList(), u.IsInvited, u.EmployeeId)).ToList());
     }
 }
 
@@ -155,7 +155,7 @@ public sealed class UserRoleHandler(IUserRepository users, IRoleRepository roles
         user.ModifiedBy = (await context.GetAsync(cancellationToken).ConfigureAwait(false))?.User.Username;
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         var names = (await roles.GetManyAsync(user.RoleIds.ToList(), cancellationToken).ConfigureAwait(false)).Select(r => r.Name).Order(StringComparer.Ordinal).ToList();
-        return new UserDto(user.Id, user.Username, user.Email, user.FullName, user.IsActive, names, user.CompanyIds.ToList(), user.IsInvited);
+        return new UserDto(user.Id, user.Username, user.Email, user.FullName, user.IsActive, names, user.CompanyIds.ToList(), user.IsInvited, user.EmployeeId);
     }
 }
 
@@ -296,3 +296,40 @@ internal static class RoleMapping
 {
     public static RoleDto ToDto(Role r) => new(r.Id, r.Name, r.Description, r.IsSystem, r.Permissions.ToList());
 }
+
+/// <summary>Links a user to the employee they are (or unlinks, with no employee), for self-service. They get the employee's company too.</summary>
+public sealed record LinkUserEmployeeCommand(Guid UserId, Guid? EmployeeId) : ICommand<UserDto>;
+
+public sealed class LinkUserEmployeeHandler(IUserRepository users, Domain.Employees.IEmployeeRepository employees, UserRoleHandler saver)
+    : ICommandHandler<LinkUserEmployeeCommand, UserDto>
+{
+    public async Task<Result<UserDto>> Handle(LinkUserEmployeeCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var user = await users.GetAsync(command.UserId, cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return Error.NotFound("User", command.UserId);
+        }
+
+        if (command.EmployeeId is { } employeeId)
+        {
+            var employee = await employees.GetAsync(employeeId, cancellationToken).ConfigureAwait(false);
+            if (employee is null)
+            {
+                return Error.NotFound("Employee", employeeId);
+            }
+
+            if (await users.GetByEmployeeAsync(employeeId, cancellationToken).ConfigureAwait(false) is { } other && other.Id != user.Id)
+            {
+                return Error.Conflict($"{employee.FullName} is already linked to user {other.Username}.");
+            }
+
+            user.GrantCompany(employee.CompanyId);
+        }
+
+        user.LinkEmployee(command.EmployeeId);
+        return await saver.SaveUserAsync(user, cancellationToken).ConfigureAwait(false);
+    }
+}
+

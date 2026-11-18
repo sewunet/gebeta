@@ -55,6 +55,7 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<UserContext>();
         services.AddScoped<IPermissionChecker>(sp => sp.GetRequiredService<UserContext>());
         services.AddScoped<ICompanyAccess>(sp => sp.GetRequiredService<UserContext>());
+        services.AddScoped<ICurrentEmployee>(sp => sp.GetRequiredService<UserContext>());
 
         // Shared services every module uses: company facts, number patterns, gap-free numbering.
         services.AddScoped<INamingSeriesRepository, NamingSeriesRepository>();
@@ -104,6 +105,7 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<ICommandHandler<AssignRoleCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
         services.AddScoped<ICommandHandler<RemoveRoleCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
         services.AddScoped<ICommandHandler<InviteUserCommand, UserDto>, InviteUserHandler>();
+        services.AddScoped<ICommandHandler<LinkUserEmployeeCommand, UserDto>, LinkUserEmployeeHandler>();
         services.AddScoped<ICommandHandler<SetUserActiveCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
         services.AddScoped<CompanyAccessHandler>();
         services.AddScoped<ICommandHandler<GrantCompanyAccessCommand, UserDto>>(sp => sp.GetRequiredService<CompanyAccessHandler>());

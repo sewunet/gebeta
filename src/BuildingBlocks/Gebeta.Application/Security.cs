@@ -33,3 +33,12 @@ public interface ICompanyAccess
 
     Task<bool> CanAccessAsync(Guid companyId, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// The employee record of the signed-in user, for self-service (my payslips, my leave). Provided by Core; null when the user is not
+/// linked to an employee. Self-service never takes an employee id from the request: it always asks this.
+/// </summary>
+public interface ICurrentEmployee
+{
+    Task<Guid?> EmployeeIdAsync(CancellationToken cancellationToken);
+}

@@ -3,7 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../app/context";
-import { api, post } from "../lib/api";
+import { api, post, put } from "../lib/api";
+import { useEmployees } from "../lib/hooks";
 import { seesAllCompanies, useRoles, useUsers } from "../lib/queries";
 import { can, type UserDto } from "../lib/types";
 import { Dialog, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus } from "../ui/fiori";
@@ -105,6 +106,12 @@ export function UserDetail() {
   const roles = useRoles();
   const [role, setRole] = useState("");
   const [company, setCompany] = useState("");
+  const [employee, setEmployee] = useState("");
+  const employees = useEmployees();
+  const link = useMutation({
+    mutationFn: (employeeId: string | null) => put<UserDto>(`/api/core/users/${id}/employee`, { employeeId }),
+    onSuccess: (u) => { queryClient.setQueryData<UserDto[]>(["users"], (all) => all?.map((x) => (x.id === u.id ? u : x))); setEmployee(""); },
+  });
   const change = useMutation({
     mutationFn: ({ path, method }: { path: string; method: "PUT" | "DELETE" | "POST" }) => api<UserDto>(`/api/core/users/${id}/${path}`, { method }),
     onSuccess: (u) => { queryClient.setQueryData<UserDto[]>(["users"], (all) => all?.map((x) => (x.id === u.id ? u : x))); setRole(""); setCompany(""); },
@@ -138,6 +145,7 @@ export function UserDetail() {
       messages={<>
         {u.isInvited && <MessageStrip tone="information">{t("users.invitedHint")}</MessageStrip>}
         {change.isError && <MessageStrip tone="negative">{change.error.message}</MessageStrip>}
+        {link.isError && <MessageStrip tone="negative">{link.error.message}</MessageStrip>}
       </>}
       sections={[
         { id: "roles", title: t("users.roles"), content: (
@@ -157,6 +165,27 @@ export function UserDetail() {
                   {roles.data?.filter((r) => !u.roles.includes(r.name)).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
                 <button type="button" className="secondary" disabled={!role || change.isPending} onClick={() => change.mutate({ path: `roles/${role}`, method: "PUT" })}>{t("ui.add")}</button>
+              </div>
+            )}
+          </>
+        ) },
+        { id: "employee", title: t("users.employee"), content: (
+          <>
+            <p className="muted small">{t("users.employeeHint")}</p>
+            {u.employeeId ? (
+              <ul className="plain-list">
+                <li>
+                  <Link to="/employees/$id" params={{ id: u.employeeId }}>{employees.data?.find((e) => e.id === u.employeeId)?.fullName ?? t("users.otherCompanyEmployee")}</Link>{" "}
+                  {manage && <button type="button" className="link-button" disabled={link.isPending} onClick={() => link.mutate(null)}>{t("users.unlink")}</button>}
+                </li>
+              </ul>
+            ) : manage && (
+              <div className="inline-form">
+                <select aria-label={t("users.employee")} value={employee} onChange={(e) => setEmployee(e.target.value)}>
+                  <option value="">{t("users.pickEmployee")}</option>
+                  {employees.data?.filter((e) => e.status !== "Left").map((e) => <option key={e.id} value={e.id}>{e.fullName} · {e.number}</option>)}
+                </select>
+                <button type="button" className="secondary" disabled={!employee || link.isPending} onClick={() => link.mutate(employee)}>{t("users.link")}</button>
               </div>
             )}
           </>

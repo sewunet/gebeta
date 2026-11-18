@@ -30,6 +30,7 @@ dedicated opening-balance import.
 >     --history-from 2024-07-08  slip history from this date (default: all, up to the cut-over)
 >     --user-roles roles.csv     the Gebeta roles each user gets; written for review when missing
 >     --keycloak-users kc.json   Keycloak partial-import file for the users who have not signed in
+>     --modules core,hr,payroll  the modules this installation has (default: all); other steps are skipped
 >                              users, parties, items, warehouses, employees, structures, assignments, history, payroll,
 >                              leave, invoices, orders, stock, opening
 > ```

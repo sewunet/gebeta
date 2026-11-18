@@ -53,7 +53,13 @@ public sealed partial class MigrationRun
         var onlyBilling = 0;
         var expected = 0;
 
-        foreach (var order in rows.GroupBy(r => (r.Kind, r.Order)))
+        var notInstalled = rows.Where(r => !Has(r.Kind == "Purchase" ? "buying" : "selling")).Select(r => r.Order).Distinct().Count();
+        if (notInstalled > 0)
+        {
+            report.Warnings.Add($"{notInstalled} open orders are for Buying or Selling, which is not installed here; they are not brought.");
+        }
+
+        foreach (var order in rows.Where(r => Has(r.Kind == "Purchase" ? "buying" : "selling")).GroupBy(r => (r.Kind, r.Order)))
         {
             var lines = order.ToList();
             var (remaining, warnings, notBilled) = Remaining(lines);

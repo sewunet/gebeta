@@ -246,7 +246,7 @@ public sealed partial class MigrationRun
 
             await idMap.AddAsync(options.Company, "Item", item.Code, created.Value.Id, cancellationToken).ConfigureAwait(false);
             report.Created++;
-            if (item.IsStockItem && method != ValuationMethod.MovingAverage) // Gebeta's default; must be set before the item's first movement
+            if (item.IsStockItem && method != ValuationMethod.MovingAverage && Has("stock")) // Gebeta's default; must be set before the item's first movement
             {
                 var set = await Handle<SetItemValuationCommand, ItemStockSettingDto>(new SetItemValuationCommand(created.Value.Id, method), cancellationToken).ConfigureAwait(false);
                 if (set.IsFailure)

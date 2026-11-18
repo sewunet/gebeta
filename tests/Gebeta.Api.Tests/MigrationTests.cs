@@ -113,7 +113,7 @@ public class MigrationTests(GebetaApiFactory factory)
 
     private async Task<IReadOnlyList<StepReport>> Run(IErpNextSource source, MigrationOptions options)
     {
-        await using var services = MigrationHost.Build(factory.ConnectionString);
+        await using var services = MigrationHost.Build(factory.ConnectionString, modules: options.Modules);
         return await new MigrationRun(services, source, new IdMap(factory.ConnectionString), options).RunAsync(Ct);
     }
 
@@ -626,6 +626,35 @@ public class MigrationTests(GebetaApiFactory factory)
         {
             dir.Delete(recursive: true);
         }
+    }
+
+    [Fact]
+    public async Task An_installation_with_only_hr_and_payroll_gets_only_their_data_and_the_rest_is_skipped()
+    {
+        const string name = "Hawassa HR Only Test";
+        var erp = new FakeErpNext(name, "0800000250");
+        erp.Employees.Add(new("HR-EMP-0001", "Abebe", "Kebede", null, "Abebe Kebede", "Male", new(2020, 1, 1), "Active", null, null));
+        erp.Leaves.Add(new("HR-EMP-0001", "Annual Leave 2018", 10m, true));
+        erp.Stock.Add(new("Cement 50 kg", "Stores - HAW", 10m, 5_000m, []));
+        erp.Outstanding.Add(new("Receivable", "Customer", "CUST-0001", "Sales Invoice", "SINV-0009", 1_000m, new(2026, 6, 1), null));
+        erp.Orders.Add(new("Purchase", "PUR-ORD-0009", "Addis Cement Factory", new(2026, 6, 20), null, "Cement 50 kg", "Stores - HAW", 10m, 0m, 500m, 1m, 0m));
+
+        var reports = await Run(erp, new MigrationOptions(name, Cutover: new DateOnly(2026, 7, 7), Modules: ["hr", "payroll"]));
+
+        string Check(string step) => reports.Single(r => r.Name == step).Check!;
+        Assert.Equal("skipped: stock is not installed here", Check("warehouses"));
+        Assert.Equal("skipped: stock is not installed here", Check("stock"));
+        Assert.Equal("skipped: accounting is not installed here", Check("invoices"));
+        Assert.Equal("skipped: buying or selling is not installed here", Check("orders"));
+        Assert.All(reports, r => Assert.True(r.Ok, r.Name + ": " + string.Join("; ", r.Failures)));
+        Assert.Equal(1, reports.Single(r => r.Name == "leave").Created);
+
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var company = (await admin.GetFromJsonAsync<List<CompanyDto>>(U("/api/core/companies"), Ct))!.Single(c => c.Name == name);
+        Assert.Equal(3, (await admin.GetFromJsonAsync<List<ItemDto>>(U($"/api/core/items?companyId={company.Id}"), Ct))!.Count); // items are Core's
+        Assert.Empty((await admin.GetFromJsonAsync<List<WarehouseDto>>(U($"/api/stock/warehouses?companyId={company.Id}"), Ct))!); // nothing written into Stock
+        var cement = (await admin.GetFromJsonAsync<List<ItemDto>>(U($"/api/core/items?companyId={company.Id}"), Ct))!.Single(i => i.Code == "CEMENT-50-KG");
+        Assert.Equal("MovingAverage", (await admin.GetFromJsonAsync<ItemStockSettingDto>(U($"/api/stock/items/{cement.Id}/settings"), Ct))!.Method); // FIFO not set without Stock
     }
 
     [Theory]

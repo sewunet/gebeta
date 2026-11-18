@@ -27,7 +27,8 @@ internal sealed class MigrationUser : ICurrentUser
 /// </summary>
 public static class MigrationHost
 {
-    public static ServiceProvider Build(string connectionString, Action<IConfigurationBuilder>? configure = null)
+    /// <param name="modules">The modules this installation has (Core is always added); all of them when null.</param>
+    public static ServiceProvider Build(string connectionString, Action<IConfigurationBuilder>? configure = null, IReadOnlyCollection<string>? modules = null)
     {
         var settings = new Dictionary<string, string?>
         {
@@ -35,10 +36,10 @@ public static class MigrationHost
             ["Security:BootstrapAdmins:0"] = MigrationUser.Name,
             ["RabbitMq:Enabled"] = "false",
         };
-        var modules = ModuleCatalogue.All();
-        for (var i = 0; i < modules.Length; i++)
+        var enabled = Installed(modules);
+        for (var i = 0; i < enabled.Count; i++)
         {
-            settings[$"Modules:Enabled:{i}"] = modules[i].Info.Id;
+            settings[$"Modules:Enabled:{i}"] = enabled[i];
         }
 
         var builder = new ConfigurationBuilder().AddInMemoryCollection(settings);
@@ -49,8 +50,14 @@ public static class MigrationHost
         services.AddSingleton<IConfiguration>(configuration);
         services.AddLogging(l => l.AddSimpleConsole(o => o.SingleLine = true).SetMinimumLevel(LogLevel.Warning));
         services.AddGebetaMessaging(configuration);
-        ModuleLoader.Load(services, configuration, modules);
+        ModuleLoader.Load(services, configuration, ModuleCatalogue.All());
         services.AddScoped<ICurrentUser, MigrationUser>();
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
     }
+
+    /// <summary>The installation's modules: those given (Core always), or every module in the catalogue.</summary>
+    public static IReadOnlyList<string> Installed(IReadOnlyCollection<string>? modules) =>
+        modules is { Count: > 0 }
+            ? ["core", .. modules.Select(m => m.Trim().ToLowerInvariant()).Where(m => m.Length > 0 && m != "core").Distinct()]
+            : ModuleCatalogue.All().Select(m => m.Info.Id).ToList();
 }

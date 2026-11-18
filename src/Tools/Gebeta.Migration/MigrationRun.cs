@@ -26,7 +26,8 @@ public sealed record MigrationOptions(
     TimeSpan? SettleWait = null,
     DateOnly? HistoryFrom = null,
     string? KeycloakUsersPath = null,
-    string? UserRolesPath = null)
+    string? UserRolesPath = null,
+    IReadOnlyCollection<string>? Modules = null)
 {
     /// <summary>How long the opening check waits for the server to post the opening stock journals (default one minute).</summary>
     public TimeSpan SettleTimeout => SettleWait ?? TimeSpan.FromMinutes(1);
@@ -60,6 +61,18 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
 
     private Guid _companyId;
 
+    private readonly HashSet<string> _installed = MigrationHost.Installed(options.Modules).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private bool Has(string module) => _installed.Contains(module);
+
+    /// <summary>The module(s) each step writes into; a step runs when any of them is installed.</summary>
+    public static readonly IReadOnlyDictionary<string, string[]> StepModules = new Dictionary<string, string[]>
+    {
+        ["users"] = ["core"], ["parties"] = ["core"], ["items"] = ["core"], ["warehouses"] = ["stock"], ["employees"] = ["core"],
+        ["structures"] = ["payroll"], ["assignments"] = ["payroll"], ["history"] = ["payroll"], ["payroll"] = ["payroll"],
+        ["leave"] = ["hr"], ["invoices"] = ["accounting"], ["orders"] = ["buying", "selling"], ["stock"] = ["stock"], ["opening"] = ["accounting"],
+    };
+
     public async Task<IReadOnlyList<StepReport>> RunAsync(CancellationToken cancellationToken)
     {
         // Without --steps: the masters, and the cut-over balances when a cut-over date is given.
@@ -88,10 +101,20 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
         ];
         foreach (var (name, run) in AllSteps.Skip(1).Zip(runners))
         {
-            if (steps.Contains(name))
+            if (!steps.Contains(name))
             {
-                reports.Add(await run(cancellationToken).ConfigureAwait(false));
+                continue;
             }
+
+            // A customer installs only the modules they need (ADR 0006): a step for a module they don't have is skipped, not forced.
+            var needs = StepModules[name];
+            if (!needs.Any(_installed.Contains))
+            {
+                reports.Add(new StepReport(name) { Check = $"skipped: {string.Join(" or ", needs)} is not installed here" });
+                continue;
+            }
+
+            reports.Add(await run(cancellationToken).ConfigureAwait(false));
         }
 
         return reports;

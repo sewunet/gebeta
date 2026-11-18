@@ -263,7 +263,8 @@ public sealed partial class MigrationRun
 
             var amount = Rounding.ToCurrency(b.RootType is "Income" or "Expense" ? b.Balance - b.BalanceBeforeYear : b.Balance);
             Add(expected, code, amount);
-            Add(posted, b.AccountType == "Stock" ? EthiopianChartOfAccounts.OpeningClearing : code, amount);
+            // Stock accounts meet the opening stock in 3900, when there is opening stock: without the Stock module they stay where mapped.
+            Add(posted, b.AccountType == "Stock" && Has("stock") ? EthiopianChartOfAccounts.OpeningClearing : code, amount);
         }
 
         if (report.Failures.Count > 0)

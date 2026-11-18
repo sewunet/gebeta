@@ -53,3 +53,18 @@ public interface IChangeHistory
     Task<IReadOnlyList<ChangeRecord>> ForAsync(Guid entityId, CancellationToken cancellationToken);
 }
 
+
+/// <summary>A document related to the one being viewed. Id is null for a reference kept only as a number until a module recognises it.</summary>
+public sealed record RelatedDocument(string Type, Guid? Id, string? Number, DateOnly? Date, string? Status, decimal? Amount);
+
+/// <summary>
+/// The documents a module holds that relate to a given document (docs/requirements/sap-features.md #2): by the document's id, or by its number for
+/// links kept as a reference (an order number on an invoice or a goods receipt). The platform endpoint asks every installed module.
+/// </summary>
+public interface IRelatedDocuments
+{
+    Task<IReadOnlyList<RelatedDocument>> ForAsync(Guid companyId, Guid id, string? number, CancellationToken cancellationToken);
+
+    /// <summary>This module's document with that number, to turn a reference into a link; null when it is not one of this module's.</summary>
+    Task<RelatedDocument?> FindAsync(Guid companyId, string number, CancellationToken cancellationToken);
+}

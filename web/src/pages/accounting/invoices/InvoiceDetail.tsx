@@ -10,6 +10,7 @@ import { Dialog, Fields, MessageStrip, ObjectPage, ObjectStatus } from "../../..
 import { paymentState, useInvoiceRefresh } from "./shared";
 import { useBankAccounts } from "../../../lib/queries";
 import { historySection } from "../../../app/history";
+import { relatedSection } from "../../../app/related";
 
 /** Object page of one invoice: header with key figures and actions, then General, Lines, Taxes and Payments. */
 export function InvoiceDetail() {
@@ -142,6 +143,7 @@ export function InvoiceDetail() {
               })}</tbody>
             </table>
           ) : <div className="empty">{t("inv.noPayments")}</div> },
+        ...relatedSection(t, id, inv.number),
         ...historySection(t, me, id, "Invoice")
       ]}
       />

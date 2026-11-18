@@ -956,5 +956,23 @@
     "Created": "Created",
     "Deleted": "Deleted",
     "listChanged": "(lines changed)"
+  },
+  "related": {
+    "title": "Related documents",
+    "none": "No related documents.",
+    "document": "Document",
+    "type": {
+      "Invoice": "Invoice",
+      "Payment": "Payment",
+      "JournalEntry": "Journal entry",
+      "SalarySlip": "Salary slip",
+      "EmployeeLoan": "Loan or deduction",
+      "AdditionalSalary": "Additional salary",
+      "BackPayment": "Back payment",
+      "PurchaseOrder": "Purchase order",
+      "SalesOrder": "Sales order",
+      "StockEntry": "Stock entry",
+      "Order": "Order"
+    }
   }
 }

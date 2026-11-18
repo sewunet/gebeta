@@ -10,6 +10,7 @@ import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, 
 import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useParties, usePurchaseOrder, useSalesOrder, useWarehouses } from "../../lib/queries";
 import { historySection } from "../../app/history";
+import { relatedSection } from "../../app/related";
 
 const refreshKeys = ["stock-entries", "stock-entry", "stock-balance", "stock-ledger", "item-setting"];
 
@@ -286,6 +287,7 @@ export function StockEntryDetail() {
             { label: t("acc.remark"), value: e.remark },
           ]} />
         ) },
+        ...relatedSection(t, id, e.number),
         ...historySection(t, me, id, "StockEntry")
       ]}
     />

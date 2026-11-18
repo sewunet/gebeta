@@ -44,6 +44,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions { ResultStatusCodes 
 
 app.MapGebetaModules();
 app.MapChangeHistory();
+app.MapRelatedDocuments();
 
 // "--migrate": update every module's schema and exit (the migrate container).
 // Database:MigrateOnStartup: update, then keep running (development).

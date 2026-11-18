@@ -131,6 +131,23 @@ pension number), `EmployeeInfo.Tin`, and slip lines.
 
 ## 2. Document flow on every document (S, value 3)
 
+> **Built (step 56).** `GET /api/documents/{id}/related?companyId&number` asks every installed module
+> (`IRelatedDocuments`), and a **Related documents** section appears on 8 document pages.
+> - **What each module answers:**
+>   - **Accounting:** an invoice's order, its original or returns, and its payments; a payment's invoices; a
+>     journal's source; the journal any document posted; the invoices that name an order number.
+>   - **Payroll:** a salary slip's additional salaries, loans and back pay; the slips that took a loan's or an
+>     additional salary's amount.
+>   - **Stock:** a stock entry's order; the receipts and deliveries that name an order number.
+>   - **Buying and Selling:** they recognise their order numbers, so a reference becomes a link.
+> - **Who sees what:** each related document shows only to a user allowed to read that kind of document.
+> - **What is stored:** nothing new. Each module reads the links it already keeps.
+>
+> Not yet:
+> - **Cash movements and bank statement lines:** they have no page of their own, so a journal's cash or bank
+>   source is not listed.
+> - **Back pay:** it is listed, but without a link.
+
 **In one line:** each document page gets a "Related documents" section that lists the documents before and
 after it in the chain, with their status. Examples:
 - purchase order → goods received → purchase invoice → payment → journal;

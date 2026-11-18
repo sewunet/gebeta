@@ -956,5 +956,23 @@
     "Created": "ተፈጠረ",
     "Deleted": "ተሰረዘ",
     "listChanged": "(መስመሮች ተለውጠዋል)"
+  },
+  "related": {
+    "title": "ተዛማጅ ሰነዶች",
+    "none": "ተዛማጅ ሰነድ የለም።",
+    "document": "ሰነድ",
+    "type": {
+      "Invoice": "ደረሰኝ",
+      "Payment": "ክፍያ",
+      "JournalEntry": "የሂሳብ መዝገብ",
+      "SalarySlip": "የደመወዝ ወረቀት",
+      "EmployeeLoan": "ብድር ወይም ተቀናሽ",
+      "AdditionalSalary": "ተጨማሪ ደመወዝ",
+      "BackPayment": "ውዝፍ ክፍያ",
+      "PurchaseOrder": "የግዢ ትዕዛዝ",
+      "SalesOrder": "የሽያጭ ትዕዛዝ",
+      "StockEntry": "የንብረት እንቅስቃሴ",
+      "Order": "ትዕዛዝ"
+    }
   }
 }

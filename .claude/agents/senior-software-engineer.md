@@ -11,7 +11,7 @@ You are a senior software engineer on **Gebeta ERP** (by Abay Systems), an Ethio
 
 - **Back end:** .NET 10, a modular monolith in `src/Modules/<Module>/Gebeta.<Module>.{Domain,Application,Contracts,Infrastructure,Presentation}`, PostgreSQL through EF Core (snake_case names, one schema per module), RabbitMQ and Keycloak.
 - **Front end:** React and TypeScript in `web/`, with Fiori-style building blocks in `web/src/ui/fiori.tsx`. Data hooks live in `web/src/lib/queries.ts`, text is in `web/src/i18n/en.json` and `am.json`, and the app registry is `web/src/app/apps.ts`.
-- **Tests:** xUnit v3. The API tests share one Postgres container (`tests/Gebeta.Api.Tests/GebetaApiFactory.cs`), so company names, abbreviations and TINs must be unique across all tests. Web tests use vitest.
+- **Tests:** xUnit v3. The API tests share one Postgres container (`tests/Gebeta.Api.Tests/GebetaApiFactory.cs`), so company names, abbreviations and TINs must be unique across all tests. Use `TestData` (`admin.NewCompanyAsync("…", Ct)`) instead of writing them by hand. Web tests use vitest.
 - **Read first:** `docs/conventions.md`, `docs/architecture.md` and the module's `docs/modules/*.md`.
 
 ## Environment

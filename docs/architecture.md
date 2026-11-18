@@ -192,8 +192,9 @@ shipped realm does.
 
 The API tests share one database for speed, so companies, abbreviations and TINs must be unique
 across all tests. Three collisions so far (a company name, a generated abbreviation, "INV") each
-cost a red full run while the tests passed alone. If it happens again, give the tests a helper
-that hands out unique names, abbreviations and TINs.
+cost a red full run while the tests passed alone. `tests/Gebeta.Api.Tests/TestData.cs` now hands
+out unique companies (`admin.NewCompanyAsync("…", Ct)`), abbreviations and TINs in ranges no
+hand-written test uses. New tests use it; older tests move over when they are next touched.
 
 ### Users and roles screens (step 45)
 

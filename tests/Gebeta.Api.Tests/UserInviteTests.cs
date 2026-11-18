@@ -15,8 +15,7 @@ public class UserInviteTests(GebetaApiFactory factory)
     public async Task An_invited_user_gets_their_roles_on_first_sign_in_with_the_same_username_and_email()
     {
         using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
-        var company = await (await admin.PostAsJsonAsync(U("/api/core/companies"),
-            new { name = "Invite Test PLC", abbreviation = "UIT", legalForm = "PrivateLimitedCompany", tin = "0800000230" }, Ct)).Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        var company = await admin.NewCompanyAsync("Invite Test PLC", Ct);
 
         var invited = await admin.PostAsJsonAsync(U("/api/core/users"),
             new { username = "Lidya", email = "lidya@example.et", fullName = "Lidya Bekele", roles = new[] { "Accountant" }, companyIds = new[] { company!.Id } }, Ct);

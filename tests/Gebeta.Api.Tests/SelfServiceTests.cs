@@ -17,8 +17,7 @@ public class SelfServiceTests(GebetaApiFactory factory)
     public async Task An_employee_sees_only_their_own_submitted_payslips_and_applies_for_leave_for_themselves()
     {
         using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
-        var company = await (await admin.PostAsJsonAsync(U("/api/core/companies"),
-            new { name = "Self Service PLC", abbreviation = "SSV", legalForm = "PrivateLimitedCompany", tin = "0800000320" }, Ct)).Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        var company = await admin.NewCompanyAsync("Self Service PLC", Ct);
         var structure = await (await admin.PostAsJsonAsync(U("/api/payroll/structures"), new { companyId = company!.Id, name = "Standard" }, Ct))
             .Content.ReadFromJsonAsync<SalaryStructureDto>(Ct);
 

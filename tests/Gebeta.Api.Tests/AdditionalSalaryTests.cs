@@ -16,8 +16,7 @@ public class AdditionalSalaryTests(GebetaApiFactory factory)
     public async Task Overtime_and_a_deduction_go_into_the_months_calculation_and_cannot_be_cancelled_once_in_a_slip()
     {
         using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
-        var company = await (await admin.PostAsJsonAsync(U("/api/core/companies"),
-            new { name = "Overtime PLC", abbreviation = "OVT", legalForm = "PrivateLimitedCompany", tin = "0800000330" }, Ct)).Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        var company = await admin.NewCompanyAsync("Overtime PLC", Ct);
         var structure = await (await admin.PostAsJsonAsync(U("/api/payroll/structures"), new { companyId = company!.Id, name = "Standard" }, Ct))
             .Content.ReadFromJsonAsync<SalaryStructureDto>(Ct);
 
@@ -76,10 +75,8 @@ public class AdditionalSalaryTests(GebetaApiFactory factory)
     public async Task An_additional_salary_refuses_an_employee_twice_and_another_companys_employee()
     {
         using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
-        var company = await (await admin.PostAsJsonAsync(U("/api/core/companies"),
-            new { name = "Overtime Checks PLC", abbreviation = "OVC", legalForm = "PrivateLimitedCompany", tin = "0800000331" }, Ct)).Content.ReadFromJsonAsync<CompanyDto>(Ct);
-        var other = await (await admin.PostAsJsonAsync(U("/api/core/companies"),
-            new { name = "Elsewhere PLC", abbreviation = "ELW", legalForm = "PrivateLimitedCompany", tin = "0800000332" }, Ct)).Content.ReadFromJsonAsync<CompanyDto>(Ct);
+        var company = await admin.NewCompanyAsync("Overtime Checks PLC", Ct);
+        var other = await admin.NewCompanyAsync("Elsewhere PLC", Ct);
         var mine = await (await admin.PostAsJsonAsync(U("/api/core/employees"),
             new { companyId = company!.Id, firstName = "Hana", fatherName = "Girma", gender = "Female", dateOfJoining = "2024-01-01" }, Ct)).Content.ReadFromJsonAsync<EmployeeDto>(Ct);
         var theirs = await (await admin.PostAsJsonAsync(U("/api/core/employees"),

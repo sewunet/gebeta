@@ -19,6 +19,33 @@ export const userManager = new UserManager({
 
 type AuthState = { user: User | null; signOut: () => Promise<void> };
 
+let signingIn: Promise<User | null> | undefined;
+
+/**
+ * Signs in once per page load. The authorization code from Keycloak can be exchanged only once, so this must not run again when React
+ * runs an effect twice (development StrictMode mounts, unmounts and mounts again); a second exchange fails with "Code not valid".
+ * Resolves with the user, or null while the browser is on its way to Keycloak.
+ */
+export function signInOnce(): Promise<User | null> {
+  signingIn ??= (async () => {
+    if (window.location.pathname === "/callback") {
+      const signedIn = await userManager.signinRedirectCallback();
+      const returnTo = typeof signedIn.state === "string" ? signedIn.state : "/";
+      window.history.replaceState({}, "", returnTo);
+      return signedIn;
+    }
+
+    const existing = await userManager.getUser();
+    if (existing && !existing.expired) {
+      return existing;
+    }
+
+    await userManager.signinRedirect({ state: window.location.pathname + window.location.search });
+    return null;
+  })();
+  return signingIn;
+}
+
 const AuthContext = createContext<AuthState>({ user: null, signOut: async () => {} });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -27,27 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        if (window.location.pathname === "/callback") {
-          const signedIn = await userManager.signinRedirectCallback();
-          const returnTo = typeof signedIn.state === "string" ? signedIn.state : "/";
-          window.history.replaceState({}, "", returnTo);
-          if (!cancelled) setUser(signedIn);
-          return;
-        }
-
-        const existing = await userManager.getUser();
-        if (existing && !existing.expired) {
-          if (!cancelled) setUser(existing);
-          return;
-        }
-
-        await userManager.signinRedirect({ state: window.location.pathname + window.location.search });
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      }
-    })();
+    signInOnce().then(
+      (signedIn) => { if (!cancelled && signedIn) setUser(signedIn); },
+      (e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : String(e)); },
+    );
 
     const onLoaded = (u: User) => setUser(u);
     userManager.events.addUserLoaded(onLoaded);
@@ -61,7 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return (
       <div className="center-screen">
         <p>Sign-in failed: {error}</p>
-        <button onClick={() => userManager.signinRedirect()}>Try again</button>
+        {/* A fresh sign-in, not the failed callback again: its code cannot be used twice. */}
+        <button onClick={() => void userManager.signinRedirect({ state: "/" })}>Try again</button>
       </div>
     );
   }

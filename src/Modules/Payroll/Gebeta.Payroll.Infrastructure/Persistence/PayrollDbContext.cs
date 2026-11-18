@@ -24,6 +24,7 @@ public sealed class PayrollDbContext(DbContextOptions<PayrollDbContext> options,
     public DbSet<SalaryStructureAssignment> Assignments => Set<SalaryStructureAssignment>();
     public DbSet<SalarySlip> SalarySlips => Set<SalarySlip>();
     public DbSet<AdditionalSalary> AdditionalSalaries => Set<AdditionalSalary>();
+    public DbSet<EmployeeLoan> Loans => Set<EmployeeLoan>();
     public DbSet<SalaryBackPayment> BackPayments => Set<SalaryBackPayment>();
     public DbSet<AdditionalPayEntry> AdditionalPay => Set<AdditionalPayEntry>();
     public DbSet<PayrollRun> Runs => Set<PayrollRun>();
@@ -242,6 +243,53 @@ internal sealed class AdditionalSalaryConfiguration : IEntityTypeConfiguration<A
         builder.Property(a => a.ModifiedBy).HasMaxLength(140);
         builder.Ignore(a => a.DomainEvents);
     }
+}
+
+internal sealed class EmployeeLoanConfiguration : IEntityTypeConfiguration<EmployeeLoan>
+{
+    public void Configure(EntityTypeBuilder<EmployeeLoan> builder)
+    {
+        builder.ToTable("employee_loan");
+        builder.HasKey(l => l.Id);
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.Name).HasMaxLength(60);
+        builder.HasIndex(l => new { l.CompanyId, l.Name }).IsUnique();
+        builder.HasIndex(l => new { l.EmployeeId, l.DocStatus });
+        builder.Property(l => l.DocStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(l => l.Kind).HasConversion<string>().HasMaxLength(30);
+        builder.Property(l => l.EmployeeNumber).HasMaxLength(40).IsRequired();
+        builder.Property(l => l.EmployeeName).HasMaxLength(140).IsRequired();
+        builder.Property(l => l.Component).HasMaxLength(140).IsRequired();
+        builder.Property(l => l.Abbreviation).HasMaxLength(20).IsRequired();
+        builder.Property(l => l.Principal).HasPrecision(18, 2);
+        builder.Property(l => l.Instalment).HasPrecision(18, 2);
+        builder.Property(l => l.Remark).HasMaxLength(500);
+        builder.Property<List<LoanRepayment>>("_repayments").HasColumnName("repayments").IsJsonList();
+        builder.Ignore(l => l.Repayments);
+        builder.Ignore(l => l.Recovered);
+        builder.Ignore(l => l.Balance);
+        builder.Ignore(l => l.IsCompleted);
+        builder.Ignore(l => l.DocumentType);
+        builder.Property(l => l.CreatedBy).HasMaxLength(140);
+        builder.Property(l => l.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(l => l.DomainEvents);
+    }
+}
+
+internal sealed class EmployeeLoanRepository(PayrollDbContext db) : IEmployeeLoanRepository
+{
+    public Task<EmployeeLoan?> GetAsync(Guid id, CancellationToken cancellationToken) => db.Loans.FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<EmployeeLoan>> RunningForAsync(Guid employeeId, CancellationToken cancellationToken) =>
+        (await db.Loans.Where(l => l.EmployeeId == employeeId && l.DocStatus == Gebeta.SharedKernel.DocStatus.Submitted && !l.IsStopped)
+            .OrderBy(l => l.StartMonth).ThenBy(l => l.Name).ToListAsync(cancellationToken).ConfigureAwait(false))
+        .Where(l => !l.IsCompleted).ToList();
+
+    public async Task<IReadOnlyList<EmployeeLoan>> ListAsync(Guid companyId, Guid? employeeId, CancellationToken cancellationToken) =>
+        await db.Loans.AsNoTracking().Where(l => l.CompanyId == companyId && (employeeId == null || l.EmployeeId == employeeId))
+            .OrderByDescending(l => l.StartMonth).ThenByDescending(l => l.CreatedAt).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(EmployeeLoan loan) => db.Loans.Add(loan);
 }
 
 internal sealed class AdditionalSalaryRepository(PayrollDbContext db) : IAdditionalSalaryRepository

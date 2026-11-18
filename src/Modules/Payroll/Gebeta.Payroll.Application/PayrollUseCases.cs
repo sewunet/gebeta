@@ -175,6 +175,7 @@ public sealed class SalarySlipHandler(
     ICompanyAccess access,
     IPayrollPaymentDays paymentDays,
     IAdditionalPayRepository additionalPay,
+    IEmployeeLoanRepository loans,
     IPayrollNumbers numbers,
     IPayrollUnitOfWork unitOfWork,
     TimeProvider clock)
@@ -227,15 +228,20 @@ public sealed class SalarySlipHandler(
             ?? await paymentDays.GetAsync(employee.Id, command.PeriodStart, command.PeriodEnd, command.TotalWorkingDays, cancellationToken).ConfigureAwait(false)
             ?? EmployedDays(employee, command.PeriodStart, command.PeriodEnd, command.TotalWorkingDays);
 
-        // Back payment arrears (and other additional pay) due in this period.
+        // Back payment arrears (and other additional pay) due in this period, and the instalments of running loans and standing deductions.
+        // The loans are only changed once the slip is calculated: a payroll run creates every slip on one unit of work.
         var pending = await additionalPay.PendingAsync(employee.Id, command.PeriodStart, command.PeriodEnd, cancellationToken).ConfigureAwait(false);
+        var dueLoans = (await loans.RunningForAsync(employee.Id, cancellationToken).ConfigureAwait(false))
+            .Where(l => l.DueFor(command.PeriodStart, command.PeriodEnd) > 0m).ToList();
+        var instalmentLines = dueLoans.Select(l => new SalarySlipLine($"{l.Component} ({l.Name})", l.Abbreviation, ComponentType.Deduction,
+            l.DueFor(command.PeriodStart, command.PeriodEnd), null)).ToList();
 
         SalarySlip slip;
         try
         {
             slip = SalarySlip.Calculate(employee.CompanyId, employee.Id, employee.Number, employee.FullName, command.PeriodStart, command.PeriodEnd,
                 structure, assignment, days, command.TotalWorkingDays, command.Additional, EthiopianIncomeTax.ValidOn(command.PeriodEnd),
-                pending.Where(e => !e.InCalculation).Select(e => e.ToSlipLine()).ToList(),     // already taxed where they came from (back pay)
+                pending.Where(e => !e.InCalculation).Select(e => e.ToSlipLine()).Concat(instalmentLines).ToList(), // after tax: back pay, loan instalments
                 pending.Where(e => e.InCalculation).Select(e => e.ToAdditionalPay()).ToList()); // overtime and the like: taxed with the month
         }
         catch (DomainException ex)
@@ -247,7 +253,9 @@ public sealed class SalarySlipHandler(
         slip.AssignName(await numbers.NextAsync(employee.CompanyId, DocumentType, DefaultPattern, command.PeriodEnd, cancellationToken).ConfigureAwait(false));
         slip.CreatedAt = clock.GetUtcNow();
         slips.Add(slip);
-        foreach (var entry in pending)
+        var taken = dueLoans.Select(l => l.TakeInstalment(command.PeriodStart, command.PeriodEnd)).ToList();
+        additionalPay.Add(taken);
+        foreach (var entry in pending.Concat(taken))
         {
             entry.IncludeIn(slip.Id);
         }

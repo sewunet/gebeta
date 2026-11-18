@@ -12,7 +12,7 @@
     "salarySlips": "Salary slips",
     "payrollRun": "Payroll run",
     "calculator": "Salary calculator",
-    "hr": "HR",
+    "hr": "People",
     "leave": "Leave",
     "attendance": "Attendance",
     "cash": "Cash",
@@ -30,15 +30,15 @@
     "ageing": "Receivables & payables",
     "banking": "Banks",
     "home": "Home",
-    "stock": "Stock",
+    "stock": "Inventory",
     "stockEntries": "Stock entries",
     "stockBalance": "Stock balance",
     "stockLedger": "Stock ledger",
     "items": "Items",
     "warehouses": "Warehouses",
-    "buying": "Buying",
+    "buying": "Purchasing",
     "purchaseOrders": "Purchase orders",
-    "selling": "Selling",
+    "selling": "Sales",
     "salesOrders": "Sales orders",
     "salaryStructures": "Salary structures",
     "salaryStructure": "Salary structure",
@@ -47,7 +47,10 @@
     "me": "For me",
     "myPayslips": "My payslips",
     "myLeave": "My leave",
-    "additionalSalary": "Additional salary"
+    "additionalSalary": "Additional salary",
+    "loans": "Loans and deductions",
+    "reports": "Reports",
+    "settings": "Settings"
   },
   "common": {
     "company": "Company",
@@ -551,7 +554,8 @@
     "roles": "What each role allows",
     "myPayslips": "Your pay, month by month",
     "myLeave": "Your balance and requests",
-    "additionalSalary": "Overtime, allowances, deductions"
+    "additionalSalary": "Overtime, allowances, deductions",
+    "loans": "Advances, Idir, court orders"
   },
   "ui": {
     "search": "Search",
@@ -846,5 +850,53 @@
     "replySignature": "Signature",
     "replyStamp": "Stamp",
     "replyDate": "Date"
+  },
+  "loans": {
+    "new": "New loan or deduction",
+    "kind": {
+      "Loan": "Loan or advance",
+      "StandingDeduction": "Standing deduction"
+    },
+    "status": {
+      "Draft": "Draft",
+      "Running": "Running",
+      "Paused": "Paused",
+      "Completed": "Completed",
+      "Cancelled": "Cancelled"
+    },
+    "filter": {
+      "open": "Open",
+      "Running": "Running",
+      "Paused": "Paused",
+      "Completed": "Completed",
+      "Cancelled": "Cancelled",
+      "all": "All"
+    },
+    "principal": "Loan amount",
+    "instalment": "Monthly instalment",
+    "start": "First payroll month",
+    "end": "Last payroll month",
+    "balance": "Balance",
+    "monthly": "This month",
+    "recovered": "Deducted so far",
+    "repayments": "Instalments",
+    "source": "Taken by",
+    "reference": "Reference",
+    "fromSlip": "Salary slip",
+    "waitingSlip": "Waiting for the corrected slip",
+    "manual": "Repaid directly",
+    "noRepayments": "No instalments yet.",
+    "pause": "Pause",
+    "resume": "Resume",
+    "settle": "Settle",
+    "stop": "Stop",
+    "cancel": "Cancel",
+    "months_one": "Repaid in {{count}} month",
+    "months_other": "Repaid in {{count}} months",
+    "loanHint": "Each salary slip from the first payroll month deducts the instalment, after tax, until the loan is repaid; the last instalment is only what is left. Instalments repay the Employee Advances account.",
+    "standingHint": "Each salary slip from the first payroll month deducts the amount, after tax, until the last month or until it is stopped. It is owed on to the Idir, cooperative or court (Other Payroll Deductions Payable).",
+    "runningHint": "Salary slips from {{start}} deduct it automatically.",
+    "settleHint": "The remaining {{balance}} was repaid directly (record the receipt in Cash). Date and receipt:",
+    "stopHint": "Slips stop deducting after the period containing this date:"
   }
 }

@@ -12,7 +12,7 @@
     "salarySlips": "የደመወዝ ወረቀቶች",
     "payrollRun": "የወር ደመወዝ ክፍያ",
     "calculator": "የደመወዝ ማስያ",
-    "hr": "የሰው ኃይል",
+    "hr": "ሰራተኞች",
     "leave": "ፈቃድ",
     "attendance": "መገኘት",
     "cash": "ጥሬ ገንዘብ",
@@ -30,7 +30,7 @@
     "ageing": "ተሰብሳቢና ተከፋይ ሂሳቦች",
     "banking": "ባንኮች",
     "home": "መነሻ",
-    "stock": "ክምችት",
+    "stock": "ንብረት ክምችት",
     "stockEntries": "የክምችት ምዝገባዎች",
     "stockBalance": "የክምችት ቀሪ",
     "stockLedger": "የክምችት መዝገብ",
@@ -47,7 +47,10 @@
     "me": "ለእኔ",
     "myPayslips": "የእኔ የደመወዝ ወረቀቶች",
     "myLeave": "የእኔ ፈቃድ",
-    "additionalSalary": "ተጨማሪ ክፍያ"
+    "additionalSalary": "ተጨማሪ ክፍያ",
+    "loans": "ብድርና ቋሚ ተቀናሾች",
+    "reports": "ሪፖርቶች",
+    "settings": "ቅንብሮች"
   },
   "common": {
     "company": "ኩባንያ",
@@ -551,7 +554,8 @@
     "roles": "እያንዳንዱ ሚና የሚፈቅደው",
     "myPayslips": "ደመወዝዎ በየወሩ",
     "myLeave": "ቀሪ ፈቃድዎ እና ጥያቄዎችዎ",
-    "additionalSalary": "የትርፍ ሰዓት፣ አበሎች፣ ተቀናሾች"
+    "additionalSalary": "የትርፍ ሰዓት፣ አበሎች፣ ተቀናሾች",
+    "loans": "ቅድሚያ ክፍያ፣ እድር፣ የፍርድ ቤት ትዕዛዝ"
   },
   "ui": {
     "search": "ፈልግ",
@@ -846,5 +850,53 @@
     "replySignature": "ፊርማ",
     "replyStamp": "ማኅተም",
     "replyDate": "ቀን"
+  },
+  "loans": {
+    "new": "አዲስ ብድር ወይም ተቀናሽ",
+    "kind": {
+      "Loan": "ብድር ወይም ቅድሚያ ክፍያ",
+      "StandingDeduction": "ቋሚ ተቀናሽ"
+    },
+    "status": {
+      "Draft": "ረቂቅ",
+      "Running": "በሂደት ላይ",
+      "Paused": "የቆመ",
+      "Completed": "የተጠናቀቀ",
+      "Cancelled": "የተሰረዘ"
+    },
+    "filter": {
+      "open": "ክፍት",
+      "Running": "በሂደት ላይ",
+      "Paused": "የቆመ",
+      "Completed": "የተጠናቀቀ",
+      "Cancelled": "የተሰረዘ",
+      "all": "ሁሉም"
+    },
+    "principal": "የብድር መጠን",
+    "instalment": "ወርሃዊ ክፍያ",
+    "start": "የመጀመሪያ የደመወዝ ወር",
+    "end": "የመጨረሻ የደመወዝ ወር",
+    "balance": "ቀሪ",
+    "monthly": "የዚህ ወር",
+    "recovered": "እስካሁን የተቀነሰ",
+    "repayments": "ክፍያዎች",
+    "source": "የተቀነሰው በ",
+    "reference": "ማጣቀሻ",
+    "fromSlip": "የደመወዝ ወረቀት",
+    "waitingSlip": "የተስተካከለውን ወረቀት በመጠበቅ ላይ",
+    "manual": "በቀጥታ የተከፈለ",
+    "noRepayments": "እስካሁን ክፍያ የለም።",
+    "pause": "አቁም",
+    "resume": "ቀጥል",
+    "settle": "ዝጋ",
+    "stop": "አቋርጥ",
+    "cancel": "ሰርዝ",
+    "months_one": "በ{{count}} ወር ይከፈላል",
+    "months_other": "በ{{count}} ወራት ይከፈላል",
+    "loanHint": "ከመጀመሪያው የደመወዝ ወር ጀምሮ እያንዳንዱ የደመወዝ ወረቀት ብድሩ እስኪከፈል ድረስ ክፍያውን ከግብር በኋላ ይቀንሳል፤ የመጨረሻው ክፍያ ቀሪው ብቻ ነው።",
+    "standingHint": "ከመጀመሪያው የደመወዝ ወር ጀምሮ እያንዳንዱ የደመወዝ ወረቀት እስከ መጨረሻው ወር ወይም እስኪቋረጥ ድረስ መጠኑን ከግብር በኋላ ይቀንሳል።",
+    "runningHint": "ከ{{start}} ጀምሮ የደመወዝ ወረቀቶች በራሳቸው ይቀንሱታል።",
+    "settleHint": "ቀሪው {{balance}} በቀጥታ ተከፍሏል (ደረሰኙን በገንዘብ ያዥ ይመዝግቡ)። ቀንና ደረሰኝ፦",
+    "stopHint": "ይህ ቀን ካለበት ጊዜ በኋላ ወረቀቶች መቀነስ ያቆማሉ፦"
   }
 }

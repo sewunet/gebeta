@@ -68,6 +68,18 @@ public interface IAdditionalPayRepository
     void Add(IEnumerable<AdditionalPayEntry> entries);
 }
 
+public interface IEmployeeLoanRepository
+{
+    Task<EmployeeLoan?> GetAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>The employee's submitted loans and deductions that are not completed (tracked: a slip takes instalments from them).</summary>
+    Task<IReadOnlyList<EmployeeLoan>> RunningForAsync(Guid employeeId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<EmployeeLoan>> ListAsync(Guid companyId, Guid? employeeId, CancellationToken cancellationToken);
+
+    void Add(EmployeeLoan loan);
+}
+
 public interface IAdditionalSalaryRepository
 {
     Task<AdditionalSalary?> GetAsync(Guid id, CancellationToken cancellationToken);

@@ -68,6 +68,13 @@ public sealed class PayrollModule : IErpModule
         services.AddScoped<SalarySlipHandler>();
         services.AddScoped<PayrollSelfServiceHandler>();
         services.AddScoped<IAdditionalSalaryRepository, AdditionalSalaryRepository>();
+        services.AddScoped<IEmployeeLoanRepository, EmployeeLoanRepository>();
+        services.AddScoped<EmployeeLoanHandler>();
+        services.AddScoped<ICommandHandler<CreateEmployeeLoanCommand, EmployeeLoanDto>>(sp => sp.GetRequiredService<EmployeeLoanHandler>());
+        services.AddScoped<ICommandHandler<EmployeeLoanActionCommand, EmployeeLoanDto>>(sp => sp.GetRequiredService<EmployeeLoanHandler>());
+        services.AddScoped<ICommandHandler<SettleEmployeeLoanCommand, EmployeeLoanDto>>(sp => sp.GetRequiredService<EmployeeLoanHandler>());
+        services.AddScoped<IQueryHandler<GetEmployeeLoanQuery, EmployeeLoanDto>>(sp => sp.GetRequiredService<EmployeeLoanHandler>());
+        services.AddScoped<IQueryHandler<ListEmployeeLoansQuery, IReadOnlyList<EmployeeLoanDto>>>(sp => sp.GetRequiredService<EmployeeLoanHandler>());
         services.AddScoped<AdditionalSalaryHandler>();
         services.AddScoped<ICommandHandler<CreateAdditionalSalaryCommand, AdditionalSalaryDto>>(sp => sp.GetRequiredService<AdditionalSalaryHandler>());
         services.AddScoped<ICommandHandler<SubmitAdditionalSalaryCommand, AdditionalSalaryDto>>(sp => sp.GetRequiredService<AdditionalSalaryHandler>());

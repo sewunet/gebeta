@@ -126,6 +126,9 @@ public sealed class SalarySlipSubmittedConsumer(ModuleJournalPoster poster, IAcc
     private static readonly HashSet<string> TaxComponents = ["IT", "BP_TAX"];
     private static readonly HashSet<string> PensionComponents = ["PE", "BP_DED"];
 
+    /// <summary>The abbreviation Payroll gives employee loan instalments (EmployeeLoan.LoanAbbreviation).</summary>
+    private const string LoanRepayment = "LOAN";
+
     public async Task HandleAsync(SalarySlipSubmitted slip, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(slip);
@@ -148,6 +151,9 @@ public sealed class SalarySlipSubmittedConsumer(ModuleJournalPoster poster, IAcc
                     break;
                 case "Deduction" when PensionComponents.Contains(line.Abbreviation):
                     Add(EthiopianChartOfAccounts.PensionPayable, -line.Amount);
+                    break;
+                case "Deduction" when line.Abbreviation == LoanRepayment: // an employee loan instalment repays the advance
+                    Add(EthiopianChartOfAccounts.EmployeeAdvances, -line.Amount);
                     break;
                 case "Deduction":
                     Add(EthiopianChartOfAccounts.OtherPayrollDeductions, -line.Amount);

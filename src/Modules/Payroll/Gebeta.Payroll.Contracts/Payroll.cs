@@ -24,13 +24,15 @@ public static class PayrollPermissions
 
     public const string AdditionalRead = "payroll.additional-salary.read";
     public const string AdditionalManage = "payroll.additional-salary.manage";
+    public const string LoansRead = "payroll.loans.read";
+    public const string LoansManage = "payroll.loans.manage";
 
     /// <summary>Self-service: an employee sees their own submitted payslips.</summary>
     public const string SelfRead = "payroll.self.read";
 
     public static IReadOnlyList<string> All { get; } =
         [CalculatorUse, TaxTablesRead, StructuresRead, StructuresManage, AssignmentsRead, AssignmentsManage, SlipsRead, SlipsCreate, SlipsSubmit, SlipsCancel,
-         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel, ProfilesManage, RunsRead, RunsManage, ReportsRead, SelfRead, AdditionalRead, AdditionalManage];
+         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel, ProfilesManage, RunsRead, RunsManage, ReportsRead, SelfRead, AdditionalRead, AdditionalManage, LoansRead, LoansManage];
 }
 
 /// <summary>A salary component. Type: Earning, Deduction or EmployerContribution.</summary>
@@ -236,4 +238,14 @@ public sealed record PayTotals(int Headcount, decimal Gross, decimal IncomeTax, 
 /// <param name="PreviousPeriodEnd">The day before this period starts; there was no previous month when <see cref="HasPrevious"/> is false.</param>
 public sealed record PayrollComparisonDto(Guid RunId, DateOnly PeriodStart, DateOnly PeriodEnd, DateOnly PreviousPeriodEnd, bool HasPrevious,
     decimal ThresholdPercent, IReadOnlyList<PayComparisonRow> Rows, PayTotals PreviousTotals, PayTotals CurrentTotals, int FlaggedCount);
+
+public sealed record LoanRepaymentDto(DateOnly Date, decimal Amount, string Source, string? Reference, bool InSlip);
+
+/// <summary>
+/// An employee loan or standing deduction. Status: Draft, Running, Paused, Completed (repaid or stopped) or Cancelled. Balance is what is
+/// still owed on a loan after the instalments slips have taken (drafts included); none for a standing deduction.
+/// </summary>
+public sealed record EmployeeLoanDto(Guid Id, string? Number, Guid CompanyId, Guid EmployeeId, string EmployeeNumber, string EmployeeName, string Kind,
+    string Component, string Abbreviation, decimal? Principal, decimal Instalment, DateOnly StartMonth, DateOnly? EndMonth, string Status, decimal Recovered,
+    decimal? Balance, string? Remark, IReadOnlyList<LoanRepaymentDto> Repayments);
 

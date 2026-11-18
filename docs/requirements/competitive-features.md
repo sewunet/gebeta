@@ -470,6 +470,22 @@ against the same span of FY 2018 (8 Jul – 9 Dec 2025).
 
 ### 5. Employee loans and standing deductions with a running balance (M, value 5)
 
+> **Built (step 52).** `EmployeeLoan` (`LOAN-` numbers) with `/api/payroll/loans` (create, submit, pause,
+> resume, settle, cancel) and the **Loans and deductions** screens. When a salary slip is made, it takes each
+> running loan's instalment as a line of its own, after tax: taxable pay and pension do not change. The last
+> loan instalment is only what is left. Each period gets its instalment once, so a cancelled slip that is made
+> again does not deduct twice. Loan instalments credit **1400 Employee Advances**. Standing deductions credit
+> **2240 Other Payroll Deductions Payable**, to be paid on to the Idir, cooperative or court.
+>
+> Differences from this note, and what is left:
+> - **No one-third cap yet.** The Labour Proclamation limit is still to be verified, so slips do not stop at
+>   it. Watch for low net pay in the run comparison (#1).
+> - **Settling a loan early** records that the rest was repaid directly. The cash receipt itself is entered
+>   in Cash or Accounting, which credits 1400.
+> - **Paying out the loan** (debit 1400) is a cash or bank payment entered as usual; the loan document does
+>   not post it.
+> - **Migrating existing balances:** enter each loan with its remaining balance as the amount.
+
 - **Feature:** record a loan or a standing deduction for an employee once: amount, instalment, start month,
   optional end or total. Each month's slip then deducts the instalment automatically until the balance is
   zero, with pause, early settlement and a balance report. Typical cases are cost-sharing repayment,

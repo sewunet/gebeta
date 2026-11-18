@@ -114,6 +114,12 @@ export type PaymentDto = {
   bankAccountCode: string; reference?: string; status: string; allocations?: { invoiceId: string; invoiceNumber?: string; amount: number }[];
 };
 export type AgeingRow = { partyId: string; partyName: string; partyTin?: string; notDue: number; days1To30: number; days31To60: number; days61To90: number; over90: number; total: number };
+export type LoanRepaymentDto = { date: string; amount: number; source: "Payroll" | "Manual"; reference?: string; inSlip: boolean };
+export type EmployeeLoanDto = {
+  id: string; number?: string; companyId: string; employeeId: string; employeeNumber: string; employeeName: string; kind: "Loan" | "StandingDeduction";
+  component: string; abbreviation: string; principal?: number; instalment: number; startMonth: string; endMonth?: string;
+  status: "Draft" | "Running" | "Paused" | "Completed" | "Cancelled"; recovered: number; balance?: number; remark?: string; repayments: LoanRepaymentDto[];
+};
 export type PartyStatementLine = { date: string; type: string; number?: string; documentId?: string; reference?: string; dueDate?: string; debit: number; credit: number; balance: number };
 export type PartyStatementDto = {
   companyId: string; partyId: string; partyName: string; partyTin?: string; kind: "Sales" | "Purchase"; from: string; to: string; opening: number;

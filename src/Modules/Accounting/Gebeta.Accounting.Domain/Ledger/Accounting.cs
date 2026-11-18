@@ -57,6 +57,7 @@ public static class EthiopianChartOfAccounts
     public const string IncomeTaxPayable = "2220";
     public const string PensionPayable = "2230";
     public const string OtherPayrollDeductions = "2240";
+    public const string EmployeeAdvances = "1400";
     public const string SalaryExpense = "6110";
     public const string EmployerPensionExpense = "6120";
     public const string RetainedEarnings = "3200";
@@ -81,7 +82,7 @@ public static class EthiopianChartOfAccounts
         new("1250", "VAT Receivable (Input VAT)", RootType.Asset, false, "1000"),
         new("1260", "Withholding Tax Receivable", RootType.Asset, false, "1000"),
         new("1300", "Inventories", RootType.Asset, false, "1000"),
-        new("1400", "Employee Advances", RootType.Asset, false, "1000"),
+        new(EmployeeAdvances, "Employee Advances", RootType.Asset, false, "1000"),
         new("1500", "Property, Plant and Equipment", RootType.Asset, false, "1000"),
         new("2000", "Liabilities", RootType.Liability, true, null),
         new("2100", "Accounts Payable", RootType.Liability, false, "2000"),

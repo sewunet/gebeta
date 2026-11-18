@@ -32,6 +32,24 @@ public static class PayrollEndpoints
                 (await h.Handle(new CancelAdditionalSalaryCommand(id), ct).ConfigureAwait(false)).ToHttp())
             .WithName("CancelAdditionalSalary").RequirePermission(PayrollPermissions.AdditionalManage);
 
+        var loans = endpoints.MapGroup("/api/payroll/loans").WithTags("Payroll: Loans and standing deductions");
+        loans.MapGet("/", async (Guid companyId, Guid? employeeId, IQueryHandler<ListEmployeeLoansQuery, IReadOnlyList<EmployeeLoanDto>> h, CancellationToken ct) =>
+                (await h.Handle(new ListEmployeeLoansQuery(companyId, employeeId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListEmployeeLoans").RequirePermission(PayrollPermissions.LoansRead);
+        loans.MapGet("/{id:guid}", async (Guid id, IQueryHandler<GetEmployeeLoanQuery, EmployeeLoanDto> h, CancellationToken ct) =>
+                (await h.Handle(new GetEmployeeLoanQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetEmployeeLoan").RequirePermission(PayrollPermissions.LoansRead);
+        loans.MapPost("/", async (CreateEmployeeLoanCommand command, ICommandHandler<CreateEmployeeLoanCommand, EmployeeLoanDto> h, CancellationToken ct) =>
+                Created(await h.Handle(command, ct).ConfigureAwait(false), r => $"/api/payroll/loans/{r.Id}"))
+            .WithName("CreateEmployeeLoan").RequirePermission(PayrollPermissions.LoansManage);
+        loans.MapPost("/{id:guid}/{action:regex(^(submit|pause|resume|cancel)$)}", async (Guid id, string action, ICommandHandler<EmployeeLoanActionCommand, EmployeeLoanDto> h,
+                CancellationToken ct) =>
+                (await h.Handle(new EmployeeLoanActionCommand(id, Enum.Parse<LoanAction>(action, ignoreCase: true)), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("EmployeeLoanAction").RequirePermission(PayrollPermissions.LoansManage);
+        loans.MapPost("/{id:guid}/settle", async (Guid id, SettleLoanBody body, ICommandHandler<SettleEmployeeLoanCommand, EmployeeLoanDto> h, CancellationToken ct) =>
+                (await h.Handle(new SettleEmployeeLoanCommand(id, body.Date, body.Reference), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("SettleEmployeeLoan").RequirePermission(PayrollPermissions.LoansManage);
+
         // Self-service: always the signed-in employee's own payslips.
         payroll.MapGet("/my/salary-slips", async (IQueryHandler<MySalarySlipsQuery, IReadOnlyList<SalarySlipDto>> handler, CancellationToken ct) =>
                 (await handler.Handle(new MySalarySlipsQuery(), ct).ConfigureAwait(false)).ToHttp())
@@ -136,3 +154,7 @@ public static class PayrollEndpoints
     private static IResult Created<T>(Gebeta.SharedKernel.Result<T> result, Func<T, string> location) =>
         result.IsSuccess ? Results.Created(location(result.Value), result.Value) : result.ToHttp();
 }
+
+/// <summary>Body of a loan settlement: the date, and the receipt or order reference.</summary>
+public sealed record SettleLoanBody(DateOnly Date, string? Reference);
+

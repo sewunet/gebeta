@@ -58,6 +58,11 @@ export type PayComparisonRow = {
   netChange: number; changePercent?: number; status: "Changed" | "New" | "Missing" | "Same"; flagged: boolean; reasons: string[];
 };
 export type PayTotals = { headcount: number; gross: number; incomeTax: number; employeePension: number; employerPension: number; net: number };
+export type PayrollCheckRow = { employeeId: string; employeeNumber: string; employeeName: string; slipId: string; slipNumber?: string; check: string; severity: "Error" | "Warning"; message: string };
+export type PayrollChecksDto = {
+  runId: string; periodStart: string; periodEnd: string; slipsChecked: number; minimumNetSharePercent: number;
+  counts: { check: string; severity: "Error" | "Warning"; employees: number }[]; rows: PayrollCheckRow[]; errors: number; warnings: number; flaggedEmployees: number;
+};
 export type PayrollComparisonDto = {
   runId: string; periodStart: string; periodEnd: string; previousPeriodEnd: string; hasPrevious: boolean; thresholdPercent: number;
   rows: PayComparisonRow[]; previousTotals: PayTotals; currentTotals: PayTotals; flaggedCount: number;

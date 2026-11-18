@@ -65,6 +65,17 @@ The method and scale are the same as in `competitive-features.md`:
 
 ## 1. Payroll checks before submit (S, value 5)
 
+> **Built (step 53).** `GET /api/payroll/runs/{id}/checks` (CSV with `?format=csv`) and a **Checks before
+> submit** section on the run page, above the comparison, grouped by check, with each employee linking to
+> the slip. Submit asks "N employees flagged; submit anyway?" while anything is flagged, and the API still
+> accepts it.
+>
+> Differences from this note:
+> - **No "bank transfer file used" condition:** an employee paid by bank transfer (the default when there is
+>   no payroll profile) needs an account. One paid in cash does not.
+> - **Low net pay names its cause:** the message lists the deductions other than tax and pension, with the
+>   loan or deduction number, for example `Court order (LOAN-2019-00002) 3,500.00`.
+
 **In one line:** after slips are generated, the run page lists every employee who fails a check, grouped by
 check. Submit asks for a confirmation while anything is flagged.
 

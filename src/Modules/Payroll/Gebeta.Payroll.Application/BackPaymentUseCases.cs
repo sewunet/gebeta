@@ -18,6 +18,12 @@ public sealed class PayrollOptions
     /// <summary>Components reported as basic salary, income tax and pension (defaults: the standard Ethiopian structure).</summary>
     public string BasicComponent { get; set; } = "BS";
 
+    /// <summary>
+    /// Payroll checks warn when net pay is below this share of gross. VERIFY: Labour Proclamation 1156/2019 is believed to cap deductions
+    /// at one third of the wage; until confirmed this only warns (docs/requirements/sap-features.md #1).
+    /// </summary>
+    public decimal MinimumNetSharePercent { get; set; } = 33.33m;
+
     public IList<string> IncomeTaxComponents { get; } = ["IT"];
     public IList<string> EmployeePensionComponents { get; } = ["PE"];
     public IList<string> EmployerPensionComponents { get; } = ["PER"];

@@ -249,3 +249,13 @@ public sealed record EmployeeLoanDto(Guid Id, string? Number, Guid CompanyId, Gu
     string Component, string Abbreviation, decimal? Principal, decimal Instalment, DateOnly StartMonth, DateOnly? EndMonth, string Status, decimal Recovered,
     decimal? Balance, string? Remark, IReadOnlyList<LoanRepaymentDto> Repayments);
 
+/// <summary>One employee failing one payroll check. Severity: Error or Warning.</summary>
+public sealed record PayrollCheckRow(Guid EmployeeId, string EmployeeNumber, string EmployeeName, Guid SlipId, string? SlipNumber, string Check, string Severity,
+    string Message);
+
+public sealed record PayrollCheckCount(string Check, string Severity, int Employees);
+
+/// <summary>A payroll run's checks before submit: every failure, a count per check, and how many employees are flagged at all.</summary>
+public sealed record PayrollChecksDto(Guid RunId, DateOnly PeriodStart, DateOnly PeriodEnd, int SlipsChecked, decimal MinimumNetSharePercent,
+    IReadOnlyList<PayrollCheckCount> Counts, IReadOnlyList<PayrollCheckRow> Rows, int Errors, int Warnings, int FlaggedEmployees);
+

@@ -275,6 +275,9 @@ tr.suggested td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 .voucher .in-words { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; line-height: 1.6; }
 .voucher .signatures.four { grid-template-columns: repeat(4, 1fr); }
 .statement .confirmation-reply { margin-top: 20px; padding-top: 12px; border-top: 1px dashed var(--line); break-inside: avoid; }
+.check-group { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; background: var(--surface); }
+.check-group > summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; }
+.check-group > .table { margin: 0; }
 .statement .table + .table { margin-top: 12px; }
 .voucher .watermark { position: absolute; inset: 40% -10% auto; text-align: center; font-size: 72px; font-weight: 700; color: rgba(200, 40, 40, .12);
   transform: rotate(-24deg); pointer-events: none; }

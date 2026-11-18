@@ -8,6 +8,7 @@ import { formatMoney } from "../../lib/ethiopian";
 import { can, type PayrollRunDto } from "../../lib/types";
 import { DynamicPage, FilterBar, FilterField, MessageStrip, ObjectStatus, statusTone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "./month";
+import { RunChecks, useRunChecks } from "./RunChecks";
 import { RunComparison } from "./RunComparison";
 
 /** The month's payroll run as a three-step process (create, generate slips, submit), with the declaration files. */
@@ -18,6 +19,8 @@ export function Run() {
   const navigate = useNavigate();
   const [month, setMonth] = useState(currentMonth());
   const [run, setRun] = useState<PayrollRunDto | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const checks = useRunChecks(run);
   const { start, end } = monthRange(month);
 
   const step = useMutation({
@@ -25,7 +28,7 @@ export function Run() {
       action === "create"
         ? post<PayrollRunDto>("/api/payroll/runs", { companyId: company!.id, periodStart: start, periodEnd: end })
         : post<PayrollRunDto>(`/api/payroll/runs/${run!.id}/${action}`),
-    onSuccess: (r) => { setRun(r); void queryClient.invalidateQueries({ queryKey: ["slips"] }); },
+    onSuccess: (r) => { setRun(r); setConfirming(false); void queryClient.invalidateQueries({ queryKey: ["slips"] }); },
   });
 
   if (!company) return <p>{t("common.noCompany")}</p>;
@@ -45,7 +48,7 @@ export function Run() {
       actions={run?.slipsGenerated && <button className="secondary" onClick={() => void navigate({ to: "/payroll/slips" })}>{t("nav.salarySlips")}</button>}
       header={<>
         <FilterBar>
-          <FilterField label={t("common.month")}><input type="month" value={month} onChange={(e) => { setMonth(e.target.value); setRun(null); }} /></FilterField>
+          <FilterField label={t("common.month")}><input type="month" value={month} onChange={(e) => { setMonth(e.target.value); setRun(null); setConfirming(false); }} /></FilterField>
         </FilterBar>
         {run && (
           <div className="kpis kpis-gap">
@@ -71,12 +74,22 @@ export function Run() {
             <li key={s.action} className={i < stage ? "done" : i === stage ? "current" : ""}>
               <span className="step-no">{i < stage ? "✓" : i + 1}</span>
               <span className="step-label">{s.label}</span>
-              {manage && i === stage && <button onClick={() => step.mutate(s.action)} disabled={!s.enabled || step.isPending}>{s.label}</button>}
+              {manage && i === stage && <button onClick={() => (s.action === "submit" && (checks.data?.flaggedEmployees ?? 0) > 0 ? setConfirming(true) : step.mutate(s.action))}
+                disabled={!s.enabled || step.isPending || (s.action === "submit" && checks.isPending)}>{s.label}</button>}
             </li>
           ))}
         </ol>
       </section>
 
+      {confirming && checks.data && (
+        <MessageStrip tone={checks.data.errors > 0 ? "negative" : "critical"}>
+          {t("checks.confirm", { count: checks.data.flaggedEmployees })}{" "}
+          <button onClick={() => step.mutate("submit")} disabled={step.isPending}>{t("checks.submitAnyway")}</button>{" "}
+          <button className="secondary" onClick={() => setConfirming(false)}>{t("common.cancel")}</button>
+        </MessageStrip>
+      )}
+
+      {run?.slipsGenerated && <RunChecks run={run} />}
       {run?.slipsGenerated && <RunComparison run={run} />}
 
       {can(me, "payroll.reports.read") && (

@@ -47,6 +47,7 @@ public sealed class PayrollModule : IErpModule
         services.AddSingleton(payrollOptions);
         services.AddSingleton<SlipFigures>();
         services.AddScoped<IQueryHandler<PayrollComparisonQuery, PayrollComparisonDto>, PayrollComparisonHandler>();
+        services.AddScoped<IQueryHandler<PayrollChecksQuery, PayrollChecksDto>, PayrollChecksHandler>();
         services.AddScoped<IModuleMigrator, PayrollMigrator>();
         services.AddOutboxDispatcher<PayrollDbContext>(Id, PayrollDbContext.SchemaName);
 

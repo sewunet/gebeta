@@ -898,5 +898,29 @@
     "runningHint": "Salary slips from {{start}} deduct it automatically.",
     "settleHint": "The remaining {{balance}} was repaid directly (record the receipt in Cash). Date and receipt:",
     "stopHint": "Slips stop deducting after the period containing this date:"
+  },
+  "checks": {
+    "title": "Checks before submit",
+    "flagged_one": "{{count}} employee flagged",
+    "flagged_other": "{{count}} employees flagged",
+    "allClear": "All clear",
+    "explain": "{{count}} slips checked for problems a person should look at, whatever last month looked like. The checks only advise: the run can still be submitted.",
+    "details": "Details",
+    "severity": {
+      "Error": "Error",
+      "Warning": "Warning"
+    },
+    "negativeNet": "Net pay below zero",
+    "lowNet": "Net pay below {{share}}% of gross",
+    "noBank": "No bank account",
+    "sharedBank": "Bank account shared with another employee",
+    "noPension": "No pension number",
+    "noTin": "No TIN",
+    "noBase": "No base salary",
+    "noDays": "Paid with no payment days",
+    "other": "Other",
+    "confirm_one": "{{count}} employee is flagged in the checks. Submit anyway?",
+    "confirm_other": "{{count}} employees are flagged in the checks. Submit anyway?",
+    "submitAnyway": "Submit anyway"
   }
 }

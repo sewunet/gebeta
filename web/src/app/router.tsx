@@ -52,6 +52,9 @@ const pettyCash = createRoute({ getParentRoute: () => root, path: "/cash/petty-c
 const accounts = createRoute({ getParentRoute: () => root, path: "/accounting/accounts", component: lazyRouteComponent(() => import("../pages/accounting/Accounts"), "Accounts") });
 const journals = createRoute({ getParentRoute: () => root, path: "/accounting/journals", component: lazyRouteComponent(() => import("../pages/accounting/journals/JournalList"), "JournalList") });
 const journalNew = createRoute({ getParentRoute: () => root, path: "/accounting/journals/new", component: lazyRouteComponent(() => import("../pages/accounting/journals/JournalCreate"), "JournalCreate") });
+const journalVoucher = createRoute({ getParentRoute: () => root, path: "/accounting/journals/$id/voucher", component: lazyRouteComponent(() => import("../pages/vouchers/Vouchers"), "JournalVoucher") });
+const paymentVoucher = createRoute({ getParentRoute: () => root, path: "/accounting/payments/$id/voucher", component: lazyRouteComponent(() => import("../pages/vouchers/Vouchers"), "PaymentVoucher") });
+const cashVoucher = createRoute({ getParentRoute: () => root, path: "/cash/cashiers/$id/voucher/$number", component: lazyRouteComponent(() => import("../pages/vouchers/Vouchers"), "CashVoucher") });
 const journal = createRoute({ getParentRoute: () => root, path: "/accounting/journals/$id", component: lazyRouteComponent(() => import("../pages/accounting/journals/JournalDetail"), "JournalDetail") });
 const trialBalance = createRoute({ getParentRoute: () => root, path: "/accounting/trial-balance", component: lazyRouteComponent(() => import("../pages/accounting/TrialBalance"), "TrialBalance") });
 const parties = createRoute({ getParentRoute: () => root, path: "/accounting/parties", component: lazyRouteComponent(() => import("../pages/accounting/Parties"), "Parties") });
@@ -67,7 +70,7 @@ const banking = createRoute({ getParentRoute: () => root, path: "/accounting/ban
 const ageing = createRoute({ getParentRoute: () => root, path: "/accounting/ageing", component: lazyRouteComponent(() => import("../pages/accounting/Ageing"), "Ageing") });
 
 export const router = createRouter({
-  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, trialBalance, parties, party, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
+  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, journalVoucher, paymentVoucher, cashVoucher, trialBalance, parties, party, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
 });
 
 declare module "@tanstack/react-router" {

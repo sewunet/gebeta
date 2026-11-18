@@ -202,6 +202,24 @@ is submitted), regenerates, and E-103 drops back to +900.
 
 ### 2. Printable vouchers with the amount in words (Amharic and English)
 
+> **Built (step 49).**
+> - **Amount in words:** `AmountInWords` in SharedKernel, tested on every boundary and worked example below,
+>   and served once by `GET /api/core/amount-in-words`.
+> - **Vouchers:** journal, payment/receipt and cashier movement vouchers, with a "Print voucher" link on the
+>   journal page, each invoice payment and the cashier ledger.
+>
+> Differences from this specification:
+> - **One endpoint instead of a field on each DTO:** a single source for every module, payslips later included.
+> - **Petty cash:** an approved request prints from the cashier ledger movement it pays out, because the
+>   request has no date of its own.
+> - **Not built yet:**
+>   - logging each print to the audit trail (criterion 7: there is no audit trail yet);
+>   - filling "prepared by" with the submitter (the documents do not carry who submitted them);
+>   - the logo;
+>   - a test of the multi-page A4 layout.
+> - **Style:** English always ends "only"; Amharic adds "ብቻ" only when asked; "አንድ መቶ" and "አንድ ሺህ" are written
+>   with "one". **VERIFY** this style with the customer.
+
 **In one line:** a print layout for payments (`PAY-`), cashier receipts and payments (`CR-`, `CP-`), petty
 cash requests (`PCR-`) and journals (`JV-`). It has the company header, the Ethiopian date, the lines and
 accounts, the total in figures and **in words in Amharic and English**, and signature boxes (prepared by,

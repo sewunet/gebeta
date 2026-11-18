@@ -44,6 +44,7 @@ export function JournalDetail() {
         { label: t("acc.source"), value: t(`acc.sources.${j.source}`) },
       ]}
       actions={<>
+        <Link to="/accounting/journals/$id/voucher" params={{ id: j.id }} className="button secondary">{t("voucher.print")}</Link>
         {j.status === "Draft" && can(me, "accounting.journals.submit") && <button onClick={() => act.mutate("submit")} disabled={act.isPending}>{t("slips.submit")}</button>}
         {j.status === "Submitted" && CANCELLABLE.includes(j.source) && can(me, "accounting.journals.cancel") &&
           <button className="secondary" onClick={() => act.mutate("cancel")} disabled={act.isPending}>{t("common.cancel")}</button>}

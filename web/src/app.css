@@ -264,3 +264,11 @@ tr.suggested td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 .check-list { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; max-height: 180px; overflow-y: auto; }
 .check-list legend { padding: 0 4px; font-size: 13px; }
 
+/* Vouchers: amount in words, four signatures, a watermark on drafts and cancelled documents. */
+.voucher { position: relative; overflow: hidden; }
+.voucher .in-words { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; line-height: 1.6; }
+.voucher .signatures.four { grid-template-columns: repeat(4, 1fr); }
+.voucher .watermark { position: absolute; inset: 40% -10% auto; text-align: center; font-size: 72px; font-weight: 700; color: rgba(200, 40, 40, .12);
+  transform: rotate(-24deg); pointer-events: none; }
+@media print { .voucher .watermark { color: rgba(200, 40, 40, .18); } }
+

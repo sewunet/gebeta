@@ -784,5 +784,27 @@
       "Missing": "የጎደለ",
       "Same": "ተመሳሳይ"
     }
+  },
+  "voucher": {
+    "print": "ቫውቸር አትም",
+    "draft": "ረቂቅ",
+    "cancelled": "የተሰረዘ",
+    "total": "ጠቅላላ",
+    "inWords": "በፊደል፡",
+    "prepared": "ያዘጋጀው",
+    "checked": "ያረጋገጠው",
+    "approved": "ያጸደቀው",
+    "received": "የተቀበለው",
+    "journal": "የጆርናል ቫውቸር",
+    "payment": "የክፍያ ቫውቸር",
+    "receipt": "የገቢ ቫውቸር",
+    "cashReceipt": "የጥሬ ገንዘብ ገቢ ቫውቸር",
+    "cashPayment": "የጥሬ ገንዘብ ወጪ ቫውቸር",
+    "receivedFrom": "የተቀበለው ከ",
+    "paidTo": "የተከፈለው ለ",
+    "bankAccount": "የባንክ ሂሳብ",
+    "invoice": "ደረሰኝ",
+    "cashier": "ገንዘብ ያዥ",
+    "notFound": "ይህ ሰነድ አልተገኘም።"
   }
 }

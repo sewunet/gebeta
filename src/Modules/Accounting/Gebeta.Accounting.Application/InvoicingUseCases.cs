@@ -52,6 +52,8 @@ public sealed record CreateOpeningInvoiceCommand(InvoiceKind Kind, Guid CompanyI
 
 public sealed record ListInvoicePaymentsQuery(Guid InvoiceId) : IQuery<IReadOnlyList<PaymentDto>>;
 
+public sealed record GetPaymentQuery(Guid PaymentId) : IQuery<PaymentDto>;
+
 public sealed record CancelPaymentCommand(Guid PaymentId) : ICommand<PaymentDto>;
 
 public sealed record GetWithholdingReceiptQuery(Guid InvoiceId) : IQuery<WithholdingReceiptDto>;
@@ -87,6 +89,7 @@ public sealed class InvoicingHandler(
       ICommandHandler<CreateReturnCommand, InvoiceDto>,
       ICommandHandler<CreateOpeningInvoiceCommand, InvoiceDto>,
       IQueryHandler<ListInvoicePaymentsQuery, IReadOnlyList<PaymentDto>>,
+      IQueryHandler<GetPaymentQuery, PaymentDto>,
       ICommandHandler<CancelPaymentCommand, PaymentDto>,
       IQueryHandler<AgeingReportQuery, AgeingReportDto>,
       IQueryHandler<GetWithholdingReceiptQuery, WithholdingReceiptDto>
@@ -455,6 +458,15 @@ public sealed class InvoicingHandler(
         }
 
         return await NumberAndSaveAsync(invoice, command.Kind == InvoiceKind.Sales ? "SINV-.FY.-.#####" : "PINV-.FY.-.#####", cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<Result<PaymentDto>> Handle(GetPaymentQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var payment = await invoices.GetPaymentAsync(query.PaymentId, cancellationToken).ConfigureAwait(false);
+        return payment is not null && await access.CanAccessAsync(payment.CompanyId, cancellationToken).ConfigureAwait(false)
+            ? ToDto(payment)
+            : Error.NotFound("Payment", query.PaymentId);
     }
 
     public async Task<Result<IReadOnlyList<PaymentDto>>> Handle(ListInvoicePaymentsQuery query, CancellationToken cancellationToken)

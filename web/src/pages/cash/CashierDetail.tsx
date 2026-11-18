@@ -69,7 +69,8 @@ export function CashierDetail() {
                 <th className="num">{t("cash.amount")}</th><th className="num">{t("cash.balance")}</th></tr></thead>
               <tbody>{entries.map((e, i) => (
                 <tr key={i}>
-                  <td>{formatDate(e.date, me.calendar, am)}</td><td className="mono">{e.sourceNumber}</td><td>{e.kind}</td><td>{e.description}</td>
+                  <td>{formatDate(e.date, me.calendar, am)}</td>
+                  <td className="mono"><Link to="/cash/cashiers/$id/voucher/$number" params={{ id, number: e.sourceNumber }} title={t("voucher.print")}>{e.sourceNumber}</Link></td><td>{e.kind}</td><td>{e.description}</td>
                   <td className={`num ${e.amount < 0 ? "neg" : ""}`}>{formatMoney(e.amount)}</td><td className="num">{formatMoney(e.balanceAfter)}</td>
                 </tr>
               ))}</tbody>

@@ -70,7 +70,7 @@ configuration.
 |---|---|---|
 | Framework | IFRS for public interest entities, IFRS for SMEs for others (Financial Reporting Proclamation 847/2014, AABE). Chart of accounts templates for both. | Planned (Accounting) |
 | Public enterprises | Templates for public enterprise reporting (e.g. sugar factories). | Planned |
-| Amount in words | Amharic and English amount in words on invoices, payment vouchers and cheques ("ብር አንድ ሺህ ሁለት መቶ … ሳንቲም"). | Planned (SharedKernel) |
+| Amount in words | Amharic and English amount in words on payment vouchers and cheques ("አንድ ሺህ ሁለት መቶ ብር ከ… ሳንቲም"). | Built: `AmountInWords` (SharedKernel), `GET /api/core/amount-in-words`; printed on vouchers. Style (with "one", "only"/"ብቻ", spellings) to VERIFY per customer |
 | Banking | Bank transfer files for major Ethiopian banks (CBE, Awash, Dashen, Abyssinia, …); Telebirr and other mobile money as payment methods. | Planned |
 
 ## 6. Language and data

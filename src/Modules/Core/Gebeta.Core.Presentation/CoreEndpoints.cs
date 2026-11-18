@@ -131,6 +131,17 @@ public static class CoreEndpoints
 
     private static void MapMe(IEndpointRouteBuilder endpoints)
     {
+        // Any signed-in user: an amount written out for vouchers and cheques, in both languages (docs/ethiopia.md §5).
+        endpoints.MapGet("/api/core/amount-in-words", (decimal amount, string? currency, bool? withOnly) =>
+            {
+                var code = string.IsNullOrWhiteSpace(currency) ? "ETB" : currency.Trim();
+                return Math.Abs(amount) > Gebeta.SharedKernel.Ethiopia.AmountInWords.Maximum
+                    ? Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: $"Amounts in words go up to {Gebeta.SharedKernel.Ethiopia.AmountInWords.Maximum:N2}.")
+                    : Results.Ok(new AmountInWordsDto(Gebeta.SharedKernel.Ethiopia.AmountInWords.English(amount, code),
+                        Gebeta.SharedKernel.Ethiopia.AmountInWords.Amharic(amount, code, withOnly ?? false)));
+            })
+            .WithName("AmountInWords").WithTags("Core");
+
         var me = endpoints.MapGroup("/api/me").WithTags("Core: Me");
 
         // Any signed-in user: profile, roles and permissions (creates the Gebeta user on first sign-in).
@@ -266,4 +277,6 @@ public sealed record CompanyBody(string Name, string? VatRegistrationNumber, str
 public sealed record ItemBody(string Name, string Uom, string? Group, bool IsStockItem, bool IsActive = true);
 
 public sealed record EmployeeLinkBody(Guid? EmployeeId);
+
+public sealed record AmountInWordsDto(string English, string Amharic);
 

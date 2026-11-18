@@ -81,6 +81,7 @@ public sealed class AccountingModule : IErpModule
         services.AddScoped<ICommandHandler<CreateReturnCommand, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<ICommandHandler<CreateOpeningInvoiceCommand, InvoiceDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<IQueryHandler<ListInvoicePaymentsQuery, IReadOnlyList<PaymentDto>>>(sp => sp.GetRequiredService<InvoicingHandler>());
+        services.AddScoped<IQueryHandler<GetPaymentQuery, PaymentDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<ICommandHandler<CancelPaymentCommand, PaymentDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<IQueryHandler<AgeingReportQuery, AgeingReportDto>>(sp => sp.GetRequiredService<InvoicingHandler>());
         services.AddScoped<IQueryHandler<GetWithholdingReceiptQuery, WithholdingReceiptDto>>(sp => sp.GetRequiredService<InvoicingHandler>());

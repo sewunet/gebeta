@@ -57,6 +57,8 @@ public class InvoicingFlowTests(GebetaApiFactory factory)
             new { invoiceId = sale.Id, amount = 10_000, postingDate = "2026-11-25", reference = "CBE transfer" }, Ct)).Content.ReadFromJsonAsync<PaymentDto>(Ct);
         Assert.Equal("Receive", received!.Kind);
         Assert.Equal("PAY-2019-00001", received.Number);
+        var fetched = (await admin.GetFromJsonAsync<PaymentDto>(U($"/api/accounting/payments/{received.Id}"), Ct))!; // for its printed voucher
+        Assert.Equal((received.Number, 10_000m, "CBE transfer"), (fetched.Number, fetched.Amount, fetched.Reference));
         await admin.PostAsJsonAsync(U("/api/accounting/payments"), new { invoiceId = purchase.Id, amount = 5_600, postingDate = "2026-11-26" }, Ct);
 
         sale = await admin.GetFromJsonAsync<InvoiceDto>(U($"/api/accounting/invoices/{sale.Id}"), Ct);

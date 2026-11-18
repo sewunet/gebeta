@@ -784,5 +784,27 @@
       "Missing": "Missing",
       "Same": "Same"
     }
+  },
+  "voucher": {
+    "print": "Print voucher",
+    "draft": "DRAFT",
+    "cancelled": "CANCELLED",
+    "total": "Total",
+    "inWords": "In words:",
+    "prepared": "Prepared by",
+    "checked": "Checked by",
+    "approved": "Approved by",
+    "received": "Received by",
+    "journal": "Journal voucher",
+    "payment": "Payment voucher",
+    "receipt": "Receipt voucher",
+    "cashReceipt": "Cash receipt voucher",
+    "cashPayment": "Cash payment voucher",
+    "receivedFrom": "Received from",
+    "paidTo": "Paid to",
+    "bankAccount": "Bank account",
+    "invoice": "Invoice",
+    "cashier": "Cashier",
+    "notFound": "This document was not found."
   }
 }

@@ -78,6 +78,10 @@ public static class AccountingEndpoints
         acc.MapGet("/invoices/{id:guid}/payments", async (Guid id, IQueryHandler<ListInvoicePaymentsQuery, IReadOnlyList<PaymentDto>> h, CancellationToken ct) =>
                 (await h.Handle(new ListInvoicePaymentsQuery(id), ct).ConfigureAwait(false)).ToHttp())
             .WithName("ListInvoicePayments").RequirePermission(InvoicingPermissions.InvoicesRead);
+        acc.MapGet("/payments/{id:guid}", async (Guid id, IQueryHandler<GetPaymentQuery, PaymentDto> h, CancellationToken ct) =>
+                (await h.Handle(new GetPaymentQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetPayment").RequirePermission(InvoicingPermissions.InvoicesRead);
+
         acc.MapPost("/payments/{id:guid}/cancel", async (Guid id, ICommandHandler<CancelPaymentCommand, PaymentDto> h, CancellationToken ct) =>
                 (await h.Handle(new CancelPaymentCommand(id), ct).ConfigureAwait(false)).ToHttp())
             .WithName("CancelPayment").RequirePermission(InvoicingPermissions.PaymentsCreate);

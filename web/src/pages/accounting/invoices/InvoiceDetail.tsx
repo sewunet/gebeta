@@ -132,7 +132,9 @@ export function InvoiceDetail() {
                     <td className="mono">{p.number}</td><td>{date(p.postingDate)}</td><td>{p.reference}</td>
                     <td className="num">{formatMoney(share)}{p.allocations && p.allocations.length > 1 && <div className="muted small">{t("inv.ofPayment")} {formatMoney(p.amount)}</div>}</td>
                     <td><ObjectStatus tone={p.status === "Submitted" ? "positive" : "negative"}>{t(`status.${p.status}`)}</ObjectStatus></td>
-                    <td className="actions">{p.status === "Submitted" && can(me, "accounting.payments.create") &&
+                    <td className="actions">
+                      <Link to="/accounting/payments/$id/voucher" params={{ id: p.id }} className="link-button">{t("voucher.print")}</Link>{" "}
+                      {p.status === "Submitted" && can(me, "accounting.payments.create") &&
                       <button className="link-button" onClick={() => cancelPayment.mutate(p.id)} disabled={cancelPayment.isPending}>{t("inv.cancelPayment")}</button>}</td>
                   </tr>
                 );

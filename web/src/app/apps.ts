@@ -11,6 +11,8 @@ export type AppEntry = {
 
 export const APPS: AppEntry[] = [
   { id: "companies", group: "core", path: "/companies", title: "nav.companies", subtitle: "tiles.companies", permission: "core.companies.read" },
+  { id: "users", group: "core", path: "/users", title: "nav.users", subtitle: "tiles.users", permission: "core.users.read" },
+  { id: "roles", group: "core", path: "/roles", title: "nav.roles", subtitle: "tiles.roles", permission: "core.roles.read" },
   { id: "employees", group: "core", path: "/employees", title: "nav.employees", subtitle: "tiles.employees", permission: "core.employees.read" },
 
   { id: "invoices", group: "accounting", path: "/accounting/invoices", title: "nav.invoices", subtitle: "tiles.invoices", permission: "accounting.invoices.read", module: "accounting" },

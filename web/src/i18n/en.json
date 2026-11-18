@@ -41,7 +41,9 @@
     "selling": "Selling",
     "salesOrders": "Sales orders",
     "salaryStructures": "Salary structures",
-    "salaryStructure": "Salary structure"
+    "salaryStructure": "Salary structure",
+    "users": "Users",
+    "roles": "Roles"
   },
   "common": {
     "company": "Company",
@@ -533,7 +535,9 @@
     "inStock": "in stock",
     "purchaseOrders": "Orders to suppliers",
     "salesOrders": "Orders from customers",
-    "structures": "Components and formulas"
+    "structures": "Components and formulas",
+    "users": "Who signs in, roles, companies",
+    "roles": "What each role allows"
   },
   "ui": {
     "search": "Search",
@@ -548,7 +552,8 @@
     "saved": "Changes saved.",
     "yes": "Yes",
     "no": "No",
-    "salary": "Salary"
+    "salary": "Salary",
+    "add": "Add"
   },
   "companies": {
     "current": "Current",
@@ -688,5 +693,37 @@
     "assignHint": "From this date the employee is paid with this structure and these amounts. A raise is a new assignment; earlier months can then be settled as back pay.",
     "from": "From",
     "noAssignment": "No salary assigned yet."
+  },
+  "users": {
+    "username": "Username",
+    "email": "Email",
+    "roles": "Roles",
+    "invite": "Invite user",
+    "invited": "{{username}} is invited. Create their sign-in account in Keycloak with the same username and email.",
+    "inviteHint": "Set someone up before their first sign-in. Their sign-in account is made in Keycloak with the same username and email; the first sign-in links it.",
+    "searchHint": "Username, name or email",
+    "noRoles": "No roles",
+    "noCompanies": "No companies yet.",
+    "notFound": "This user was not found.",
+    "status": {
+      "Active": "Active",
+      "Invited": "Invited",
+      "Inactive": "Inactive"
+    },
+    "invitedHint": "Invited: not signed in yet. The first sign-in with this username and email links their account.",
+    "allCompanies": "All",
+    "allCompaniesHint": "One of this user's roles lets them see every company; the list below only matters if that role is taken away.",
+    "addRole": "Add a role…",
+    "addCompany": "Add a company…",
+    "deactivate": "Deactivate",
+    "activate": "Activate"
+  },
+  "roles": {
+    "description": "Description",
+    "system": "System",
+    "custom": "Custom",
+    "permissions": "Permissions",
+    "notFound": "This role was not found.",
+    "permissionsHint": "A permission ending in * covers everything in that area (accounting.* covers every accounting action)."
   }
 }

@@ -5,7 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "../app/context";
 import { api } from "./api";
-import { can, type BankAccountDto, type CashierDto, type ItemDto, type PartyDto, type PurchaseOrderDto, type SalaryStructureDto, type SalesOrderDto, type WarehouseDto } from "./types";
+import { can, type BankAccountDto, type CashierDto, type ItemDto, type PartyDto, type PurchaseOrderDto, type RoleDto, type SalaryStructureDto, type SalesOrderDto, type UserDto, type WarehouseDto } from "./types";
 
 /** Customers and suppliers of the selected company (kept in Core). */
 export function useParties() {
@@ -60,3 +60,17 @@ export function useSalaryStructures() {
     enabled: !!company && modules.some((m) => m.id === "payroll") && can(me, "payroll.structures.read"),
   });
 }
+
+/** Every user (users are not per company; their company access is a list on each). */
+export function useUsers() {
+  const { me } = useSession();
+  return useQuery({ queryKey: ["users"], queryFn: () => api<UserDto[]>("/api/core/users"), enabled: can(me, "core.users.read") });
+}
+
+export function useRoles() {
+  const { me } = useSession();
+  return useQuery({ queryKey: ["roles"], queryFn: () => api<RoleDto[]>("/api/core/roles"), enabled: can(me, "core.roles.read") || can(me, "core.users.read") });
+}
+
+/** A role that lets its users see every company (their company list then does not matter). */
+export const seesAllCompanies = (role: RoleDto | undefined) => !!role?.permissions.some((p) => p === "*" || p === "core.*" || p === "core.companies.access-all");

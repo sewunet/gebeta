@@ -40,6 +40,10 @@ export type PayrollRunDto = {
   issues: { employeeId: string; employeeName: string; reason: string }[];
 };
 
+/** A Gebeta user; <c>isInvited</c>: set up ahead, not signed in yet. */
+export type UserDto = { id: string; username: string; email?: string; fullName?: string; isActive: boolean; roles: string[]; companyIds: string[]; isInvited?: boolean };
+export type RoleDto = { id: string; name: string; description?: string; isSystem: boolean; permissions: string[] };
+
 export const can = (me: MeDto | undefined, permission: string) =>
   !!me?.permissions.some((p) => p === "*" || p === permission || (p.endsWith(".*") && permission.startsWith(p.slice(0, -1))));
 

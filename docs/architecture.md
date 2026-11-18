@@ -195,3 +195,10 @@ across all tests. Three collisions so far (a company name, a generated abbreviat
 cost a red full run while the tests passed alone. If it happens again, give the tests a helper
 that hands out unique names, abbreviations and TINs.
 
+### Users and roles screens (step 45)
+
+Users: list, invite, add or take away roles and companies, deactivate or activate (nobody can
+deactivate themselves). Roles are read-only on screen: there is no catalogue of permissions yet, so a
+custom-role editor would mean typing permission names blind. Add one when a company asks for custom
+roles: each module would declare its permissions with a label, and the editor would offer them.
+

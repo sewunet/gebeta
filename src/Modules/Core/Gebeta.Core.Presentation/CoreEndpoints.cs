@@ -187,6 +187,16 @@ public static class CoreEndpoints
             .WithName("InviteUser")
             .RequirePermission(CorePermissions.UsersManage);
 
+        users.MapPost("/{userId:guid}/deactivate", async (Guid userId, ICommandHandler<SetUserActiveCommand, UserDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new SetUserActiveCommand(userId, false), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("DeactivateUser")
+            .RequirePermission(CorePermissions.UsersManage);
+
+        users.MapPost("/{userId:guid}/activate", async (Guid userId, ICommandHandler<SetUserActiveCommand, UserDto> handler, CancellationToken ct) =>
+                (await handler.Handle(new SetUserActiveCommand(userId, true), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ActivateUser")
+            .RequirePermission(CorePermissions.UsersManage);
+
         users.MapPut("/{userId:guid}/roles/{roleId:guid}", async (Guid userId, Guid roleId, ICommandHandler<AssignRoleCommand, UserDto> handler, CancellationToken ct) =>
                 (await handler.Handle(new AssignRoleCommand(userId, roleId), ct).ConfigureAwait(false)).ToHttp())
             .WithName("AssignRole")

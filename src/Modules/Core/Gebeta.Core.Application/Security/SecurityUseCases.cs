@@ -77,11 +77,40 @@ public sealed class ListUsersHandler(IUserRepository users, IRoleRepository role
 
 public sealed record AssignRoleCommand(Guid UserId, Guid RoleId) : ICommand<UserDto>;
 
+/// <summary>Stops (or restores) a user's access; their history stays. Nobody can deactivate themselves.</summary>
+public sealed record SetUserActiveCommand(Guid UserId, bool Active) : ICommand<UserDto>;
+
 public sealed record RemoveRoleCommand(Guid UserId, Guid RoleId) : ICommand<UserDto>;
 
 public sealed class UserRoleHandler(IUserRepository users, IRoleRepository roles, ICoreUnitOfWork unitOfWork, UserContext context, TimeProvider clock)
-    : ICommandHandler<AssignRoleCommand, UserDto>, ICommandHandler<RemoveRoleCommand, UserDto>
+    : ICommandHandler<AssignRoleCommand, UserDto>, ICommandHandler<RemoveRoleCommand, UserDto>, ICommandHandler<SetUserActiveCommand, UserDto>
 {
+    public async Task<Result<UserDto>> Handle(SetUserActiveCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var user = await users.GetAsync(command.UserId, cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return Error.NotFound("User", command.UserId);
+        }
+
+        if (!command.Active && (await context.GetAsync(cancellationToken).ConfigureAwait(false))?.User.Id == user.Id)
+        {
+            return Error.Conflict("You cannot deactivate yourself.");
+        }
+
+        if (command.Active)
+        {
+            user.Activate();
+        }
+        else
+        {
+            user.Deactivate();
+        }
+
+        return await SaveUserAsync(user, cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<Result<UserDto>> Handle(AssignRoleCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);

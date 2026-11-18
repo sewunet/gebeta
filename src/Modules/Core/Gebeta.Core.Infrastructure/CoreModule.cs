@@ -104,6 +104,7 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<ICommandHandler<AssignRoleCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
         services.AddScoped<ICommandHandler<RemoveRoleCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
         services.AddScoped<ICommandHandler<InviteUserCommand, UserDto>, InviteUserHandler>();
+        services.AddScoped<ICommandHandler<SetUserActiveCommand, UserDto>>(sp => sp.GetRequiredService<UserRoleHandler>());
         services.AddScoped<CompanyAccessHandler>();
         services.AddScoped<ICommandHandler<GrantCompanyAccessCommand, UserDto>>(sp => sp.GetRequiredService<CompanyAccessHandler>());
         services.AddScoped<ICommandHandler<RevokeCompanyAccessCommand, UserDto>>(sp => sp.GetRequiredService<CompanyAccessHandler>());

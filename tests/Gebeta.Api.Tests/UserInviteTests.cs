@@ -48,4 +48,23 @@ public class UserInviteTests(GebetaApiFactory factory)
         Assert.Equal(HttpStatusCode.Forbidden, (await impostor.GetAsync(U("/api/core/users"), Ct)).StatusCode);
         Assert.True((await admin.GetFromJsonAsync<List<UserDto>>(U("/api/core/users"), Ct))!.Single(u => u.Username == "tsion").IsInvited);
     }
+
+    [Fact]
+    public async Task A_deactivated_user_loses_access_and_nobody_can_deactivate_themselves()
+    {
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        using var kebede = factory.ClientFor("kebede.deactivate");
+        Assert.Equal(HttpStatusCode.OK, (await kebede.GetAsync(U("/api/me"), Ct)).StatusCode); // first sign-in creates him
+
+        var users = (await admin.GetFromJsonAsync<List<UserDto>>(U("/api/core/users"), Ct))!;
+        var him = users.Single(u => u.Username == "kebede.deactivate");
+        Assert.False((await (await admin.PostAsync(U($"/api/core/users/{him.Id}/deactivate"), null, Ct)).Content.ReadFromJsonAsync<UserDto>(Ct))!.IsActive);
+        Assert.False((await kebede.GetAsync(U("/api/me"), Ct)).IsSuccessStatusCode);
+
+        Assert.True((await (await admin.PostAsync(U($"/api/core/users/{him.Id}/activate"), null, Ct)).Content.ReadFromJsonAsync<UserDto>(Ct))!.IsActive);
+        Assert.Equal(HttpStatusCode.OK, (await kebede.GetAsync(U("/api/me"), Ct)).StatusCode);
+
+        var me = users.Single(u => u.Username == GebetaApiFactory.AdminUser);
+        Assert.Equal(HttpStatusCode.Conflict, (await admin.PostAsync(U($"/api/core/users/{me.Id}/deactivate"), null, Ct)).StatusCode);
+    }
 }

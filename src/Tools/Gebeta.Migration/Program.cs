@@ -3,7 +3,7 @@ using Gebeta.Core.Domain.Companies;
 namespace Gebeta.Migration;
 
 // gebeta-migrate --company "Arjo Dedessa Sugar Factory" [--target-company <gebeta id>] [--tin 0100000011]
-//                [--steps parties,items] [--dry-run]
+//                [--steps users,parties,items] [--dry-run]
 //                [--cutover 2026-07-07 --account-map accounts.csv]   balances at the end of the cut-over day
 // ERPnext:  --source "<MariaDB connection string>"  or environment ERPNEXT_DB
 // Gebeta:   --target "<PostgreSQL connection string>" or environment ConnectionStrings__Main
@@ -18,7 +18,7 @@ internal static class MigrationProgram
         var target = arguments.Get("target") ?? Environment.GetEnvironmentVariable("ConnectionStrings__Main");
         if (company is null || source is null || target is null)
         {
-            Console.Error.WriteLine("Usage: gebeta-migrate --company <ERPNext company> [--target-company <id>] [--tin <TIN>] [--legal-form <form>] [--steps parties,items,warehouses,employees,structures,assignments,history,payroll,leave,invoices,orders,stock,opening] [--history-from yyyy-MM-dd] [--cutover yyyy-MM-dd] [--account-map file.csv] [--dry-run]");
+            Console.Error.WriteLine("Usage: gebeta-migrate --company <ERPNext company> [--target-company <id>] [--tin <TIN>] [--legal-form <form>] [--steps users,parties,items,warehouses,employees,structures,assignments,history,payroll,leave,invoices,orders,stock,opening] [--history-from yyyy-MM-dd] [--cutover yyyy-MM-dd] [--account-map file.csv] [--dry-run]");
             Console.Error.WriteLine("       ERPNext source: --source or ERPNEXT_DB; Gebeta database: --target or ConnectionStrings__Main.");
             return 2;
         }
@@ -56,7 +56,9 @@ internal static class MigrationProgram
             arguments.Get("steps")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             cutover,
             arguments.Get("account-map"),
-            HistoryFrom: historyFrom);
+            HistoryFrom: historyFrom,
+            KeycloakUsersPath: arguments.Get("keycloak-users"),
+            UserRolesPath: arguments.Get("user-roles"));
 
         await using var services = MigrationHost.Build(target);
         var run = new MigrationRun(services, new MariaDbErpNextSource(source), new IdMap(target), options);

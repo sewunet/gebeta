@@ -71,7 +71,7 @@ public sealed class ListUsersHandler(IUserRepository users, IRoleRepository role
         var allRoles = (await roles.ListAsync(cancellationToken).ConfigureAwait(false)).ToDictionary(r => r.Id, r => r.Name);
         var all = await users.ListAsync(cancellationToken).ConfigureAwait(false);
         return Result.Success<IReadOnlyList<UserDto>>(all.Select(u => new UserDto(u.Id, u.Username, u.Email, u.FullName, u.IsActive,
-            u.RoleIds.Where(allRoles.ContainsKey).Select(id => allRoles[id]).Order(StringComparer.Ordinal).ToList(), u.CompanyIds.ToList())).ToList());
+            u.RoleIds.Where(allRoles.ContainsKey).Select(id => allRoles[id]).Order(StringComparer.Ordinal).ToList(), u.CompanyIds.ToList(), u.IsInvited)).ToList());
     }
 }
 
@@ -126,7 +126,56 @@ public sealed class UserRoleHandler(IUserRepository users, IRoleRepository roles
         user.ModifiedBy = (await context.GetAsync(cancellationToken).ConfigureAwait(false))?.User.Username;
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         var names = (await roles.GetManyAsync(user.RoleIds.ToList(), cancellationToken).ConfigureAwait(false)).Select(r => r.Name).Order(StringComparer.Ordinal).ToList();
-        return new UserDto(user.Id, user.Username, user.Email, user.FullName, user.IsActive, names, user.CompanyIds.ToList());
+        return new UserDto(user.Id, user.Username, user.Email, user.FullName, user.IsActive, names, user.CompanyIds.ToList(), user.IsInvited);
+    }
+}
+
+/// <summary>
+/// Sets up a user before their first sign-in, with roles (by name) and the companies they may work in. Their Keycloak account is made
+/// separately (by an administrator); the first sign-in with this username and email links it.
+/// </summary>
+public sealed record InviteUserCommand(string Username, string Email, string? FullName, IReadOnlyList<string>? Roles, IReadOnlyList<Guid>? CompanyIds) : ICommand<UserDto>;
+
+public sealed class InviteUserHandler(IUserRepository users, IRoleRepository roles, ICompanyRepository companies, UserRoleHandler saver)
+    : ICommandHandler<InviteUserCommand, UserDto>
+{
+    public async Task<Result<UserDto>> Handle(InviteUserCommand command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var created = User.Invite(command.Username ?? string.Empty, command.Email, command.FullName);
+        if (created.IsFailure)
+        {
+            return created.Error!;
+        }
+
+        var user = created.Value;
+        if (await users.UsernameExistsAsync(user.Username, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.Conflict($"There is already a user {user.Username}.");
+        }
+
+        foreach (var name in command.Roles ?? [])
+        {
+            if (await roles.GetByNameAsync(name, cancellationToken).ConfigureAwait(false) is not { } role)
+            {
+                return Error.Validation($"There is no role named {name}.");
+            }
+
+            user.AssignRole(role);
+        }
+
+        foreach (var companyId in command.CompanyIds ?? [])
+        {
+            if (await companies.GetAsync(companyId, cancellationToken).ConfigureAwait(false) is null)
+            {
+                return Error.NotFound("Company", companyId);
+            }
+
+            user.GrantCompany(companyId);
+        }
+
+        users.Add(user);
+        return await saver.SaveUserAsync(user, cancellationToken).ConfigureAwait(false);
     }
 }
 

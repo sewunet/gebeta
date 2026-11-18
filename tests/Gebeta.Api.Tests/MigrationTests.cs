@@ -78,6 +78,9 @@ public class MigrationTests(GebetaApiFactory factory)
         public List<ErpSalarySlip> History { get; } = []; // slips before the latest payroll
         public List<ErpLeaveBalance> Leaves { get; } = [];
         public List<ErpOrderLine> Orders { get; } = [];
+        public List<ErpUser> Users { get; } = [];
+
+        public Task<IReadOnlyList<ErpUser>> UsersAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpUser>>(Users);
 
         public Task<IReadOnlyList<ErpOrderLine>> OpenOrderLinesAsync(string c, DateOnly asOf, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<ErpOrderLine>>(Orders);
@@ -575,6 +578,54 @@ public class MigrationTests(GebetaApiFactory factory)
 
         var again = (await Run(erp, new MigrationOptions(name, Steps: ["parties", "orders"], Cutover: cutover))).Single(r => r.Name == "orders");
         Assert.Equal((0, 2), (again.Created, again.AlreadyMigrated));
+    }
+
+    [Fact]
+    public async Task Users_come_over_without_roles_until_an_administrator_chooses_them_in_the_roles_file()
+    {
+        const string name = "Arba Minch Users Test";
+        var erp = new FakeErpNext(name, "0800000240");
+        string[] everything = ["System Manager", "Accounts Manager", "HR Manager", "Stock User", "Blogger"]; // ERPNext's usual "give them all"
+        erp.Users.AddRange(
+        [
+            new("meron@arba.et", "meron", "meron@arba.et", "Meron Alemu", everything, []),
+            new("dawit@arba.et", null, "dawit@arba.et", "Dawit Haile", everything, [name]),
+            new("other@x.et", "other", "other@x.et", "Other Company", ["Accounts User"], ["Some Other Company"]), // not this company
+        ]);
+        var dir = Directory.CreateTempSubdirectory("gebeta-users-");
+        var roles = Path.Combine(dir.FullName, "roles.csv");
+        var keycloak = Path.Combine(dir.FullName, "keycloak.json");
+        var options = new MigrationOptions(name, Steps: ["users"], UserRolesPath: roles, KeycloakUsersPath: keycloak);
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+
+        try
+        {
+            var first = (await Run(erp, options)).Single(r => r.Name == "users");
+            Assert.Equal(2, first.Created);
+            Assert.Contains(first.Warnings, w => w.StartsWith("2 users are System Managers in ERPNext.", StringComparison.Ordinal));
+            var all = (await admin.GetFromJsonAsync<List<UserDto>>(U("/api/core/users"), Ct))!;
+            var meron = all.Single(u => u.Username == "meron");
+            Assert.Equal((true, 0), (meron.IsInvited, meron.Roles.Count)); // nothing until chosen
+            Assert.Contains(all, u => u.Username == "dawit@arba.et");     // no ERPNext username: the email is the username
+
+            // The review file suggests business roles, never System Manager; gebeta_roles starts empty.
+            var lines = await File.ReadAllLinesAsync(roles, Ct);
+            Assert.EndsWith(",Accountant; HR Officer; Payroll Officer; Store Keeper,", lines.Single(l => l.StartsWith("meron@arba.et", StringComparison.Ordinal)), StringComparison.Ordinal);
+            Assert.Contains("\"username\": \"meron\"", await File.ReadAllTextAsync(keycloak, Ct), StringComparison.Ordinal);
+
+            // The administrator makes Meron the administrator and Dawit an accountant; the next run gives exactly that.
+            await File.WriteAllLinesAsync(roles, lines.Select(l => l.StartsWith("meron@", StringComparison.Ordinal) ? l + "System Manager"
+                : l.StartsWith("dawit@", StringComparison.Ordinal) ? l + "Accountant" : l), Ct);
+            var second = (await Run(erp, options)).Single(r => r.Name == "users");
+            Assert.True(second.Ok, string.Join("; ", second.Failures));
+            all = (await admin.GetFromJsonAsync<List<UserDto>>(U("/api/core/users"), Ct))!;
+            Assert.Equal(["System Manager"], all.Single(u => u.Username == "meron").Roles);
+            Assert.Equal(["Accountant"], all.Single(u => u.Username == "dawit@arba.et").Roles);
+        }
+        finally
+        {
+            dir.Delete(recursive: true);
+        }
     }
 
     [Theory]

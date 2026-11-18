@@ -14,6 +14,8 @@ public sealed record MeDto(
     bool AccessAllCompanies,
     IReadOnlyList<Guid> CompanyIds);
 
-public sealed record UserDto(Guid Id, string Username, string? Email, string? FullName, bool IsActive, IReadOnlyList<string> Roles, IReadOnlyList<Guid> CompanyIds);
+/// <param name="IsInvited">Set up ahead and not signed in yet.</param>
+public sealed record UserDto(Guid Id, string Username, string? Email, string? FullName, bool IsActive, IReadOnlyList<string> Roles, IReadOnlyList<Guid> CompanyIds,
+    bool IsInvited = false);
 
 public sealed record RoleDto(Guid Id, string Name, string? Description, bool IsSystem, IReadOnlyList<string> Permissions);

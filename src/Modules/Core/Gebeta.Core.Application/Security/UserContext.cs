@@ -44,6 +44,21 @@ public sealed class UserContext(
         }
 
         var user = await users.GetByExternalIdAsync(currentUser.ExternalId, cancellationToken).ConfigureAwait(false);
+        if (user is null && currentUser.Username is { } username && await users.GetInvitedAsync(username, cancellationToken).ConfigureAwait(false) is { } invited)
+        {
+            // Set up ahead (invited or migrated): link on the first sign-in, but only with the same email; otherwise no access, and the
+            // username stays the invited person's.
+            if (!invited.LinkSignIn(currentUser.ExternalId, username, currentUser.Email))
+            {
+                return null;
+            }
+
+            invited.UpdateProfile(currentUser.Email, currentUser.FullName ?? invited.FullName);
+            invited.ModifiedAt = clock.GetUtcNow();
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            user = invited;
+        }
+
         if (user is null)
         {
             user = await ProvisionAsync(cancellationToken).ConfigureAwait(false);

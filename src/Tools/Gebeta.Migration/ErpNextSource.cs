@@ -22,6 +22,9 @@ public sealed record ErpOutstanding(string AccountType, string PartyType, string
 
 public sealed record ErpFifoLayer(decimal Qty, decimal Rate);
 
+/// <summary>An enabled system user with their roles and the companies they are restricted to (none: every company).</summary>
+public sealed record ErpUser(string Name, string? Username, string Email, string? FullName, IReadOnlyList<string> Roles, IReadOnlyList<string> Companies);
+
 /// <summary>
 /// A line of a purchase or sales order still open (not completed, closed or cancelled). <see cref="Done"/> is what was received or
 /// delivered, in the line's own unit like <see cref="Qty"/>; <see cref="ConversionFactor"/> turns that unit into the stock unit.
@@ -91,6 +94,8 @@ public interface IErpNextSource
     Task<IReadOnlyList<ErpStockBalance>> StockBalancesAsync(string company, DateOnly asOf, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ErpEmployee>> EmployeesAsync(string company, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ErpUser>> UsersAsync(CancellationToken cancellationToken);
 
     /// <summary>Lines of submitted purchase and sales orders dated by <paramref name="asOf"/> that are not completed, closed or cancelled.</summary>
     Task<IReadOnlyList<ErpOrderLine>> OpenOrderLinesAsync(string company, DateOnly asOf, CancellationToken cancellationToken);
@@ -199,6 +204,22 @@ public sealed class MariaDbErpNextSource(string connectionString) : IErpNextSour
             """, company,
             r => new ErpEmployee(r.GetString(0), Text(r, 1) ?? r.GetString(4), Text(r, 2), Text(r, 3), r.GetString(4), Text(r, 5), DateOnly.FromDateTime(r.GetDateTime(6)),
                 r.GetString(7), r.IsDBNull(8) ? null : DateOnly.FromDateTime(r.GetDateTime(8)), Text(r, 9)), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<ErpUser>> UsersAsync(CancellationToken cancellationToken)
+    {
+        var roles = (await QueryAsync("SELECT parent, role FROM `tabHas Role` WHERE parenttype = 'User'", null, r => (r.GetString(0), r.GetString(1)), cancellationToken)
+            .ConfigureAwait(false)).ToLookup(x => x.Item1, x => x.Item2, StringComparer.Ordinal);
+        var companies = (await QueryAsync("SELECT user, for_value FROM `tabUser Permission` WHERE allow = 'Company'", null, r => (r.GetString(0), r.GetString(1)), cancellationToken)
+            .ConfigureAwait(false)).ToLookup(x => x.Item1, x => x.Item2, StringComparer.Ordinal);
+        return await QueryAsync("""
+            SELECT name, username, email, full_name FROM tabUser
+            WHERE enabled = 1 AND user_type = 'System User' AND name NOT IN ('Administrator', 'Guest')
+            ORDER BY name
+            """, null,
+            r => new ErpUser(r.GetString(0), Text(r, 1), Text(r, 2) ?? r.GetString(0), Text(r, 3),
+                roles[r.GetString(0)].Distinct().Order(StringComparer.Ordinal).ToList(), companies[r.GetString(0)].Distinct().ToList()),
+            cancellationToken).ConfigureAwait(false);
     }
 
     public Task<IReadOnlyList<ErpOrderLine>> OpenOrderLinesAsync(string company, DateOnly asOf, CancellationToken cancellationToken) =>

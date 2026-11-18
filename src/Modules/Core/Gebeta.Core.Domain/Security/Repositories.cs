@@ -4,6 +4,11 @@ public interface IUserRepository
 {
     Task<User?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<User?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken);
+
+    /// <summary>An invited user (not signed in yet) with this username.</summary>
+    Task<User?> GetInvitedAsync(string username, CancellationToken cancellationToken);
+
+    Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken);
     Task<IReadOnlyList<User>> ListAsync(CancellationToken cancellationToken);
     void Add(User user);
 

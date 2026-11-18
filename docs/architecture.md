@@ -179,3 +179,19 @@ identity column for it; give the order explicitly.
 Rows written before the fix keep their old numbers. That only affects test data on development
 databases.
 
+### Invited users (step 44)
+
+A user can exist in Gebeta before their first sign-in (`User.Invite`, `POST /api/core/users`), with
+roles and companies set up ahead; `external_id` stays empty until then. On the first sign-in,
+`UserContext` links the invitation only when both username and email match the token. Otherwise the
+person gets no access, and the invitation stays for the right person. The realm must keep
+self-registration off (`registrationAllowed: false`, `duplicateEmailsAllowed: false`), as the
+shipped realm does.
+
+### Test data in the shared database (debt)
+
+The API tests share one database for speed, so companies, abbreviations and TINs must be unique
+across all tests. Three collisions so far (a company name, a generated abbreviation, "INV") each
+cost a red full run while the tests passed alone. If it happens again, give the tests a helper
+that hands out unique names, abbreviations and TINs.
+

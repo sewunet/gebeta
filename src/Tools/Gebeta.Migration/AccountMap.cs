@@ -17,7 +17,7 @@ public static class AccountMap
     public static IReadOnlyDictionary<string, string?> Read(string path)
     {
         var map = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var fields in File.ReadLines(path).Skip(1).Where(l => !string.IsNullOrWhiteSpace(l)).Select(Split))
+        foreach (var fields in File.ReadLines(path).Skip(1).Where(l => !string.IsNullOrWhiteSpace(l)).Select(Csv.Split))
         {
             var code = fields.Count > 4 ? fields[4].Trim() : string.Empty;
             map[fields[0]] = code.Length == 0 ? null : code;
@@ -34,7 +34,7 @@ public static class AccountMap
         text.AppendLine(string.Join(',', Header));
         foreach (var a in accounts)
         {
-            text.AppendLine(string.Join(',', new[] { a.Account, a.RootType, a.AccountType ?? "", a.Balance.ToString("0.00", CultureInfo.InvariantCulture), code(a) ?? "" }.Select(Quote)));
+            text.AppendLine(string.Join(',', new[] { a.Account, a.RootType, a.AccountType ?? "", a.Balance.ToString("0.00", CultureInfo.InvariantCulture), code(a) ?? "" }.Select(Csv.Quote)));
         }
 
         File.WriteAllText(path, text.ToString());
@@ -86,51 +86,5 @@ public static class AccountMap
                 _ => null,
             },
         };
-    }
-
-    private static string Quote(string value) =>
-        value.IndexOfAny([',', '"', '\n']) >= 0 ? "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : value;
-
-    private static List<string> Split(string line)
-    {
-        var fields = new List<string>();
-        var field = new StringBuilder();
-        var quoted = false;
-        for (var i = 0; i < line.Length; i++)
-        {
-            var c = line[i];
-            if (quoted)
-            {
-                if (c == '"' && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    field.Append('"');
-                    i++;
-                }
-                else if (c == '"')
-                {
-                    quoted = false;
-                }
-                else
-                {
-                    field.Append(c);
-                }
-            }
-            else if (c == '"')
-            {
-                quoted = true;
-            }
-            else if (c == ',')
-            {
-                fields.Add(field.ToString());
-                field.Clear();
-            }
-            else
-            {
-                field.Append(c);
-            }
-        }
-
-        fields.Add(field.ToString());
-        return fields;
     }
 }

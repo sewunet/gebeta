@@ -6,6 +6,7 @@ validation runs. No direct inserts into ledger tables, except opening balances t
 dedicated opening-balance import.
 
 > **Built so far** (`src/Tools/Gebeta.Migration`):
+> - users (step 2): invited with the company, roles only as an administrator chooses them, plus a Keycloak import file;
 > - masters: the company (part of step 1), customers and suppliers, items with their valuation method, warehouses;
 > - employees, salary structures and the assignment history (steps 3–4), proved by recalculating the latest payroll;
 > - salary slip history (step 5), so back payments and reports see the months paid before the cut-over;
@@ -13,7 +14,7 @@ dedicated opening-balance import.
 > - purchase and sales orders still open at the cut-over (part of step 10);
 > - cut-over balances, with `--cutover`: open invoices (step 8), opening stock (step 9) and the opening trial balance (step 7).
 >
-> Not yet built: users and roles, HR masters (grades, steps), BOMs, work orders and assets. Each run prints, for every step, how many records were created,
+> Not yet built: HR masters (grades, steps), BOMs, work orders and assets. Each run prints, for every step, how many records were created,
 > adopted (an existing Gebeta record with the same code was used) or already migrated, plus warnings, failures and the
 > step's check.
 >
@@ -27,7 +28,9 @@ dedicated opening-balance import.
 >     --account-map file.csv   ERPNext account → Gebeta account; written with suggestions when missing
 >     --steps parties,items    only these steps (company always runs first):
 >     --history-from 2024-07-08  slip history from this date (default: all, up to the cut-over)
->                              parties, items, warehouses, employees, structures, assignments, history, payroll,
+>     --user-roles roles.csv     the Gebeta roles each user gets; written for review when missing
+>     --keycloak-users kc.json   Keycloak partial-import file for the users who have not signed in
+>                              users, parties, items, warehouses, employees, structures, assignments, history, payroll,
 >                              leave, invoices, orders, stock, opening
 > ```
 >
@@ -43,6 +46,24 @@ dedicated opening-balance import.
 >   both a customer and a supplier becomes one party of type Both.
 > - Each item's valuation method comes along (FIFO or moving average). LIFO, which IFRS does not
 >   allow, becomes moving average with a warning.
+>
+> How users come over:
+> - Enabled ERPNext system users who may work in this company: those restricted to it, or not
+>   restricted at all. They are **invited** in Gebeta, with access to the company. An invitation is
+>   linked on the first sign-in, and only when both username and email match. The username is the
+>   ERPNext username, or the email when there is none.
+> - **No roles unless chosen.** ERPNext sites often give most users every role; in the local copy,
+>   174 of 206 users are System Managers. Copying that would make them all Gebeta administrators.
+>   - The first run writes the roles file: each user's relevant ERPNext roles and suggested Gebeta
+>     roles (never System Manager), with an empty `gebeta_roles` column.
+>   - Only what an administrator writes in `gebeta_roles` is given. A later run adds those roles to
+>     users who haven't signed in yet; roles are never taken away.
+> - A Gebeta user with the same username who already signs in is given the company. Their roles are
+>   left as an administrator set them.
+> - The sign-in accounts live in Keycloak, and the tool doesn't create them. `--keycloak-users`
+>   writes a partial-import file (Keycloak admin console → Realm settings → Partial import):
+>   usernames, emails and names only, enabled, with no password. Each person sets a password at
+>   first login, after an administrator sets a temporary one or sends a reset email.
 >
 > How employees and payroll come over:
 > - **Employees** are everyone whose status is not Left. Ethiopian names are read as ERPNext usually

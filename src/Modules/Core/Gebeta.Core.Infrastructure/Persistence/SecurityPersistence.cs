@@ -12,7 +12,8 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("app_user"); // "user" is reserved in PostgreSQL
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Id).ValueGeneratedNever();
-        builder.Property(u => u.ExternalId).HasMaxLength(100).IsRequired();
+        builder.Property(u => u.ExternalId).HasMaxLength(100); // empty for invited users until their first sign-in
+        builder.Ignore(u => u.IsInvited);
         builder.HasIndex(u => u.ExternalId).IsUnique();
         builder.Property(u => u.Username).HasMaxLength(140).IsRequired();
         builder.HasIndex(u => u.Username).IsUnique();
@@ -58,6 +59,18 @@ internal sealed class UserRepository(CoreDbContext db) : IUserRepository
 
     public Task<User?> GetByExternalIdAsync(string externalId, CancellationToken cancellationToken) =>
         db.Users.FirstOrDefaultAsync(u => u.ExternalId == externalId, cancellationToken);
+
+    public Task<User?> GetInvitedAsync(string username, CancellationToken cancellationToken)
+    {
+        var name = username.Trim().ToLowerInvariant();
+        return db.Users.FirstOrDefaultAsync(u => u.ExternalId == null && u.Username == name, cancellationToken);
+    }
+
+    public Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken)
+    {
+        var name = username.Trim().ToLowerInvariant();
+        return db.Users.AnyAsync(u => u.Username == name, cancellationToken);
+    }
 
     public async Task<IReadOnlyList<User>> ListAsync(CancellationToken cancellationToken) =>
         await db.Users.AsNoTracking().OrderBy(u => u.Username).ToListAsync(cancellationToken).ConfigureAwait(false);

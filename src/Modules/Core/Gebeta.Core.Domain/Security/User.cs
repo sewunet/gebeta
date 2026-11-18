@@ -13,18 +13,20 @@ public sealed class User : Entity
 
     private User()
     {
-        ExternalId = string.Empty;
         Username = string.Empty;
     }
 
-    private User(string externalId, string username)
+    private User(string? externalId, string username)
     {
         ExternalId = externalId;
         Username = username;
     }
 
-    /// <summary>The <c>sub</c> claim from Keycloak.</summary>
-    public string ExternalId { get; private set; }
+    /// <summary>The <c>sub</c> claim from Keycloak; empty for an invited user until their first sign-in.</summary>
+    public string? ExternalId { get; private set; }
+
+    /// <summary>Invited (roles and companies set up ahead) but not signed in yet.</summary>
+    public bool IsInvited => ExternalId is null;
 
     public string Username { get; private set; }
     public string? Email { get; private set; }
@@ -59,6 +61,44 @@ public sealed class User : Entity
         var user = new User(externalId.Trim(), username.Trim().ToLowerInvariant());
         user.UpdateProfile(email, fullName);
         return user;
+    }
+
+    /// <summary>
+    /// A user set up before their first sign-in (an administrator inviting them, or a data migration), so their roles and companies
+    /// are ready. The first sign-in with the same username and email links the Keycloak identity (see <see cref="LinkSignIn"/>).
+    /// </summary>
+    public static Result<User> Invite(string username, string? email, string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return Error.Validation("A username is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@', StringComparison.Ordinal))
+        {
+            return Error.Validation("An invited user needs an email address; their first sign-in must match it.");
+        }
+
+        var user = new User(null, username.Trim().ToLowerInvariant());
+        user.UpdateProfile(email, fullName);
+        return user;
+    }
+
+    /// <summary>
+    /// The invited user's first sign-in. Only the same username and the same email link the identity: the username alone could be taken
+    /// by someone else in a realm that lets people register.
+    /// </summary>
+    public bool LinkSignIn(string externalId, string? username, string? email)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(externalId);
+        if (!IsInvited || !string.Equals(Username, username?.Trim(), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(Email, email?.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        ExternalId = externalId.Trim();
+        return true;
     }
 
     /// <summary>Copies name and email from the identity provider on each sign-in.</summary>

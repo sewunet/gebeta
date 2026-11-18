@@ -427,7 +427,6 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                         .HasColumnName("email");
 
                     b.Property<string>("ExternalId")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("external_id");

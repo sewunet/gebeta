@@ -182,6 +182,11 @@ public static class CoreEndpoints
             .WithName("ListUsers")
             .RequirePermission(CorePermissions.UsersRead);
 
+        users.MapPost("/", async (InviteUserCommand command, ICommandHandler<InviteUserCommand, UserDto> handler, CancellationToken ct) =>
+                (await handler.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("InviteUser")
+            .RequirePermission(CorePermissions.UsersManage);
+
         users.MapPut("/{userId:guid}/roles/{roleId:guid}", async (Guid userId, Guid roleId, ICommandHandler<AssignRoleCommand, UserDto> handler, CancellationToken ct) =>
                 (await handler.Handle(new AssignRoleCommand(userId, roleId), ct).ConfigureAwait(false)).ToHttp())
             .WithName("AssignRole")

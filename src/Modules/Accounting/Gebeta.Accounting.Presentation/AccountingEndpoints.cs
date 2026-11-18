@@ -153,12 +153,14 @@ public static class AccountingEndpoints
         acc.MapPost("/years/close", async (CloseYearCommand command, ICommandHandler<CloseYearCommand, JournalEntryDto> h, CancellationToken ct) =>
                 (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
             .WithName("CloseYear").RequirePermission(AccountingPermissions.PeriodsClose);
-        acc.MapGet("/reports/profit-and-loss", async (Guid companyId, DateOnly from, DateOnly to, IQueryHandler<ProfitAndLossQuery, ProfitAndLossDto> h, CancellationToken ct) =>
-                (await h.Handle(new ProfitAndLossQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
+        acc.MapGet("/reports/profit-and-loss", async (Guid companyId, DateOnly from, DateOnly to, Guid? costCenterId, IQueryHandler<ProfitAndLossQuery, ProfitAndLossDto> h,
+                CancellationToken ct) =>
+                (await h.Handle(new ProfitAndLossQuery(companyId, from, to, costCenterId), ct).ConfigureAwait(false)).ToHttp())
             .WithName("ProfitAndLoss").RequirePermission(AccountingPermissions.ReportsRead);
         acc.MapGet("/reports/profit-and-loss/compare", async (Guid companyId, DateOnly from, DateOnly to, Gebeta.Accounting.Domain.Ledger.ReportComparison compare,
-                string? format, IQueryHandler<ComparativeProfitAndLossQuery, ComparativeReportDto> h, CancellationToken ct) =>
-                ComparativeResult(await h.Handle(new ComparativeProfitAndLossQuery(companyId, from, to, compare), ct).ConfigureAwait(false), format, $"profit-and-loss-{from:yyyy-MM-dd}"))
+                Guid? costCenterId, string? format, IQueryHandler<ComparativeProfitAndLossQuery, ComparativeReportDto> h, CancellationToken ct) =>
+                ComparativeResult(await h.Handle(new ComparativeProfitAndLossQuery(companyId, from, to, compare, costCenterId), ct).ConfigureAwait(false), format,
+                    $"profit-and-loss-{from:yyyy-MM-dd}"))
             .WithName("ComparativeProfitAndLoss").RequirePermission(AccountingPermissions.ReportsRead);
 
         acc.MapGet("/reports/balance-sheet/compare", async (Guid companyId, DateOnly asOf, Gebeta.Accounting.Domain.Ledger.ReportComparison compare,

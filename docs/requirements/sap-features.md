@@ -158,6 +158,32 @@ component on the object page. No new data is stored. Links across modules use ca
 
 ## 3. Cost centres on postings and profit and loss by cost centre (M, value 5)
 
+> **Built (step 54).**
+> - **Core:** a cost-centre list per company under **Settings → Cost centres**, at `/api/core/cost-centers`.
+>   Every company gets **Main** when it is created, and the migration adds Main to existing companies. Main
+>   cannot be deactivated. Other modules read the list through `ICostCenterDirectory`.
+> - **Ledger:** journal lines and ledger rows have an optional `cost_center_id`. A row that names none belongs
+>   to Main, so postings from invoices, cash, stock, banking and opening balances stay valid unchanged and
+>   land in Main.
+> - **Manual journals:** a cost centre per line. The journal form shows that column once the company has more
+>   than Main, and the API refuses another company's cost centre or an inactive one.
+> - **Payroll:** the employee's payroll profile has a cost centre. The payroll journal puts salary and
+>   employer pension on it, and the payables on none. The employee page has a new **Payment** section for the
+>   payment method, bank account, pension number and cost centre. Until now these could only be set through
+>   the API.
+> - **Reports:** profit and loss and the comparative profit and loss take `?costCenterId=`, and the financial
+>   reports screen has a filter. A test checks that the cost centres add up to the whole.
+>
+> Differences from this note, and what is left:
+> - **Not required on every income and expense line:** an empty line counts as Main instead, so no existing
+>   posting path had to change.
+> - **No account default, and no cost centre yet on invoice lines or cashier movements:** both land in Main
+>   until they are added on the same pattern.
+> - **No "by cost centre" columns layout** yet: one cost centre at a time, through the filter.
+> - **Payroll looks up the cost centre when a slip is submitted:** a profile changed between creating and
+>   submitting a slip uses the new cost centre.
+> - **The migration tool does not map the old cost centres yet.**
+
 **In one line:**
 - **The cost centre list:** each company keeps a short list of cost centres, as a tree. For example: Estate,
   Factory, Workshop, Head office.

@@ -70,7 +70,7 @@ public sealed class ModuleJournalPoster(
     IAccountingUnitOfWork unitOfWork,
     TimeProvider clock)
 {
-    public sealed record Line(string AccountCode, decimal Debit, decimal Credit, string? Description);
+    public sealed record Line(string AccountCode, decimal Debit, decimal Credit, string? Description, Guid? CostCenterId = null);
 
     /// <returns>The posted journal, or null when this source was already posted.</returns>
     public async Task<JournalEntry?> PostAsync(Guid companyId, Guid sourceId, string sourceNumber, JournalSource source, DateOnly postingDate, string remark,
@@ -89,7 +89,7 @@ public sealed class ModuleJournalPoster(
 
         var byCode = (await accounts.ListAsync(companyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
         var journalLines = lines.Select(l => byCode.TryGetValue(l.AccountCode, out var account) && !account.IsGroup
-                ? new JournalLine(account.Id, l.Debit, l.Credit, l.Description ?? remark)
+                ? new JournalLine(account.Id, l.Debit, l.Credit, l.Description ?? remark, l.CostCenterId)
                 : throw new DomainException("accounting.unknown_account", $"Account {l.AccountCode} from {sourceNumber} is not a postable account."))
             .ToList();
         var journal = JournalEntry.Create(companyId, postingDate, remark, journalLines, source, sourceId, sourceNumber);
@@ -135,6 +135,9 @@ public sealed class SalarySlipSubmittedConsumer(ModuleJournalPoster poster, IAcc
         var signed = new Dictionary<string, decimal>(StringComparer.Ordinal); // + debit, − credit
         void Add(string code, decimal amount) => signed[code] = signed.GetValueOrDefault(code) + amount;
 
+        // Salary cost belongs to the employee's cost centre; the payables do not need one.
+        var expenses = new HashSet<string>([EthiopianChartOfAccounts.SalaryExpense, EthiopianChartOfAccounts.EmployerPensionExpense], StringComparer.Ordinal);
+
         foreach (var line in slip.Lines)
         {
             switch (line.Type)
@@ -163,7 +166,8 @@ public sealed class SalarySlipSubmittedConsumer(ModuleJournalPoster poster, IAcc
 
         Add(EthiopianChartOfAccounts.SalaryPayable, -slip.NetPay);
         var lines = signed.Where(kv => kv.Value != 0m).OrderBy(kv => kv.Key, StringComparer.Ordinal)
-            .Select(kv => new ModuleJournalPoster.Line(kv.Key, Math.Max(kv.Value, 0m), Math.Max(-kv.Value, 0m), $"Payroll {slip.Number}")).ToList();
+            .Select(kv => new ModuleJournalPoster.Line(kv.Key, Math.Max(kv.Value, 0m), Math.Max(-kv.Value, 0m), $"Payroll {slip.Number}",
+                expenses.Contains(kv.Key) ? slip.CostCenterId : null)).ToList();
         var journal = await poster.PostAsync(slip.CompanyId, slip.SlipId, slip.Number, JournalSource.Payroll, slip.PeriodEnd,
             $"Payroll journal for salary slip {slip.Number}", lines, "payroll", cancellationToken).ConfigureAwait(false);
         if (journal is not null)
@@ -240,7 +244,7 @@ public sealed record SetUpChartCommand(Guid CompanyId) : ICommand<IReadOnlyList<
 /// <summary>A company's own account (a bank loan, accumulated depreciation...) under one of its groups; it takes the group's root type.</summary>
 public sealed record CreateAccountCommand(Guid CompanyId, string Code, string Name, string ParentCode, bool IsGroup = false) : ICommand<AccountDto>;
 
-public sealed record JournalLineInput(string AccountCode, decimal Debit, decimal Credit, string? Description);
+public sealed record JournalLineInput(string AccountCode, decimal Debit, decimal Credit, string? Description, Guid? CostCenterId = null);
 
 public sealed record CreateJournalCommand(Guid CompanyId, DateOnly PostingDate, string Remark, IReadOnlyList<JournalLineInput> Lines) : ICommand<JournalEntryDto>;
 
@@ -263,6 +267,7 @@ public sealed class JournalHandler(
     ICurrentUser currentUser,
     IAccountingNumbers numbers,
     IAccountingUnitOfWork unitOfWork,
+    ICostCenterDirectory costCenters,
     TimeProvider clock)
     : IQueryHandler<ListAccountsQuery, IReadOnlyList<AccountDto>>,
       ICommandHandler<SetUpChartCommand, IReadOnlyList<AccountDto>>,
@@ -354,6 +359,9 @@ public sealed class JournalHandler(
         }
 
         var byCode = (await accounts.ListAsync(command.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
+        var centers = (command.Lines ?? []).Any(l => l.CostCenterId is not null)
+            ? (await costCenters.ListAsync(command.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(c => c.Id)
+            : [];
         var lines = new List<JournalLine>();
         foreach (var line in command.Lines ?? [])
         {
@@ -367,7 +375,12 @@ public sealed class JournalHandler(
                 return Error.Validation($"{account.Code} {account.Name} is a group; post to one of its accounts.");
             }
 
-            lines.Add(new JournalLine(account.Id, line.Debit, line.Credit, line.Description));
+            if (line.CostCenterId is { } centerId && !(centers.TryGetValue(centerId, out var center) && center.IsActive))
+            {
+                return Error.Validation("The cost centre on a line is not an active cost centre of this company.");
+            }
+
+            lines.Add(new JournalLine(account.Id, line.Debit, line.Credit, line.Description, line.CostCenterId));
         }
 
         JournalEntry journal;
@@ -502,7 +515,7 @@ public sealed class JournalHandler(
     internal static JournalEntryDto ToDto(JournalEntry j, IReadOnlyDictionary<Guid, Account> accounts) => new(
         j.Id, j.Name, j.CompanyId, j.PostingDate, j.Remark, j.Source.ToString(), j.SourceNumber, j.DocStatus.ToString(),
         j.Lines.Select(l => new JournalLineDto(accounts.GetValueOrDefault(l.AccountId)?.Code ?? "?", accounts.GetValueOrDefault(l.AccountId)?.Name ?? "?",
-            l.Debit, l.Credit, l.Description)).ToList(),
+            l.Debit, l.Credit, l.Description, l.CostCenterId)).ToList(),
         j.TotalDebit, j.TotalCredit);
 
     private static AccountDto ToDto(Account a) => new(a.Id, a.Code, a.Name, a.RootType.ToString(), a.IsGroup, a.ParentId);

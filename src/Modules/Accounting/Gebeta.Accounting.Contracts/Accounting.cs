@@ -16,7 +16,7 @@ public static class AccountingPermissions
 
 public sealed record AccountDto(Guid Id, string Code, string Name, string RootType, bool IsGroup, Guid? ParentId);
 
-public sealed record JournalLineDto(string AccountCode, string AccountName, decimal Debit, decimal Credit, string? Description);
+public sealed record JournalLineDto(string AccountCode, string AccountName, decimal Debit, decimal Credit, string? Description, Guid? CostCenterId = null);
 
 public sealed record JournalEntryDto(Guid Id, string? Number, Guid CompanyId, DateOnly PostingDate, string Remark, string Source, string? SourceNumber,
     string Status, IReadOnlyList<JournalLineDto> Lines, decimal TotalDebit, decimal TotalCredit);

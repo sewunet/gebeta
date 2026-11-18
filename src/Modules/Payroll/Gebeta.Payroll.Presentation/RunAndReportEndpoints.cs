@@ -14,9 +14,15 @@ public static class RunAndReportEndpoints
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
+        endpoints.MapGet("/api/payroll/employees/{employeeId:guid}/profile", async (Guid employeeId, IQueryHandler<GetPayrollProfileQuery, PayrollProfileDto> handler,
+                CancellationToken ct) => (await handler.Handle(new GetPayrollProfileQuery(employeeId), ct).ConfigureAwait(false)).ToHttp())
+            .WithTags("Payroll")
+            .WithName("GetPayrollProfile")
+            .RequirePermission(PayrollPermissions.AssignmentsRead);
+
         endpoints.MapPut("/api/payroll/employees/{employeeId:guid}/profile", async (Guid employeeId, ProfileBody body,
                 ICommandHandler<UpdatePayrollProfileCommand, PayrollProfileDto> handler, CancellationToken ct) =>
-                (await handler.Handle(new UpdatePayrollProfileCommand(employeeId, body.PaymentMethod, body.BankName, body.BankAccountNumber, body.PensionNumber), ct)
+                (await handler.Handle(new UpdatePayrollProfileCommand(employeeId, body.PaymentMethod, body.BankName, body.BankAccountNumber, body.PensionNumber, body.CostCenterId), ct)
                     .ConfigureAwait(false)).ToHttp())
             .WithTags("Payroll")
             .WithName("UpdatePayrollProfile")
@@ -118,4 +124,5 @@ public static class RunAndReportEndpoints
     }
 }
 
-public sealed record ProfileBody(Gebeta.Payroll.Domain.Salary.PaymentMethod PaymentMethod, string? BankName, string? BankAccountNumber, string? PensionNumber);
+public sealed record ProfileBody(Gebeta.Payroll.Domain.Salary.PaymentMethod PaymentMethod, string? BankName, string? BankAccountNumber, string? PensionNumber,
+    Guid? CostCenterId = null);

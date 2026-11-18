@@ -115,8 +115,11 @@ public static class EthiopianChartOfAccounts
     ];
 }
 
-/// <summary>A line of a journal entry: either a debit or a credit, never both.</summary>
-public sealed record JournalLine(Guid AccountId, decimal Debit, decimal Credit, string? Description);
+/// <summary>
+/// A line of a journal entry: either a debit or a credit, never both. <paramref name="CostCenterId"/> says which part of the company an income
+/// or expense belongs to; none means the company's Main cost centre.
+/// </summary>
+public sealed record JournalLine(Guid AccountId, decimal Debit, decimal Credit, string? Description, Guid? CostCenterId = null);
 
 public enum JournalSource
 {
@@ -211,14 +214,16 @@ public sealed class JournalEntry : DocumentBase
     public IReadOnlyList<GlEntry> Post()
     {
         Submit();
-        return _lines.Select(l => GlEntry.Create(CompanyId, l.AccountId, PostingDate, l.Debit, l.Credit, Id, Name ?? string.Empty, l.Description ?? Remark, false)).ToList();
+        return _lines.Select(l => GlEntry.Create(CompanyId, l.AccountId, PostingDate, l.Debit, l.Credit, Id, Name ?? string.Empty, l.Description ?? Remark, false,
+            l.CostCenterId)).ToList();
     }
 
     /// <summary>Cancels and returns the reversal rows (debits and credits swapped, same posting date).</summary>
     public IReadOnlyList<GlEntry> Reverse()
     {
         Cancel();
-        return _lines.Select(l => GlEntry.Create(CompanyId, l.AccountId, PostingDate, l.Credit, l.Debit, Id, Name ?? string.Empty, $"Reversal: {l.Description ?? Remark}", true)).ToList();
+        return _lines.Select(l => GlEntry.Create(CompanyId, l.AccountId, PostingDate, l.Credit, l.Debit, Id, Name ?? string.Empty, $"Reversal: {l.Description ?? Remark}", true,
+            l.CostCenterId)).ToList();
     }
 }
 
@@ -241,8 +246,11 @@ public sealed class GlEntry : Entity
     public string Description { get; private set; }
     public bool IsReversal { get; private set; }
 
+    /// <summary>The cost centre the row belongs to; none means the company's Main cost centre.</summary>
+    public Guid? CostCenterId { get; private set; }
+
     internal static GlEntry Create(Guid companyId, Guid accountId, DateOnly postingDate, decimal debit, decimal credit, Guid voucherId, string voucherNumber,
-        string description, bool isReversal) =>
+        string description, bool isReversal, Guid? costCenterId = null) =>
         new()
         {
             CompanyId = companyId,
@@ -254,6 +262,7 @@ public sealed class GlEntry : Entity
             VoucherNumber = voucherNumber,
             Description = description.Length > 300 ? description[..300] : description,
             IsReversal = isReversal,
+            CostCenterId = costCenterId,
         };
 }
 
@@ -277,8 +286,9 @@ public interface IJournalRepository
 
     /// <summary>Debit and credit totals per account posted from <paramref name="from"/> to <paramref name="to"/>.</summary>
     /// <param name="excludeYearEnd">Leave out year-end closing journals (profit and loss shows the year's result, not its closing).</param>
+    /// <param name="costCenter">Only rows of this cost centre; with <c>IncludeUnassigned</c> (the Main cost centre) also the rows that name none.</param>
     Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsBetweenAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken,
-        bool excludeYearEnd = false);
+        bool excludeYearEnd = false, (Guid Id, bool IncludeUnassigned)? costCenter = null);
 
     /// <summary>The submitted journal of a source type posted on a date, if any (e.g. the year-end closing of a fiscal year).</summary>
     Task<JournalEntry?> FindSubmittedAsync(Guid companyId, JournalSource source, DateOnly postingDate, CancellationToken cancellationToken);

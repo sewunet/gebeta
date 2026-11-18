@@ -97,7 +97,7 @@ export type PettyCashRequestDto = {
 };
 export type CashMovementDto = { number: string; cashierId: string; kind: string; amount: number; balanceAfter: number; topUpRequest?: PettyCashRequestDto };
 export type AccountDto = { id: string; code: string; name: string; rootType: string; isGroup: boolean; parentId?: string };
-export type JournalLineDto = { accountCode: string; accountName: string; debit: number; credit: number; description?: string };
+export type JournalLineDto = { accountCode: string; accountName: string; debit: number; credit: number; description?: string; costCenterId?: string };
 export type JournalEntryDto = {
   id: string; number?: string; companyId: string; postingDate: string; remark: string; source: string; sourceNumber?: string;
   status: string; lines: JournalLineDto[]; totalDebit: number; totalCredit: number;
@@ -166,6 +166,8 @@ export type ReconciliationDto = {
   suggestions: { statementLineId: string; glEntryId: string }[]; bookBalance: number; unmatchedStatement: number; unmatchedBook: number;
   expectedStatementBalance: number; statementBalance?: number; difference?: number;
 };
+export type CostCenterDto = { id: string; companyId: string; code: string; name: string; isMain: boolean; isActive: boolean };
+export type PayrollProfileDto = { employeeId: string; paymentMethod: "BankTransfer" | "Cash"; bankName?: string; bankAccountNumber?: string; pensionNumber?: string; costCenterId?: string };
 export type ItemDto = { id: string; companyId: string; code: string; name: string; uom: string; group?: string; isStockItem: boolean; isActive: boolean };
 export type WarehouseDto = { id: string; companyId: string; code: string; name: string; stockAccountCode: string };
 export type ItemStockSettingDto = { itemId: string; method: "MovingAverage" | "Fifo"; hasMovements: boolean };

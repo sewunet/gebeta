@@ -55,3 +55,15 @@ public interface IItemDirectory
     Task<ItemInfo?> GetAsync(Guid itemId, CancellationToken cancellationToken);
     Task<IReadOnlyList<ItemInfo>> ListAsync(Guid companyId, CancellationToken cancellationToken);
 }
+
+/// <summary>A cost centre as other modules see it (provided by Core).</summary>
+public sealed record CostCenterInfo(Guid Id, Guid CompanyId, string Code, string Name, bool IsMain, bool IsActive);
+
+/// <summary>Cost centres of a company: Accounting checks the ones postings name, Payroll and Cash keep defaults (provided by Core).</summary>
+public interface ICostCenterDirectory
+{
+    Task<CostCenterInfo?> GetAsync(Guid costCenterId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CostCenterInfo>> ListAsync(Guid companyId, CancellationToken cancellationToken);
+}
+

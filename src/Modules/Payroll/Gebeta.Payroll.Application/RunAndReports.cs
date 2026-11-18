@@ -8,12 +8,29 @@ namespace Gebeta.Payroll.Application;
 
 // ---------------------------------------------------------------- payroll profile
 
-public sealed record UpdatePayrollProfileCommand(Guid EmployeeId, PaymentMethod PaymentMethod, string? BankName, string? BankAccountNumber, string? PensionNumber)
-    : ICommand<PayrollProfileDto>;
+public sealed record UpdatePayrollProfileCommand(Guid EmployeeId, PaymentMethod PaymentMethod, string? BankName, string? BankAccountNumber, string? PensionNumber,
+    Guid? CostCenterId = null) : ICommand<PayrollProfileDto>;
 
-public sealed class PayrollProfileHandler(IPayrollProfileRepository profiles, IEmployeeDirectory employees, ICompanyAccess access, IPayrollUnitOfWork unitOfWork, TimeProvider clock)
-    : ICommandHandler<UpdatePayrollProfileCommand, PayrollProfileDto>
+public sealed record GetPayrollProfileQuery(Guid EmployeeId) : IQuery<PayrollProfileDto>;
+
+public sealed class PayrollProfileHandler(IPayrollProfileRepository profiles, IEmployeeDirectory employees, ICompanyAccess access, ICostCenterDirectory costCenters,
+    IPayrollUnitOfWork unitOfWork, TimeProvider clock)
+    : ICommandHandler<UpdatePayrollProfileCommand, PayrollProfileDto>, IQueryHandler<GetPayrollProfileQuery, PayrollProfileDto>
 {
+    /// <summary>The employee's payroll profile; one never saved reads as the default (bank transfer, nothing filled in).</summary>
+    public async Task<Result<PayrollProfileDto>> Handle(GetPayrollProfileQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var employee = await employees.GetAsync(query.EmployeeId, cancellationToken).ConfigureAwait(false);
+        if (employee is null || !await access.CanAccessAsync(employee.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            return Error.NotFound("Employee", query.EmployeeId);
+        }
+
+        var p = await profiles.GetAsync(employee.Id, cancellationToken).ConfigureAwait(false);
+        return new PayrollProfileDto(employee.Id, (p?.PaymentMethod ?? PaymentMethod.BankTransfer).ToString(), p?.BankName, p?.BankAccountNumber, p?.PensionNumber, p?.CostCenterId);
+    }
+
     public async Task<Result<PayrollProfileDto>> Handle(UpdatePayrollProfileCommand command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -21,6 +38,15 @@ public sealed class PayrollProfileHandler(IPayrollProfileRepository profiles, IE
         if (employee is null || !await access.CanAccessAsync(employee.CompanyId, cancellationToken).ConfigureAwait(false))
         {
             return Error.NotFound("Employee", command.EmployeeId);
+        }
+
+        if (command.CostCenterId is { } centerId)
+        {
+            var center = await costCenters.GetAsync(centerId, cancellationToken).ConfigureAwait(false);
+            if (center is not { IsActive: true } || center.CompanyId != employee.CompanyId)
+            {
+                return Error.Validation("Choose an active cost centre of the employee's company.");
+            }
         }
 
         var profile = await profiles.GetAsync(employee.Id, cancellationToken).ConfigureAwait(false);
@@ -37,9 +63,10 @@ public sealed class PayrollProfileHandler(IPayrollProfileRepository profiles, IE
             return updated.Error!;
         }
 
+        profile.SetCostCenter(command.CostCenterId);
         profile.ModifiedAt = clock.GetUtcNow();
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return new PayrollProfileDto(employee.Id, profile.PaymentMethod.ToString(), profile.BankName, profile.BankAccountNumber, profile.PensionNumber);
+        return new PayrollProfileDto(employee.Id, profile.PaymentMethod.ToString(), profile.BankName, profile.BankAccountNumber, profile.PensionNumber, profile.CostCenterId);
     }
 }
 

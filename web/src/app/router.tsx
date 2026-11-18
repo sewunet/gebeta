@@ -25,6 +25,7 @@ const stockLedger = createRoute({ getParentRoute: () => root, path: "/stock/ledg
 const dashboard = createRoute({ getParentRoute: () => root, path: "/", component: lazyRouteComponent(() => import("../pages/Home"), "Home") });
 const companies = createRoute({ getParentRoute: () => root, path: "/companies", component: lazyRouteComponent(() => import("../pages/Companies"), "Companies") });
 const employees = createRoute({ getParentRoute: () => root, path: "/employees", component: lazyRouteComponent(() => import("../pages/Employees"), "Employees") });
+const costCenters = createRoute({ getParentRoute: () => root, path: "/cost-centers", component: lazyRouteComponent(() => import("../pages/CostCenters"), "CostCenters") });
 const companyPage = createRoute({ getParentRoute: () => root, path: "/companies/$id", component: lazyRouteComponent(() => import("../pages/Companies"), "CompanyDetail") });
 const users = createRoute({ getParentRoute: () => root, path: "/users", component: lazyRouteComponent(() => import("../pages/Users"), "Users") });
 const userPage = createRoute({ getParentRoute: () => root, path: "/users/$id", component: lazyRouteComponent(() => import("../pages/Users"), "UserDetail") });
@@ -74,7 +75,7 @@ const banking = createRoute({ getParentRoute: () => root, path: "/accounting/ban
 const ageing = createRoute({ getParentRoute: () => root, path: "/accounting/ageing", component: lazyRouteComponent(() => import("../pages/accounting/Ageing"), "Ageing") });
 
 export const router = createRouter({
-  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, loans, loanNew, loan, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, journalVoucher, paymentVoucher, cashVoucher, trialBalance, parties, party, partyStatement, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
+  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, costCenters, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, loans, loanNew, loan, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, journalVoucher, paymentVoucher, cashVoucher, trialBalance, parties, party, partyStatement, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
 });
 
 declare module "@tanstack/react-router" {

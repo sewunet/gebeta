@@ -29,6 +29,7 @@ public static class CoreEndpoints
         MapUsersAndRoles(endpoints);
         MapSettings(endpoints);
         MapItems(endpoints);
+        MapCostCenters(endpoints);
         MapEmployees(endpoints);
 
         var parties = endpoints.MapGroup("/api/core/parties").WithTags("Core: Customers and suppliers");
@@ -64,6 +65,22 @@ public static class CoreEndpoints
         items.MapPut("/{id:guid}", async (Guid id, ItemBody b, ICommandHandler<Gebeta.Core.Application.Items.UpdateItemCommand, ItemDto> h, CancellationToken ct) =>
                 (await h.Handle(new Gebeta.Core.Application.Items.UpdateItemCommand(id, b.Name, b.Uom, b.Group, b.IsStockItem, b.IsActive), ct).ConfigureAwait(false)).ToHttp())
             .WithName("UpdateItem").RequirePermission(CorePermissions.ItemsManage);
+    }
+
+    private static void MapCostCenters(IEndpointRouteBuilder endpoints)
+    {
+        var centers = endpoints.MapGroup("/api/core/cost-centers").WithTags("Core: Cost centres");
+        centers.MapGet("/", async (Guid companyId, IQueryHandler<Gebeta.Core.Application.CostCenters.ListCostCentersQuery, IReadOnlyList<CostCenterDto>> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.CostCenters.ListCostCentersQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListCostCenters").RequirePermission(CorePermissions.CostCentersRead);
+        centers.MapPost("/", async (Gebeta.Core.Application.CostCenters.CreateCostCenterCommand command,
+                ICommandHandler<Gebeta.Core.Application.CostCenters.CreateCostCenterCommand, CostCenterDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateCostCenter").RequirePermission(CorePermissions.CostCentersManage);
+        centers.MapPut("/{id:guid}", async (Guid id, CostCenterBody b, ICommandHandler<Gebeta.Core.Application.CostCenters.UpdateCostCenterCommand, CostCenterDto> h,
+                CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.CostCenters.UpdateCostCenterCommand(id, b.Name, b.IsActive), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("UpdateCostCenter").RequirePermission(CorePermissions.CostCentersManage);
     }
 
     private static void MapEmployees(IEndpointRouteBuilder endpoints)
@@ -280,3 +297,4 @@ public sealed record EmployeeLinkBody(Guid? EmployeeId);
 
 public sealed record AmountInWordsDto(string English, string Amharic);
 
+public sealed record CostCenterBody(string Name, bool IsActive);

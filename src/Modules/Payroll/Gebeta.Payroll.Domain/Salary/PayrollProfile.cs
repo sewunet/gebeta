@@ -33,6 +33,12 @@ public sealed class EmployeePayrollProfile : Entity
     /// <summary>Registration number at the pension agency (private or public servants).</summary>
     public string? PensionNumber { get; private set; }
 
+    /// <summary>Where the employee's salary cost is reported (a Core cost centre); none means the company's Main one.</summary>
+    public Guid? CostCenterId { get; private set; }
+
+    /// <summary>Sets the cost centre; the caller checks it is an active cost centre of the employee's company.</summary>
+    public void SetCostCenter(Guid? costCenterId) => CostCenterId = costCenterId;
+
     public static EmployeePayrollProfile Create(Guid companyId, Guid employeeId) => new(companyId, employeeId);
 
     public Result Update(PaymentMethod method, string? bankName, string? accountNumber, string? pensionNumber)

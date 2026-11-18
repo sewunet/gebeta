@@ -119,7 +119,8 @@ public sealed record SalarySlipSubmitted(
     decimal NetPay,
     decimal EmployerContributions,
     IReadOnlyList<SalarySlipLineData> Lines,
-    DateTimeOffset OccurredAt);
+    DateTimeOffset OccurredAt,
+    Guid? CostCenterId = null); // the employee's cost centre for the salary cost; none means the company's Main one
 
 /// <summary>Published when a submitted salary slip is cancelled; the journal is reversed.</summary>
 public sealed record SalarySlipCancelled(Guid SlipId, string Number, Guid CompanyId, DateTimeOffset OccurredAt);
@@ -179,7 +180,7 @@ public sealed record SalaryBackPaymentSubmitted(Guid BackPaymentId, string Numbe
 
 public sealed record SalaryBackPaymentCancelled(Guid BackPaymentId, string Number, Guid CompanyId, DateTimeOffset OccurredAt);
 
-public sealed record PayrollProfileDto(Guid EmployeeId, string PaymentMethod, string? BankName, string? BankAccountNumber, string? PensionNumber);
+public sealed record PayrollProfileDto(Guid EmployeeId, string PaymentMethod, string? BankName, string? BankAccountNumber, string? PensionNumber, Guid? CostCenterId = null);
 
 public sealed record PayrollRunIssueDto(Guid EmployeeId, string EmployeeName, string Reason);
 

@@ -14,7 +14,8 @@ public sealed record ReopenPeriodCommand(Guid CompanyId, string Reason) : IComma
 
 public sealed record ListPeriodClosingsQuery(Guid CompanyId) : IQuery<PeriodClosingsDto>;
 
-public sealed record ProfitAndLossQuery(Guid CompanyId, DateOnly From, DateOnly To) : IQuery<ProfitAndLossDto>;
+/// <param name="CostCenterId">Only this cost centre's income and expenses (the Main one also takes postings that name none).</param>
+public sealed record ProfitAndLossQuery(Guid CompanyId, DateOnly From, DateOnly To, Guid? CostCenterId = null) : IQuery<ProfitAndLossDto>;
 
 public sealed record BalanceSheetQuery(Guid CompanyId, DateOnly AsOf) : IQuery<BalanceSheetDto>;
 
@@ -29,6 +30,7 @@ public sealed class PeriodsAndReportsHandler(
     ICompanyAccess access,
     ICurrentUser currentUser,
     IAccountingUnitOfWork unitOfWork,
+    ICostCenterDirectory costCenters,
     TimeProvider clock)
     : ICommandHandler<ClosePeriodCommand, PeriodClosingDto>,
       ICommandHandler<ReopenPeriodCommand, PeriodClosingDto>,
@@ -135,8 +137,20 @@ public sealed class PeriodsAndReportsHandler(
             return Error.NotFound("Company", query.CompanyId);
         }
 
-        var rows = await RowsAsync(query.CompanyId, await journals.TotalsBetweenAsync(query.CompanyId, query.From, query.To, cancellationToken, excludeYearEnd: true).ConfigureAwait(false),
-            cancellationToken).ConfigureAwait(false);
+        (Guid, bool)? center = null;
+        if (query.CostCenterId is { } centerId)
+        {
+            var found = await costCenters.GetAsync(centerId, cancellationToken).ConfigureAwait(false);
+            if (found is null || found.CompanyId != query.CompanyId)
+            {
+                return Error.NotFound("Cost centre", centerId);
+            }
+
+            center = (found.Id, found.IsMain);
+        }
+
+        var rows = await RowsAsync(query.CompanyId, await journals.TotalsBetweenAsync(query.CompanyId, query.From, query.To, cancellationToken, excludeYearEnd: true,
+            costCenter: center).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
         var income = rows.Where(r => r.RootType == nameof(RootType.Income)).ToList();
         var expenses = rows.Where(r => r.RootType == nameof(RootType.Expense)).ToList();
         var totalIncome = income.Sum(r => r.Amount);

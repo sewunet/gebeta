@@ -67,6 +67,12 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<Gebeta.Core.Domain.Parties.IPartyRepository, PartyRepository>();
         services.AddScoped<Gebeta.Core.Domain.Items.IItemRepository, ItemRepository>();
+        services.AddScoped<Gebeta.Core.Domain.CostCenters.ICostCenterRepository, CostCenterRepository>();
+        services.AddScoped<Gebeta.Core.Application.CostCenters.CostCenterHandler>();
+        services.AddScoped<ICostCenterDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.CostCenters.CreateCostCenterCommand, CostCenterDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.CostCenters.UpdateCostCenterCommand, CostCenterDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.CostCenters.ListCostCentersQuery, IReadOnlyList<CostCenterDto>>>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());
         services.AddScoped<Gebeta.Core.Application.Items.ItemHandler>();
         services.AddScoped<IItemDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.Items.ItemHandler>());
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.Items.CreateItemCommand, ItemDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Items.ItemHandler>());

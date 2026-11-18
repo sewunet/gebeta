@@ -553,6 +553,10 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("company_id");
 
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cost_center_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -616,6 +620,9 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId", "PostingDate")
                         .HasDatabaseName("ix_gl_entry_company_id_posting_date");
+
+                    b.HasIndex("CompanyId", "CostCenterId", "PostingDate")
+                        .HasDatabaseName("ix_gl_entry_company_id_cost_center_id_posting_date");
 
                     b.ToTable("gl_entry", "accounting");
                 });

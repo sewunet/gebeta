@@ -11,6 +11,7 @@ import { Dialog, EditFooter, Fields, FilterBar, FilterField, ListReport, Message
 
 // Payroll's part of the employee page, loaded only when shown (and only when Payroll is installed).
 const EmployeeSalary = lazy(() => import("./payroll/EmployeeSalary").then((m) => ({ default: m.EmployeeSalary })));
+const EmployeePayment = lazy(() => import("./payroll/EmployeePayment").then((m) => ({ default: m.EmployeePayment })));
 
 /** List report of employees with search and filters; "Create" opens a dialog, a row opens the employee. */
 export function Employees() {
@@ -168,6 +169,9 @@ export function EmployeeDetail() {
         ...(modules.some((m) => m.id === "payroll") && can(me, "payroll.assignments.read") ? [{
           id: "salary", title: t("ui.salary"),
           content: <Suspense fallback={<p className="muted">{t("common.loading")}</p>}><EmployeeSalary employeeId={e.id} joined={e.dateOfJoining} /></Suspense>,
+        }, {
+          id: "payment", title: t("payment.title"),
+          content: <Suspense fallback={<p className="muted">{t("common.loading")}</p>}><EmployeePayment employeeId={e.id} /></Suspense>,
         }] : [])]}
       />
       <Dialog open={leaving} title={t("employees.recordLeaving")} onClose={() => setLeaving(false)}

@@ -23,7 +23,9 @@ public static class CorePermissions
     public const string PartiesManage = "core.parties.manage";
     public const string ItemsRead = "core.items.read";
     public const string ItemsManage = "core.items.manage";
+    public const string CostCentersRead = "core.cost-centers.read";
+    public const string CostCentersManage = "core.cost-centers.manage";
 
     public static IReadOnlyList<string> All { get; } =
-        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage, ItemsRead, ItemsManage];
+        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage, ItemsRead, ItemsManage, CostCentersRead, CostCentersManage];
 }

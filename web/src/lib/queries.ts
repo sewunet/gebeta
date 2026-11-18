@@ -5,12 +5,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "../app/context";
 import { api } from "./api";
-import { can, type BankAccountDto, type CashierDto, type ItemDto, type PartyDto, type PurchaseOrderDto, type RoleDto, type SalaryStructureDto, type SalesOrderDto, type UserDto, type WarehouseDto } from "./types";
+import { can, type BankAccountDto, type CashierDto, type CostCenterDto, type ItemDto, type PartyDto, type PurchaseOrderDto, type RoleDto, type SalaryStructureDto, type SalesOrderDto, type UserDto, type WarehouseDto } from "./types";
 
 /** Customers and suppliers of the selected company (kept in Core). */
 export function useParties() {
   const { company } = useSession();
   return useQuery({ queryKey: ["parties", company?.id], queryFn: () => api<PartyDto[]>(`/api/core/parties?companyId=${company!.id}`), enabled: !!company });
+}
+
+/** Cost centres of the selected company (kept in Core; Main first). Empty without the permission to read them. */
+export function useCostCenters() {
+  const { company, me } = useSession();
+  return useQuery({
+    queryKey: ["cost-centers", company?.id],
+    queryFn: () => api<CostCenterDto[]>(`/api/core/cost-centers?companyId=${company!.id}`),
+    enabled: !!company && can(me, "core.cost-centers.read"),
+  });
 }
 
 /** Items of the selected company (kept in Core). */

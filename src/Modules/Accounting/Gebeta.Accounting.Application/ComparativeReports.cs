@@ -5,7 +5,8 @@ using Gebeta.SharedKernel;
 
 namespace Gebeta.Accounting.Application;
 
-public sealed record ComparativeProfitAndLossQuery(Guid CompanyId, DateOnly From, DateOnly To, ReportComparison Compare) : IQuery<ComparativeReportDto>;
+public sealed record ComparativeProfitAndLossQuery(Guid CompanyId, DateOnly From, DateOnly To, ReportComparison Compare, Guid? CostCenterId = null)
+    : IQuery<ComparativeReportDto>;
 
 public sealed record ComparativeBalanceSheetQuery(Guid CompanyId, DateOnly AsOf, ReportComparison Compare) : IQuery<ComparativeReportDto>;
 
@@ -37,8 +38,8 @@ public sealed class ComparativeReportsHandler(
         }
 
         var (current, comparison) = ComparisonPeriods.ForRange(query.From, query.To, query.Compare, ethiopian);
-        var now = await profitAndLoss.Handle(new ProfitAndLossQuery(query.CompanyId, current.From, current.To), cancellationToken).ConfigureAwait(false);
-        var then = await profitAndLoss.Handle(new ProfitAndLossQuery(query.CompanyId, comparison.From, comparison.To), cancellationToken).ConfigureAwait(false);
+        var now = await profitAndLoss.Handle(new ProfitAndLossQuery(query.CompanyId, current.From, current.To, query.CostCenterId), cancellationToken).ConfigureAwait(false);
+        var then = await profitAndLoss.Handle(new ProfitAndLossQuery(query.CompanyId, comparison.From, comparison.To, query.CostCenterId), cancellationToken).ConfigureAwait(false);
         if (now.IsFailure || then.IsFailure)
         {
             return (now.Error ?? then.Error)!;

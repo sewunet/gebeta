@@ -176,6 +176,7 @@ public sealed class SalarySlipHandler(
     IPayrollPaymentDays paymentDays,
     IAdditionalPayRepository additionalPay,
     IEmployeeLoanRepository loans,
+    IPayrollProfileRepository profiles,
     IPayrollNumbers numbers,
     IPayrollUnitOfWork unitOfWork,
     TimeProvider clock)
@@ -287,7 +288,7 @@ public sealed class SalarySlipHandler(
         unitOfWork.Publish(new SalarySlipSubmitted(slip.Id, slip.Name!, slip.CompanyId, slip.EmployeeId, slip.PeriodStart, slip.PeriodEnd,
             slip.GrossPay, slip.TotalDeductions, slip.NetPay, slip.EmployerContributions,
             slip.Lines.Select(l => new SalarySlipLineData(l.Abbreviation, l.Component, l.Type.ToString(), l.Amount)).ToList(),
-            slip.ModifiedAt.Value));
+            slip.ModifiedAt.Value, (await profiles.GetAsync(slip.EmployeeId, cancellationToken).ConfigureAwait(false))?.CostCenterId));
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return PayrollMapping.ToDto(slip);
     }

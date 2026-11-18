@@ -50,7 +50,8 @@
     "additionalSalary": "Additional salary",
     "loans": "Loans and deductions",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "costCenters": "Cost centres"
   },
   "common": {
     "company": "Company",
@@ -555,7 +556,8 @@
     "myPayslips": "Your pay, month by month",
     "myLeave": "Your balance and requests",
     "additionalSalary": "Overtime, allowances, deductions",
-    "loans": "Advances, Idir, court orders"
+    "loans": "Advances, Idir, court orders",
+    "costCenters": "Estate, factory, head office"
   },
   "ui": {
     "search": "Search",
@@ -922,5 +924,25 @@
     "confirm_one": "{{count}} employee is flagged in the checks. Submit anyway?",
     "confirm_other": "{{count}} employees are flagged in the checks. Submit anyway?",
     "submitAnyway": "Submit anyway"
+  },
+  "costCenters": {
+    "explain": "Income and expenses can be reported per cost centre. Main always exists and takes every posting that names no other cost centre.",
+    "main": "default",
+    "add": "Add",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "namePlaceholder": "Cane estate",
+    "all": "All"
+  },
+  "payment": {
+    "title": "Payment",
+    "method": "Paid by",
+    "BankTransfer": "Bank transfer",
+    "Cash": "Cash",
+    "bank": "Bank",
+    "account": "Account number",
+    "missing": "missing",
+    "pension": "Pension number",
+    "mainDefault": "Main (default)"
   }
 }

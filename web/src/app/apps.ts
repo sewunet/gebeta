@@ -57,6 +57,7 @@ export const APPS: AppEntry[] = [
   { id: "calculator", group: "payroll", path: "/payroll/calculator", title: "nav.calculator", subtitle: "tiles.calculator", permission: "payroll.calculator.use", module: "payroll" },
 
   { id: "companies", group: "settings", path: "/companies", title: "nav.companies", subtitle: "tiles.companies", permission: "core.companies.read" },
+  { id: "cost-centers", group: "settings", path: "/cost-centers", title: "nav.costCenters", subtitle: "tiles.costCenters", permission: "core.cost-centers.read" },
   { id: "users", group: "settings", path: "/users", title: "nav.users", subtitle: "tiles.users", permission: "core.users.read" },
   { id: "roles", group: "settings", path: "/roles", title: "nav.roles", subtitle: "tiles.roles", permission: "core.roles.read" },
 ];

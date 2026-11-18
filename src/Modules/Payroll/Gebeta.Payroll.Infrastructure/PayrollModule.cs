@@ -98,7 +98,9 @@ public sealed class PayrollModule : IErpModule
         services.AddScoped<IQueryHandler<GetBackPaymentQuery, SalaryBackPaymentDto>>(sp => sp.GetRequiredService<BackPaymentHandler>());
         services.AddScoped<IQueryHandler<ListBackPaymentsQuery, IReadOnlyList<SalaryBackPaymentDto>>>(sp => sp.GetRequiredService<BackPaymentHandler>());
 
-        services.AddScoped<ICommandHandler<UpdatePayrollProfileCommand, PayrollProfileDto>, PayrollProfileHandler>();
+        services.AddScoped<PayrollProfileHandler>();
+        services.AddScoped<ICommandHandler<UpdatePayrollProfileCommand, PayrollProfileDto>>(sp => sp.GetRequiredService<PayrollProfileHandler>());
+        services.AddScoped<IQueryHandler<GetPayrollProfileQuery, PayrollProfileDto>>(sp => sp.GetRequiredService<PayrollProfileHandler>());
         services.AddScoped<PayrollRunHandler>();
         services.AddScoped<ICommandHandler<CreatePayrollRunCommand, PayrollRunDto>>(sp => sp.GetRequiredService<PayrollRunHandler>());
         services.AddScoped<ICommandHandler<GeneratePayrollRunCommand, PayrollRunDto>>(sp => sp.GetRequiredService<PayrollRunHandler>());

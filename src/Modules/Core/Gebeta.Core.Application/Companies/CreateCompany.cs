@@ -16,7 +16,7 @@ public sealed record CreateCompanyCommand(
     string? VatRegistrationNumber,
     string? TradeLicenseNumber) : ICommand<CompanyDto>;
 
-public sealed class CreateCompanyHandler(ICompanyRepository companies, ICoreUnitOfWork unitOfWork, Security.UserContext userContext, TimeProvider clock)
+public sealed class CreateCompanyHandler(ICompanyRepository companies, Gebeta.Core.Domain.CostCenters.ICostCenterRepository costCenters, ICoreUnitOfWork unitOfWork, Security.UserContext userContext, TimeProvider clock)
     : ICommandHandler<CreateCompanyCommand, CompanyDto>
 {
     public async Task<Result<CompanyDto>> Handle(CreateCompanyCommand command, CancellationToken cancellationToken)
@@ -38,6 +38,9 @@ public sealed class CreateCompanyHandler(ICompanyRepository companies, ICoreUnit
 
         company.CreatedAt = clock.GetUtcNow();
         companies.Add(company);
+        var main = Gebeta.Core.Domain.CostCenters.CostCenter.Main(company.Id);
+        main.CreatedAt = company.CreatedAt;
+        costCenters.Add(main); // every company has its Main cost centre from the start
 
         // The creator can always work in the company they created.
         if (await userContext.GetAsync(cancellationToken).ConfigureAwait(false) is { } creator)

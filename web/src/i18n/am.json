@@ -50,7 +50,8 @@
     "additionalSalary": "ተጨማሪ ክፍያ",
     "loans": "ብድርና ቋሚ ተቀናሾች",
     "reports": "ሪፖርቶች",
-    "settings": "ቅንብሮች"
+    "settings": "ቅንብሮች",
+    "costCenters": "የወጪ ማዕከላት"
   },
   "common": {
     "company": "ኩባንያ",
@@ -555,7 +556,8 @@
     "myPayslips": "ደመወዝዎ በየወሩ",
     "myLeave": "ቀሪ ፈቃድዎ እና ጥያቄዎችዎ",
     "additionalSalary": "የትርፍ ሰዓት፣ አበሎች፣ ተቀናሾች",
-    "loans": "ቅድሚያ ክፍያ፣ እድር፣ የፍርድ ቤት ትዕዛዝ"
+    "loans": "ቅድሚያ ክፍያ፣ እድር፣ የፍርድ ቤት ትዕዛዝ",
+    "costCenters": "እርሻ፣ ፋብሪካ፣ ዋና መሥሪያ ቤት"
   },
   "ui": {
     "search": "ፈልግ",
@@ -922,5 +924,25 @@
     "confirm_one": "{{count}} ሰራተኛ በፍተሻው ተጠቁሟል። ቢሆንም ይግባ?",
     "confirm_other": "{{count}} ሰራተኞች በፍተሻው ተጠቁመዋል። ቢሆንም ይግባ?",
     "submitAnyway": "ቢሆንም አስገባ"
+  },
+  "costCenters": {
+    "explain": "ገቢና ወጪ በወጪ ማዕከል ሊታይ ይችላል። ዋናው ማዕከል ሁልጊዜ አለ፤ ሌላ ማዕከል ያልተጠቀሰበትን ምዝገባ ሁሉ ይይዛል።",
+    "main": "ነባሪ",
+    "add": "ጨምር",
+    "activate": "አንቃ",
+    "deactivate": "አቦዝን",
+    "namePlaceholder": "የሸንኮራ አገዳ እርሻ",
+    "all": "ሁሉም"
+  },
+  "payment": {
+    "title": "ክፍያ",
+    "method": "የሚከፈለው በ",
+    "BankTransfer": "የባንክ ዝውውር",
+    "Cash": "በጥሬ ገንዘብ",
+    "bank": "ባንክ",
+    "account": "የሂሳብ ቁጥር",
+    "missing": "የለም",
+    "pension": "የጡረታ ቁጥር",
+    "mainDefault": "ዋና (ነባሪ)"
   }
 }

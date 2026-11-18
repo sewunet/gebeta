@@ -108,6 +108,7 @@ internal sealed class GlEntryConfiguration : IEntityTypeConfiguration<GlEntry>
         builder.HasIndex(g => new { g.CompanyId, g.PostingDate });
         builder.HasIndex(g => new { g.AccountId, g.PostingDate });
         builder.HasIndex(g => g.VoucherId);
+        builder.HasIndex(g => new { g.CompanyId, g.CostCenterId, g.PostingDate }); // profit and loss by cost centre
         builder.Property(g => g.CreatedBy).HasMaxLength(140);
         builder.Property(g => g.ModifiedBy).HasMaxLength(140);
         builder.Ignore(g => g.DomainEvents);
@@ -153,13 +154,24 @@ internal sealed class JournalRepository(AccountingDbContext db) : IJournalReposi
         .Select(x => (x.AccountId, x.Debit, x.Credit)).ToList();
 
     public async Task<IReadOnlyList<(Guid AccountId, decimal Debit, decimal Credit)>> TotalsBetweenAsync(Guid companyId, DateOnly from, DateOnly to,
-        CancellationToken cancellationToken, bool excludeYearEnd = false) =>
-        (await db.GlEntries.AsNoTracking().Where(g => g.CompanyId == companyId && g.PostingDate >= from && g.PostingDate <= to)
+        CancellationToken cancellationToken, bool excludeYearEnd = false, (Guid Id, bool IncludeUnassigned)? costCenter = null) =>
+        (await Filtered(db.GlEntries.AsNoTracking().Where(g => g.CompanyId == companyId && g.PostingDate >= from && g.PostingDate <= to), costCenter)
             .Where(g => !excludeYearEnd || !db.Journals.Any(j => j.Id == g.VoucherId && j.Source == JournalSource.YearEnd))
             .GroupBy(g => g.AccountId)
             .Select(g => new { AccountId = g.Key, Debit = g.Sum(x => x.Debit), Credit = g.Sum(x => x.Credit) })
             .ToListAsync(cancellationToken).ConfigureAwait(false))
         .Select(x => (x.AccountId, x.Debit, x.Credit)).ToList();
+
+    private static IQueryable<GlEntry> Filtered(IQueryable<GlEntry> rows, (Guid Id, bool IncludeUnassigned)? costCenter)
+    {
+        if (costCenter is not { } c)
+        {
+            return rows;
+        }
+
+        var id = c.Id;
+        return c.IncludeUnassigned ? rows.Where(g => g.CostCenterId == id || g.CostCenterId == null) : rows.Where(g => g.CostCenterId == id);
+    }
 
     public Task<JournalEntry?> FindSubmittedAsync(Guid companyId, JournalSource source, DateOnly postingDate, CancellationToken cancellationToken) =>
         db.Journals.FirstOrDefaultAsync(j => j.CompanyId == companyId && j.Source == source && j.PostingDate == postingDate && j.DocStatus == DocStatus.Submitted,

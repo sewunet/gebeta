@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../../app/context";
 import { api, download } from "../../lib/api";
+import { useCostCenters } from "../../lib/queries";
 import { formatDate, formatEthiopian, formatMoney, todayIso } from "../../lib/ethiopian";
 import type { AccountDto, BalanceSheetDto, ComparativeReportDto, ComparativeRow, GeneralLedgerDto, ProfitAndLossDto, ReportRow } from "../../lib/types";
 import { DynamicPage, FilterBar, FilterField, MessageStrip, ObjectStatus } from "../../ui/fiori";
@@ -24,19 +25,22 @@ export function FinancialReports() {
   const [to, setTo] = useState(todayIso());
   const [account, setAccount] = useState("1120");
   const [compare, setCompare] = useState<Compare>("None");
+  const [costCenter, setCostCenter] = useState("");
+  const centers = useCostCenters();
+  const byCenter = tab === "pl" && costCenter ? `&costCenterId=${costCenter}` : "";
   const comparing = compare !== "None" && tab !== "gl" && !(tab === "bs" && compare === "LastYearToDate");
   const comparePath = tab === "pl"
-    ? `/api/accounting/reports/profit-and-loss/compare?companyId=${company?.id}&from=${from}&to=${to}&compare=${compare}`
+    ? `/api/accounting/reports/profit-and-loss/compare?companyId=${company?.id}&from=${from}&to=${to}&compare=${compare}${byCenter}`
     : `/api/accounting/reports/balance-sheet/compare?companyId=${company?.id}&asOf=${to}&compare=${compare}`;
   const compared = useQuery({
-    queryKey: ["financial", "compare", tab, company?.id, from, to, compare],
+    queryKey: ["financial", "compare", tab, company?.id, from, to, compare, byCenter],
     queryFn: () => api<ComparativeReportDto>(comparePath),
     enabled: !!company && comparing && from <= to,
   });
   const base = `companyId=${company?.id}`;
   const pl = useQuery({
-    queryKey: ["financial", "pl", company?.id, from, to],
-    queryFn: () => api<ProfitAndLossDto>(`/api/accounting/reports/profit-and-loss?${base}&from=${from}&to=${to}`),
+    queryKey: ["financial", "pl", company?.id, from, to, byCenter],
+    queryFn: () => api<ProfitAndLossDto>(`/api/accounting/reports/profit-and-loss?${base}&from=${from}&to=${to}${byCenter}`),
     enabled: !!company && tab === "pl" && !comparing && from <= to,
   });
   const bs = useQuery({
@@ -87,6 +91,14 @@ export function FinancialReports() {
           )}
           {tab !== "bs" && <FilterField label={t("periods.from")}><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></FilterField>}
           <FilterField label={tab === "bs" ? t("acc.asOf") : t("periods.to")}><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></FilterField>
+          {tab === "pl" && (centers.data?.length ?? 0) > 1 && (
+            <FilterField label={t("nav.costCenters")}>
+              <select value={costCenter} onChange={(e) => setCostCenter(e.target.value)}>
+                <option value="">{t("costCenters.all")}</option>
+                {centers.data!.map((c) => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}
+              </select>
+            </FilterField>
+          )}
           {tab !== "gl" && (
             <FilterField label={t("reports.compareWith")}>
               <select value={compare} onChange={(e) => setCompare(e.target.value as Compare)}>

@@ -22,12 +22,15 @@ public static class PayrollPermissions
     public const string RunsManage = "payroll.runs.manage";
     public const string ReportsRead = "payroll.reports.read";
 
+    public const string AdditionalRead = "payroll.additional-salary.read";
+    public const string AdditionalManage = "payroll.additional-salary.manage";
+
     /// <summary>Self-service: an employee sees their own submitted payslips.</summary>
     public const string SelfRead = "payroll.self.read";
 
     public static IReadOnlyList<string> All { get; } =
         [CalculatorUse, TaxTablesRead, StructuresRead, StructuresManage, AssignmentsRead, AssignmentsManage, SlipsRead, SlipsCreate, SlipsSubmit, SlipsCancel,
-         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel, ProfilesManage, RunsRead, RunsManage, ReportsRead, SelfRead];
+         BackPaymentsRead, BackPaymentsCreate, BackPaymentsSubmit, BackPaymentsCancel, ProfilesManage, RunsRead, RunsManage, ReportsRead, SelfRead, AdditionalRead, AdditionalManage];
 }
 
 /// <summary>A salary component. Type: Earning, Deduction or EmployerContribution.</summary>
@@ -211,3 +214,10 @@ public sealed record BankTransferDto(string CompanyName, DateOnly PeriodStart, D
 
 /// <summary>An amount paid on top of the formulas in one month (overtime, a one-off allowance or deduction).</summary>
 public sealed record SlipAdditionalDto(string Component, string Abbreviation, string Type, bool IsTaxable, decimal Amount);
+
+public sealed record AdditionalSalaryLineDto(Guid EmployeeId, string EmployeeNumber, string EmployeeName, decimal Amount, string? Note);
+
+/// <param name="InSlips">How many of the employees' amounts are already in a salary slip.</param>
+public sealed record AdditionalSalaryDto(Guid Id, string? Number, Guid CompanyId, DateOnly PayrollDate, string Component, string Abbreviation, string Type,
+    bool IsTaxable, string Status, string? Remark, IReadOnlyList<AdditionalSalaryLineDto> Lines, decimal Total, int InSlips);
+

@@ -139,3 +139,22 @@ company is live yet.
 Slips paid in the previous system come over at cut-over as history (`IsHistory`, see
 docs/data-migration.md step 5). They are submitted, keep their old number and lines, post nothing,
 and cannot be cancelled. Back payments and reports read them like any other slip.
+
+## Additional salary
+
+Overtime, an allowance or a one-off deduction (a cooperative or loan repayment) for many employees
+in one payroll month: one document per component and month (`ADS-` numbers). Amounts are typed
+per employee or pasted from a spreadsheet (employee number and amount).
+
+- Submitting gives each employee an entry. Their slip for that month takes it **into the
+  calculation**, so income tax sees a taxable earning, and the slip shows it as its own line. Use
+  a structure component's abbreviation to add to that component; any other abbreviation joins the
+  month's calculation at zero with the document's type and taxable flag (the same rule back
+  payments use).
+- Back payment entries are different: they are lines of their own, already taxed by the back
+  payment.
+- Cancelling releases the entries, and is refused once a slip includes one: cancel that slip, or
+  correct the amount in a later month.
+- `additional_pay.source_id` is a plain reference shared by every document that gives entries.
+  Back payments link their entries through `back_payment_id`.
+

@@ -73,7 +73,7 @@ public static class BackPaymentCalculator
         {
             var table = taxTableFor(month.PeriodEnd);
             var paidOnTop = month.Additional ?? [];
-            var slip = SalaryCalculator.Calculate(WithComponentsOf(structure, paidOnTop, values),
+            var slip = SalaryCalculator.Calculate(structure.WithAdditional(paidOnTop, values?.Keys.ToList()),
                 new SalaryInput(newBase, month.PaymentDays, month.TotalWorkingDays, month.PeriodEnd,
                     paidOnTop.GroupBy(a => a.Abbreviation).ToDictionary(g => g.Key, g => g.Sum(a => a.Amount)), values), table);
             var (tax, other) = SplitDeductions(slip.Lines.Select(l => (l.Abbreviation, l.Type, l.Amount)), taxComponents);
@@ -110,22 +110,6 @@ public static class BackPaymentCalculator
         ArgumentNullException.ThrowIfNull(earlier);
         return new MonthBaseline(earlier.PeriodStart, earlier.PeriodEnd, backPaymentNumber, paymentDays, totalWorkingDays,
             earlier.NewGross, earlier.NewTaxable, earlier.NewTax, earlier.NewOtherDeductions, earlier.NewEmployerContributions, additional);
-    }
-
-    /// <summary>The structure, plus a zero component for each additional pay it does not have (it then only carries the amount).</summary>
-    private static SalaryStructure WithComponentsOf(SalaryStructure structure, IReadOnlyList<AdditionalPay> additional, IReadOnlyDictionary<string, decimal>? values)
-    {
-        var missing = additional.Where(a => structure.Components.All(c => c.Abbreviation != a.Abbreviation)).DistinctBy(a => a.Abbreviation).ToList();
-        if (missing.Count == 0)
-        {
-            return structure;
-        }
-
-        var lines = structure.Components.Select(c => c.Line)
-            .Concat(missing.Select(a => new SalaryComponentLine(a.Component, a.Abbreviation, a.Type, Amount: 0m, IsTaxable: a.IsTaxable)))
-            .ToList();
-        var extended = SalaryStructure.Create(structure.Name, lines, values?.Keys.ToList());
-        return extended.IsSuccess ? extended.Value : throw new DomainException("payroll.back_payment_additional", extended.Error!.Message);
     }
 
     private static HashSet<string> TaxComponents(SalaryStructure structure) =>

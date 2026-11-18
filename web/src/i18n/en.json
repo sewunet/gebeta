@@ -46,7 +46,8 @@
     "roles": "Roles",
     "me": "For me",
     "myPayslips": "My payslips",
-    "myLeave": "My leave"
+    "myLeave": "My leave",
+    "additionalSalary": "Additional salary"
   },
   "common": {
     "company": "Company",
@@ -542,7 +543,8 @@
     "users": "Who signs in, roles, companies",
     "roles": "What each role allows",
     "myPayslips": "Your pay, month by month",
-    "myLeave": "Your balance and requests"
+    "myLeave": "Your balance and requests",
+    "additionalSalary": "Overtime, allowances, deductions"
   },
   "ui": {
     "search": "Search",
@@ -749,5 +751,19 @@
     "noLeave": "No leave requests yet.",
     "leaveApplied": "Your request for {{days}} days is sent to HR for approval.",
     "applyHint": "HR approves your request. Annual leave counts working days (Sundays and public holidays are not counted)."
+  },
+  "additional": {
+    "new": "New additional salary",
+    "month": "Payroll month",
+    "total": "Total",
+    "summary": "{{count}} employees · {{total}}",
+    "hint": "Each employee's salary slip for this month takes the amount into the calculation, so income tax and pension see it. Use the same abbreviation as a component of the structure to add to it.",
+    "paste": "Paste from a spreadsheet",
+    "applyPaste": "Fill in the amounts",
+    "unread": "Not read (employee number not found, or no amount): {{lines}}",
+    "notTaxable": "not taxable",
+    "inSlips": "In salary slips",
+    "cancel": "Cancel",
+    "submittedHint": "Submitted: each employee's salary slip for this month takes their amount. It can be cancelled until a slip includes it."
   }
 }

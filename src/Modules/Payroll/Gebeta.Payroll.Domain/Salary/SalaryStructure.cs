@@ -125,6 +125,27 @@ public sealed class SalaryStructure
         return rest.IsFailure ? rest.Error! : new SalaryStructure(name.Trim(), [.. ordered.Value, .. rest.Value]);
     }
 
+    /// <summary>
+    /// This structure, plus a zero component for each additional pay it does not have (overtime from an additional salary, a one-off
+    /// deduction): the component then only carries the month's amount, taxed or not as the additional pay says. One rule for slips
+    /// and for back payments recalculating a month.
+    /// </summary>
+    public SalaryStructure WithAdditional(IReadOnlyList<AdditionalPay> additional, IReadOnlyCollection<string>? variables)
+    {
+        ArgumentNullException.ThrowIfNull(additional);
+        var missing = additional.Where(a => Components.All(c => c.Abbreviation != a.Abbreviation)).DistinctBy(a => a.Abbreviation).ToList();
+        if (missing.Count == 0)
+        {
+            return this;
+        }
+
+        var lines = Components.Select(c => c.Line)
+            .Concat(missing.Select(a => new SalaryComponentLine(a.Component, a.Abbreviation, a.Type, Amount: 0m, IsTaxable: a.IsTaxable)))
+            .ToList();
+        var extended = Create(Name, lines, variables);
+        return extended.IsSuccess ? extended.Value : throw new DomainException("payroll.additional_component", extended.Error!.Message);
+    }
+
     private static Result<CompiledComponent> Compile(SalaryComponentLine line)
     {
         if (string.IsNullOrWhiteSpace(line.Name))

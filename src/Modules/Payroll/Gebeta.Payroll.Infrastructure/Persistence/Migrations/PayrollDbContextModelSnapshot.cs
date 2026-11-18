@@ -41,6 +41,10 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(21,2)")
                         .HasColumnName("amount");
 
+                    b.Property<Guid?>("BackPaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("back_payment_id");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid")
                         .HasColumnName("company_id");
@@ -58,9 +62,17 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("employee_id");
 
+                    b.Property<bool>("InCalculation")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_calculation");
+
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("boolean")
                         .HasColumnName("is_cancelled");
+
+                    b.Property<bool>("IsTaxable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_taxable");
 
                     b.Property<DateTimeOffset?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone")
@@ -108,6 +120,9 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_additional_pay");
+
+                    b.HasIndex("BackPaymentId")
+                        .HasDatabaseName("ix_additional_pay_back_payment_id");
 
                     b.HasIndex("SalarySlipId")
                         .HasDatabaseName("ix_additional_pay_salary_slip_id");
@@ -232,6 +247,102 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_salary_back_payment_employee_id_effective_from");
 
                     b.ToTable("salary_back_payment", "payroll");
+                });
+
+            modelBuilder.Entity("Gebeta.Payroll.Domain.Salary.AdditionalSalary", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Abbreviation")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("abbreviation");
+
+                    b.Property<Guid?>("AmendedFromId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("amended_from_id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<string>("Component")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("component");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("DocStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("doc_status");
+
+                    b.Property<bool>("IsTaxable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_taxable");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("name");
+
+                    b.Property<DateOnly>("PayrollDate")
+                        .HasColumnType("date")
+                        .HasColumnName("payroll_date");
+
+                    b.Property<DateOnly>("PostingDate")
+                        .HasColumnType("date")
+                        .HasColumnName("posting_date");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("remark");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("type");
+
+                    b.Property<string>("_lines")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("lines");
+
+                    b.HasKey("Id")
+                        .HasName("pk_additional_salary");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_additional_salary_company_id_name");
+
+                    b.HasIndex("CompanyId", "PayrollDate")
+                        .HasDatabaseName("ix_additional_salary_company_id_payroll_date");
+
+                    b.ToTable("additional_salary", "payroll");
                 });
 
             modelBuilder.Entity("Gebeta.Payroll.Domain.Salary.EmployeePayrollProfile", b =>
@@ -749,10 +860,9 @@ namespace Gebeta.Payroll.Infrastructure.Persistence.Migrations
                 {
                     b.HasOne("Gebeta.Payroll.Domain.BackPay.SalaryBackPayment", null)
                         .WithMany("Entries")
-                        .HasForeignKey("SourceId")
+                        .HasForeignKey("BackPaymentId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_additional_pay_salary_back_payment_source_id");
+                        .HasConstraintName("fk_additional_pay_salary_back_payment_back_payment_id");
                 });
 
             modelBuilder.Entity("Gebeta.Payroll.Domain.BackPay.SalaryBackPayment", b =>

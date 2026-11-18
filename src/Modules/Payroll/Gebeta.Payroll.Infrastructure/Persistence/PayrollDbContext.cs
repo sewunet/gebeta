@@ -23,6 +23,7 @@ public sealed class PayrollDbContext(DbContextOptions<PayrollDbContext> options,
     public DbSet<SalaryStructureDefinition> SalaryStructures => Set<SalaryStructureDefinition>();
     public DbSet<SalaryStructureAssignment> Assignments => Set<SalaryStructureAssignment>();
     public DbSet<SalarySlip> SalarySlips => Set<SalarySlip>();
+    public DbSet<AdditionalSalary> AdditionalSalaries => Set<AdditionalSalary>();
     public DbSet<SalaryBackPayment> BackPayments => Set<SalaryBackPayment>();
     public DbSet<AdditionalPayEntry> AdditionalPay => Set<AdditionalPayEntry>();
     public DbSet<PayrollRun> Runs => Set<PayrollRun>();
@@ -174,7 +175,8 @@ internal sealed class BackPaymentConfiguration : IEntityTypeConfiguration<Salary
         builder.Property(b => b.Reference).HasMaxLength(140);
         builder.Property<List<BackPaymentMonth>>("_months").HasColumnName("months").IsJsonList();
         builder.Ignore(b => b.Months);
-        builder.HasMany(b => b.Entries).WithOne().HasForeignKey(e => e.SourceId).OnDelete(DeleteBehavior.Restrict);
+        // Its own link column: source_id is a plain reference shared by every document that gives entries (additional salary too).
+        builder.HasMany(b => b.Entries).WithOne().HasForeignKey("BackPaymentId").OnDelete(DeleteBehavior.Restrict);
         builder.Navigation(b => b.Entries).UsePropertyAccessMode(PropertyAccessMode.Field).HasField("_entries");
         foreach (var computed in new[] { nameof(SalaryBackPayment.TotalGrossArrears), nameof(SalaryBackPayment.TotalAdditionalTax),
                      nameof(SalaryBackPayment.TotalOtherDeductions), nameof(SalaryBackPayment.TotalEmployerContributions), nameof(SalaryBackPayment.NetArrears) })
@@ -204,10 +206,47 @@ internal sealed class AdditionalPayConfiguration : IEntityTypeConfiguration<Addi
         builder.Property(e => e.SourceNumber).HasMaxLength(60);
         builder.HasIndex(e => new { e.EmployeeId, e.PayrollDate });
         builder.HasIndex(e => e.SalarySlipId);
+        builder.HasIndex(e => e.SourceId);
         builder.Property(e => e.CreatedBy).HasMaxLength(140);
         builder.Property(e => e.ModifiedBy).HasMaxLength(140);
         builder.Ignore(e => e.DomainEvents);
     }
+}
+
+internal sealed class AdditionalSalaryConfiguration : IEntityTypeConfiguration<AdditionalSalary>
+{
+    public void Configure(EntityTypeBuilder<AdditionalSalary> builder)
+    {
+        builder.ToTable("additional_salary");
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Id).ValueGeneratedNever();
+        builder.Property(a => a.Name).HasMaxLength(60);
+        builder.HasIndex(a => new { a.CompanyId, a.Name }).IsUnique();
+        builder.HasIndex(a => new { a.CompanyId, a.PayrollDate });
+        builder.Property(a => a.DocStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(a => a.Component).HasMaxLength(140).IsRequired();
+        builder.Property(a => a.Abbreviation).HasMaxLength(20).IsRequired();
+        builder.Property(a => a.Type).HasConversion<string>().HasMaxLength(30);
+        builder.Property(a => a.Remark).HasMaxLength(500);
+        builder.Property<List<AdditionalSalaryLine>>("_lines").HasColumnName("lines").IsJsonList();
+        builder.Ignore(a => a.Lines);
+        builder.Ignore(a => a.Total);
+        builder.Ignore(a => a.DocumentType);
+        builder.Property(a => a.CreatedBy).HasMaxLength(140);
+        builder.Property(a => a.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(a => a.DomainEvents);
+    }
+}
+
+internal sealed class AdditionalSalaryRepository(PayrollDbContext db) : IAdditionalSalaryRepository
+{
+    public Task<AdditionalSalary?> GetAsync(Guid id, CancellationToken cancellationToken) => db.AdditionalSalaries.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<AdditionalSalary>> ListAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await db.AdditionalSalaries.AsNoTracking().Where(a => a.CompanyId == companyId && a.PayrollDate >= from && a.PayrollDate <= to)
+            .OrderByDescending(a => a.PayrollDate).ThenByDescending(a => a.CreatedAt).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(AdditionalSalary additionalSalary) => db.AdditionalSalaries.Add(additionalSalary);
 }
 
 internal sealed class BackPaymentRepository(PayrollDbContext db) : IBackPaymentRepository
@@ -236,6 +275,11 @@ internal sealed class AdditionalPayRepository(PayrollDbContext db) : IAdditional
 
     public async Task<IReadOnlyList<AdditionalPayEntry>> ForSlipAsync(Guid salarySlipId, CancellationToken cancellationToken) =>
         await db.AdditionalPay.Where(e => e.SalarySlipId == salarySlipId).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<AdditionalPayEntry>> FromSourceAsync(Guid sourceId, CancellationToken cancellationToken) =>
+        await db.AdditionalPay.Where(e => e.SourceId == sourceId).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(IEnumerable<AdditionalPayEntry> entries) => db.AdditionalPay.AddRange(entries);
 }
 
 internal sealed class PayrollNumbers(PayrollDbContext db, DocumentNumbering numbering) : ModuleDocumentNumbers(db, numbering), IPayrollNumbers;

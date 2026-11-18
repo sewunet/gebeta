@@ -15,6 +15,23 @@ public static class PayrollEndpoints
         ArgumentNullException.ThrowIfNull(endpoints);
         var payroll = endpoints.MapGroup("/api/payroll").WithTags("Payroll");
 
+        var additional = endpoints.MapGroup("/api/payroll/additional-salaries").WithTags("Payroll: Additional salary");
+        additional.MapGet("/", async (Guid companyId, DateOnly from, DateOnly to, IQueryHandler<ListAdditionalSalariesQuery, IReadOnlyList<AdditionalSalaryDto>> h, CancellationToken ct) =>
+                (await h.Handle(new ListAdditionalSalariesQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListAdditionalSalaries").RequirePermission(PayrollPermissions.AdditionalRead);
+        additional.MapGet("/{id:guid}", async (Guid id, IQueryHandler<GetAdditionalSalaryQuery, AdditionalSalaryDto> h, CancellationToken ct) =>
+                (await h.Handle(new GetAdditionalSalaryQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetAdditionalSalary").RequirePermission(PayrollPermissions.AdditionalRead);
+        additional.MapPost("/", async (CreateAdditionalSalaryCommand command, ICommandHandler<CreateAdditionalSalaryCommand, AdditionalSalaryDto> h, CancellationToken ct) =>
+                Created(await h.Handle(command, ct).ConfigureAwait(false), r => $"/api/payroll/additional-salaries/{r.Id}"))
+            .WithName("CreateAdditionalSalary").RequirePermission(PayrollPermissions.AdditionalManage);
+        additional.MapPost("/{id:guid}/submit", async (Guid id, ICommandHandler<SubmitAdditionalSalaryCommand, AdditionalSalaryDto> h, CancellationToken ct) =>
+                (await h.Handle(new SubmitAdditionalSalaryCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("SubmitAdditionalSalary").RequirePermission(PayrollPermissions.AdditionalManage);
+        additional.MapPost("/{id:guid}/cancel", async (Guid id, ICommandHandler<CancelAdditionalSalaryCommand, AdditionalSalaryDto> h, CancellationToken ct) =>
+                (await h.Handle(new CancelAdditionalSalaryCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CancelAdditionalSalary").RequirePermission(PayrollPermissions.AdditionalManage);
+
         // Self-service: always the signed-in employee's own payslips.
         payroll.MapGet("/my/salary-slips", async (IQueryHandler<MySalarySlipsQuery, IReadOnlyList<SalarySlipDto>> handler, CancellationToken ct) =>
                 (await handler.Handle(new MySalarySlipsQuery(), ct).ConfigureAwait(false)).ToHttp())

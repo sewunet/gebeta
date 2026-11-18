@@ -216,7 +216,8 @@ public sealed class SalarySlip : DocumentBase
         decimal totalWorkingDays,
         IReadOnlyDictionary<string, decimal>? additional,
         IncomeTaxTable taxTable,
-        IReadOnlyList<SalarySlipLine>? extraLines = null)
+        IReadOnlyList<SalarySlipLine>? extraLines = null,
+        IReadOnlyList<AdditionalPay>? additionalPay = null)
     {
         ArgumentNullException.ThrowIfNull(structure);
         ArgumentNullException.ThrowIfNull(assignment);
@@ -230,8 +231,15 @@ public sealed class SalarySlip : DocumentBase
             throw new DomainException("payroll.company_mismatch", "The employee's structure and assignment must belong to the same company.");
         }
 
-        var result = SalaryCalculator.Calculate(structure.Compile(),
-            new SalaryInput(assignment.Base, paymentDays, totalWorkingDays, periodEnd, additional, assignment.Values), taxTable);
+        // What is paid on top this month goes into the calculation, so tax and pension see it: amounts for the structure's own
+        // components (entered on the slip) and additional salary entries (overtime, allowances, one-off deductions).
+        var onTop = (additional ?? new Dictionary<string, decimal>()).Where(a => a.Value != 0m)
+            .Join(structure.Components, a => a.Key, c => c.Abbreviation, (a, c) => new AdditionalPay(c.Name, c.Abbreviation, c.Type, c.IsTaxable, a.Value))
+            .Concat(additionalPay ?? [])
+            .ToList();
+        var result = SalaryCalculator.Calculate(structure.Compile().WithAdditional(onTop, structure.Variables),
+            new SalaryInput(assignment.Base, paymentDays, totalWorkingDays, periodEnd,
+                onTop.GroupBy(a => a.Abbreviation).ToDictionary(g => g.Key, g => g.Sum(a => a.Amount)), assignment.Values), taxTable);
         var extras = extraLines ?? [];
         var extraEarnings = extras.Where(l => l.Type == ComponentType.Earning).Sum(l => l.Amount);
         var extraDeductions = extras.Where(l => l.Type == ComponentType.Deduction).Sum(l => l.Amount);
@@ -258,9 +266,7 @@ public sealed class SalarySlip : DocumentBase
             _lines = result.Lines.Select(l => new SalarySlipLine(l.Component, l.Abbreviation, l.Type, l.Amount, l.Formula))
                 .Concat(extras.Select(l => l with { IsAdditional = true }))
                 .ToList(),
-            _additional = (additional ?? new Dictionary<string, decimal>()).Where(a => a.Value != 0m)
-                .Join(structure.Components, a => a.Key, c => c.Abbreviation, (a, c) => new AdditionalPay(c.Name, c.Abbreviation, c.Type, c.IsTaxable, a.Value))
-                .ToList(),
+            _additional = onTop,
         };
     }
 

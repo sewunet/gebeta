@@ -65,6 +65,13 @@ public sealed class PayrollModule : IErpModule
 
         services.AddScoped<SalarySlipHandler>();
         services.AddScoped<PayrollSelfServiceHandler>();
+        services.AddScoped<IAdditionalSalaryRepository, AdditionalSalaryRepository>();
+        services.AddScoped<AdditionalSalaryHandler>();
+        services.AddScoped<ICommandHandler<CreateAdditionalSalaryCommand, AdditionalSalaryDto>>(sp => sp.GetRequiredService<AdditionalSalaryHandler>());
+        services.AddScoped<ICommandHandler<SubmitAdditionalSalaryCommand, AdditionalSalaryDto>>(sp => sp.GetRequiredService<AdditionalSalaryHandler>());
+        services.AddScoped<ICommandHandler<CancelAdditionalSalaryCommand, AdditionalSalaryDto>>(sp => sp.GetRequiredService<AdditionalSalaryHandler>());
+        services.AddScoped<IQueryHandler<GetAdditionalSalaryQuery, AdditionalSalaryDto>>(sp => sp.GetRequiredService<AdditionalSalaryHandler>());
+        services.AddScoped<IQueryHandler<ListAdditionalSalariesQuery, IReadOnlyList<AdditionalSalaryDto>>>(sp => sp.GetRequiredService<AdditionalSalaryHandler>());
         services.AddScoped<IQueryHandler<MySalarySlipsQuery, IReadOnlyList<SalarySlipDto>>>(sp => sp.GetRequiredService<PayrollSelfServiceHandler>());
         services.AddScoped<IQueryHandler<MySalarySlipQuery, SalarySlipDto>>(sp => sp.GetRequiredService<PayrollSelfServiceHandler>());
         services.AddScoped<ICommandHandler<CreateSalarySlipCommand, SalarySlipDto>>(sp => sp.GetRequiredService<SalarySlipHandler>());

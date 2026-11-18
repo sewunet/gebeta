@@ -48,6 +48,26 @@ public sealed class AdditionalPayEntry : Entity
 
     public bool IsCancelled { get; private set; }
 
+    /// <summary>
+    /// Goes into the month's calculation, so tax and pension see it (additional salary: overtime, allowances, one-off deductions).
+    /// Otherwise it is a line of its own, already taxed where it came from (back payment arrears and their tax).
+    /// </summary>
+    public bool InCalculation { get; private set; }
+
+    /// <summary>For entries in the calculation: whether income tax applies to it.</summary>
+    public bool IsTaxable { get; private set; }
+
+    internal static AdditionalPayEntry ForCalculation(Guid companyId, Guid employeeId, DateOnly payrollDate, string name, string abbreviation,
+        ComponentType type, bool isTaxable, decimal amount, string sourceType, Guid sourceId, string sourceNumber)
+    {
+        var entry = Create(companyId, employeeId, payrollDate, name, abbreviation, type, amount, sourceType, sourceId, sourceNumber);
+        entry.InCalculation = true;
+        entry.IsTaxable = isTaxable;
+        return entry;
+    }
+
+    public AdditionalPay ToAdditionalPay() => new(Name, Abbreviation, Type, IsTaxable, Amount);
+
     internal static AdditionalPayEntry Create(Guid companyId, Guid employeeId, DateOnly payrollDate, string name, string abbreviation,
         ComponentType type, decimal amount, string sourceType, Guid sourceId, string sourceNumber) =>
         new(companyId, employeeId, payrollDate, name, abbreviation, type, Rounding.ToCurrency(amount), sourceType, sourceId, sourceNumber);

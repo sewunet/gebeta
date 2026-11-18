@@ -46,6 +46,12 @@ export type UserDto = {
   /** The employee this user is, for self-service. */
   employeeId?: string;
 };
+export type AdditionalSalaryLineDto = { employeeId: string; employeeNumber: string; employeeName: string; amount: number; note?: string };
+/** Overtime, an allowance or a deduction for many employees in one payroll month; <c>inSlips</c>: amounts already in salary slips. */
+export type AdditionalSalaryDto = {
+  id: string; number?: string; companyId: string; payrollDate: string; component: string; abbreviation: string; type: "Earning" | "Deduction";
+  isTaxable: boolean; status: string; remark?: string; lines: AdditionalSalaryLineDto[]; total: number; inSlips: number;
+};
 export type MyLeaveDto = { balances: LeaveBalanceDto[]; applications: LeaveApplicationDto[] };
 export type RoleDto = { id: string; name: string; description?: string; isSystem: boolean; permissions: string[] };
 

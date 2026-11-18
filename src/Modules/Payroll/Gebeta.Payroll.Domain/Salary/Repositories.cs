@@ -53,4 +53,16 @@ public interface IAdditionalPayRepository
     Task<IReadOnlyList<AdditionalPayEntry>> PendingAsync(Guid employeeId, DateOnly periodStart, DateOnly periodEnd, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<AdditionalPayEntry>> ForSlipAsync(Guid salarySlipId, CancellationToken cancellationToken);
+
+    /// <summary>The entries a document (an additional salary) gave.</summary>
+    Task<IReadOnlyList<AdditionalPayEntry>> FromSourceAsync(Guid sourceId, CancellationToken cancellationToken);
+
+    void Add(IEnumerable<AdditionalPayEntry> entries);
+}
+
+public interface IAdditionalSalaryRepository
+{
+    Task<AdditionalSalary?> GetAsync(Guid id, CancellationToken cancellationToken);
+    Task<IReadOnlyList<AdditionalSalary>> ListAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
+    void Add(AdditionalSalary additionalSalary);
 }

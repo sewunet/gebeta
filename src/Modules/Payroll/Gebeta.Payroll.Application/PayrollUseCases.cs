@@ -235,7 +235,8 @@ public sealed class SalarySlipHandler(
         {
             slip = SalarySlip.Calculate(employee.CompanyId, employee.Id, employee.Number, employee.FullName, command.PeriodStart, command.PeriodEnd,
                 structure, assignment, days, command.TotalWorkingDays, command.Additional, EthiopianIncomeTax.ValidOn(command.PeriodEnd),
-                pending.Select(e => e.ToSlipLine()).ToList());
+                pending.Where(e => !e.InCalculation).Select(e => e.ToSlipLine()).ToList(),     // already taxed where they came from (back pay)
+                pending.Where(e => e.InCalculation).Select(e => e.ToAdditionalPay()).ToList()); // overtime and the like: taxed with the month
         }
         catch (DomainException ex)
         {

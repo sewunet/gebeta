@@ -9,8 +9,8 @@ Source: `customized_forcommon` (and `cash_management`) on the Sugar bench, Novem
 
 | Doctype | Status |
 |---|---|
-| cashier | ☐ |
-| petty_cash_request | ☐ |
+| cashier | ☑ Cash Management: cashiers and the cashier ledger |
+| petty_cash_request | ☑ Cash Management: petty cash requests |
 | cash_accounting_settings | ☐ |
 
 ## customized_forcommon
@@ -18,8 +18,8 @@ Source: `customized_forcommon` (and `cash_management`) on the Sugar bench, Novem
 ### → Payroll
 | Doctype | Status |
 |---|---|
-| salary_back_payment, back_payment_detail, back_payment_component, back_payment_payroll_line, salary_back_payment_settings | ☐ |
-| bulk_additional_salary, employees_for_additional_salary | ☐ |
+| salary_back_payment, back_payment_detail, back_payment_component, back_payment_payroll_line, salary_back_payment_settings | ☑ Payroll: salary back payment |
+| bulk_additional_salary, employees_for_additional_salary | ☑ Payroll: additional salary (step 47) |
 | salary_payment_distribution_request | ☐ |
 | component_expense_account | ☐ |
 | healthcare_payment_deduction | ☐ |

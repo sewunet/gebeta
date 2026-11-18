@@ -40,6 +40,9 @@ const run = createRoute({ getParentRoute: () => root, path: "/payroll/run", comp
 const structures = createRoute({ getParentRoute: () => root, path: "/payroll/structures", component: lazyRouteComponent(() => import("../pages/payroll/Structures"), "Structures") });
 const structureNew = createRoute({ getParentRoute: () => root, path: "/payroll/structures/new", component: lazyRouteComponent(() => import("../pages/payroll/Structures"), "StructureCreate") });
 const structure = createRoute({ getParentRoute: () => root, path: "/payroll/structures/$id", component: lazyRouteComponent(() => import("../pages/payroll/Structures"), "StructureDetail") });
+const additionalSalaries = createRoute({ getParentRoute: () => root, path: "/payroll/additional-salary", component: lazyRouteComponent(() => import("../pages/payroll/AdditionalSalaries"), "AdditionalSalaries") });
+const additionalSalaryNew = createRoute({ getParentRoute: () => root, path: "/payroll/additional-salary/new", component: lazyRouteComponent(() => import("../pages/payroll/AdditionalSalaries"), "AdditionalSalaryCreate") });
+const additionalSalary = createRoute({ getParentRoute: () => root, path: "/payroll/additional-salary/$id", component: lazyRouteComponent(() => import("../pages/payroll/AdditionalSalaries"), "AdditionalSalaryDetail") });
 const calculator = createRoute({ getParentRoute: () => root, path: "/payroll/calculator", component: lazyRouteComponent(() => import("../pages/payroll/Calculator"), "Calculator") });
 const leave = createRoute({ getParentRoute: () => root, path: "/hr/leave", component: lazyRouteComponent(() => import("../pages/hr/Leave"), "Leave") });
 const attendance = createRoute({ getParentRoute: () => root, path: "/hr/attendance", component: lazyRouteComponent(() => import("../pages/hr/Attendance"), "Attendance") });
@@ -64,7 +67,7 @@ const banking = createRoute({ getParentRoute: () => root, path: "/accounting/ban
 const ageing = createRoute({ getParentRoute: () => root, path: "/accounting/ageing", component: lazyRouteComponent(() => import("../pages/accounting/Ageing"), "Ageing") });
 
 export const router = createRouter({
-  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, trialBalance, parties, party, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
+  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, trialBalance, parties, party, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
 });
 
 declare module "@tanstack/react-router" {

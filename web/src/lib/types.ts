@@ -62,6 +62,12 @@ export type PayrollComparisonDto = {
   runId: string; periodStart: string; periodEnd: string; previousPeriodEnd: string; hasPrevious: boolean; thresholdPercent: number;
   rows: PayComparisonRow[]; previousTotals: PayTotals; currentTotals: PayTotals; flaggedCount: number;
 };
+export type ComparativeRow = { code: string; name: string; current?: number; comparison?: number; change: number; changePercent?: number };
+export type ComparativeReportDto = {
+  companyId: string; report: "ProfitAndLoss" | "BalanceSheet"; compare: string; currentFrom: string; currentTo: string; comparisonFrom: string; comparisonTo: string;
+  sections: { name: "Income" | "Expenses" | "Assets" | "Liabilities" | "Equity"; rows: ComparativeRow[]; total: ComparativeRow }[];
+  summary: ComparativeRow[]; currentBalanced: boolean; comparisonBalanced: boolean; note?: string;
+};
 export type MyLeaveDto = { balances: LeaveBalanceDto[]; applications: LeaveApplicationDto[] };
 export type RoleDto = { id: string; name: string; description?: string; isSystem: boolean; permissions: string[] };
 

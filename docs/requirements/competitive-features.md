@@ -326,6 +326,21 @@ The voucher is dated "ኅዳር 9 ቀን 2019 ዓ.ም. (18 Nov 2026)" for an Amh
 
 ### 3. Comparative columns on profit and loss and the balance sheet
 
+> **Built (step 50).**
+> - **Dates:** `ComparisonPeriods` in the Accounting domain works out the comparison range from the fiscal
+>   calendar (whole periods, or the same number of days for any other range), tested on Pagume and leap years.
+> - **Reports:** `GET /api/accounting/reports/profit-and-loss/compare` and `/reports/balance-sheet/compare`
+>   (CSV with `?format=csv`) run the plain report twice and merge by account code. The test uses the worked
+>   example below, moved to Tikimt, and checks the comparison column against the plain report.
+> - **Screen:** a **Compare with** choice on the financial reports, with both ranges in the headings.
+>
+> Differences from this specification:
+> - **The note** says there are no postings in the comparison period, rather than naming a cut-over date:
+>   Gebeta does not store one yet.
+> - **Print** uses the browser's print of the screen; there is no separate print layout.
+> - **Fixed on the way:** a new company's first journal failed because the chart of accounts was not yet set
+>   up; creating a journal now sets it up first.
+
 **In one line:** P&L and the balance sheet get a **Compare with** choice: *previous period*, *same period last
 year*, or *year to date vs last year to date*. The report then shows the second column, the change in birr
 and the change in percent.

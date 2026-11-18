@@ -430,7 +430,14 @@
     "account": "Account",
     "voucher": "Voucher",
     "opening": "Opening balance",
-    "closing": "Closing balance"
+    "closing": "Closing balance",
+    "compareWith": "Compare with",
+    "compare": {
+      "None": "Nothing",
+      "PreviousPeriod": "Previous period",
+      "LastYear": "Same period last year",
+      "LastYearToDate": "Last year to date"
+    }
   },
   "ageing": {
     "receivables": "Receivables",

@@ -48,3 +48,15 @@ public sealed record GeneralLedgerRow(DateOnly Date, string Voucher, string Desc
 /// <summary>One account's ledger; balances are on the account's normal side.</summary>
 public sealed record GeneralLedgerDto(string AccountCode, string AccountName, DateOnly From, DateOnly To, decimal Opening, IReadOnlyList<GeneralLedgerRow> Rows,
     decimal TotalDebit, decimal TotalCredit, decimal Closing);
+
+/// <param name="Current">Empty when the account has nothing in this column ("–" on screen, not 0.00).</param>
+/// <param name="ChangePercent">Empty when the comparison amount is zero ("n/a").</param>
+public sealed record ComparativeRow(string Code, string Name, decimal? Current, decimal? Comparison, decimal Change, decimal? ChangePercent);
+
+public sealed record ComparativeSection(string Name, IReadOnlyList<ComparativeRow> Rows, ComparativeRow Total);
+
+/// <summary>A profit and loss or balance sheet with a comparison column (balance sheet: the From and To dates are the same).</summary>
+/// <param name="Note">Said instead of a column of zeros, for example when the comparison falls before the company's first entries.</param>
+public sealed record ComparativeReportDto(Guid CompanyId, string Report, string Compare, DateOnly CurrentFrom, DateOnly CurrentTo, DateOnly ComparisonFrom,
+    DateOnly ComparisonTo, IReadOnlyList<ComparativeSection> Sections, IReadOnlyList<ComparativeRow> Summary, bool CurrentBalanced, bool ComparisonBalanced, string? Note);
+

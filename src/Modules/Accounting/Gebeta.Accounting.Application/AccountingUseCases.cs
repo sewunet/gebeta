@@ -341,6 +341,12 @@ public sealed class JournalHandler(
             return Error.NotFound("Company", command.CompanyId);
         }
 
+        // The chart is set up on first use, as invoices and opening balances do; a new company's first journal must not fail on it.
+        if (await chart.EnsureAsync(command.CompanyId, cancellationToken).ConfigureAwait(false))
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         var byCode = (await accounts.ListAsync(command.CompanyId, cancellationToken).ConfigureAwait(false)).ToDictionary(a => a.Code);
         var lines = new List<JournalLine>();
         foreach (var line in command.Lines ?? [])

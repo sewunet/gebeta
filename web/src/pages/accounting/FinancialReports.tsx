@@ -2,13 +2,17 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../../app/context";
-import { api } from "../../lib/api";
+import { api, download } from "../../lib/api";
 import { formatDate, formatEthiopian, formatMoney, todayIso } from "../../lib/ethiopian";
-import type { AccountDto, BalanceSheetDto, GeneralLedgerDto, ProfitAndLossDto, ReportRow } from "../../lib/types";
+import type { AccountDto, BalanceSheetDto, ComparativeReportDto, ComparativeRow, GeneralLedgerDto, ProfitAndLossDto, ReportRow } from "../../lib/types";
 import { DynamicPage, FilterBar, FilterField, MessageStrip, ObjectStatus } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
 
 type Tab = "pl" | "bs" | "gl";
+type Compare = "None" | "PreviousPeriod" | "LastYear" | "LastYearToDate";
+
+const SECTION_LABEL = { Income: ["reports.income", "reports.totalIncome"], Expenses: ["reports.expenses", "reports.totalExpenses"],
+  Assets: ["reports.assets", "reports.totalAssets"], Liabilities: ["reports.liabilities", "reports.totalLiabilities"], Equity: ["reports.equity", "reports.totalEquity"] } as const;
 
 /** Profit and loss, balance sheet and general ledger. */
 export function FinancialReports() {
@@ -19,16 +23,26 @@ export function FinancialReports() {
   const [from, setFrom] = useState(month.start);
   const [to, setTo] = useState(todayIso());
   const [account, setAccount] = useState("1120");
+  const [compare, setCompare] = useState<Compare>("None");
+  const comparing = compare !== "None" && tab !== "gl" && !(tab === "bs" && compare === "LastYearToDate");
+  const comparePath = tab === "pl"
+    ? `/api/accounting/reports/profit-and-loss/compare?companyId=${company?.id}&from=${from}&to=${to}&compare=${compare}`
+    : `/api/accounting/reports/balance-sheet/compare?companyId=${company?.id}&asOf=${to}&compare=${compare}`;
+  const compared = useQuery({
+    queryKey: ["financial", "compare", tab, company?.id, from, to, compare],
+    queryFn: () => api<ComparativeReportDto>(comparePath),
+    enabled: !!company && comparing && from <= to,
+  });
   const base = `companyId=${company?.id}`;
   const pl = useQuery({
     queryKey: ["financial", "pl", company?.id, from, to],
     queryFn: () => api<ProfitAndLossDto>(`/api/accounting/reports/profit-and-loss?${base}&from=${from}&to=${to}`),
-    enabled: !!company && tab === "pl" && from <= to,
+    enabled: !!company && tab === "pl" && !comparing && from <= to,
   });
   const bs = useQuery({
     queryKey: ["financial", "bs", company?.id, to],
     queryFn: () => api<BalanceSheetDto>(`/api/accounting/reports/balance-sheet?${base}&asOf=${to}`),
-    enabled: !!company && tab === "bs",
+    enabled: !!company && tab === "bs" && !comparing,
   });
   const gl = useQuery({
     queryKey: ["financial", "gl", company?.id, account, from, to],
@@ -73,11 +87,21 @@ export function FinancialReports() {
           )}
           {tab !== "bs" && <FilterField label={t("periods.from")}><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></FilterField>}
           <FilterField label={tab === "bs" ? t("acc.asOf") : t("periods.to")}><input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></FilterField>
+          {tab !== "gl" && (
+            <FilterField label={t("reports.compareWith")}>
+              <select value={compare} onChange={(e) => setCompare(e.target.value as Compare)}>
+                {(["None", "PreviousPeriod", "LastYear", ...(tab === "pl" ? ["LastYearToDate"] as const : [])] as const).map((c) => <option key={c} value={c}>{t(`reports.compare.${c}`)}</option>)}
+              </select>
+            </FilterField>
+          )}
+          {comparing && compared.data && <button className="secondary" onClick={() => void download(`${comparePath}&format=csv`, `${tab === "pl" ? "profit-and-loss" : "balance-sheet"}-compared.csv`)}>CSV</button>}
         </FilterBar>
       }
     >
       <section className="table-card report-card">
-      {tab === "pl" && pl.data && (
+      {comparing && compared.data && <ComparativeTable report={compared.data} />}
+
+      {tab === "pl" && !comparing && pl.data && (
         <table className="table">
           <tbody>
             {section(t("reports.income"), pl.data.income, pl.data.totalIncome, t("reports.totalIncome"))}
@@ -88,7 +112,7 @@ export function FinancialReports() {
         </table>
       )}
 
-      {tab === "bs" && bs.data && (
+      {tab === "bs" && !comparing && bs.data && (
         <>
           <table className="table">
             <tbody>
@@ -126,7 +150,46 @@ export function FinancialReports() {
         </>
       )}
       </section>
-      {(pl.isError || bs.isError || gl.isError) && <MessageStrip tone="negative">{(pl.error ?? bs.error ?? gl.error)?.message}</MessageStrip>}
+      {(pl.isError || bs.isError || gl.isError || compared.isError) && <MessageStrip tone="negative">{(pl.error ?? bs.error ?? gl.error ?? compared.error)?.message}</MessageStrip>}
     </DynamicPage>
   );
 }
+
+/** The report with its comparison column, the change and the change in percent; "–" where an account has nothing, "n/a" for no base. */
+function ComparativeTable({ report }: { report: ComparativeReportDto }) {
+  const { t, i18n } = useTranslation();
+  const am = i18n.language === "am";
+  const span = (from: string, to: string) => (from === to ? formatEthiopian(to, am) : `${formatEthiopian(from, am)} – ${formatEthiopian(to, am)}`);
+  const money = (v?: number) => (v == null ? "–" : formatMoney(v));
+  const row = (r: ComparativeRow, className = "") => (
+    <tr key={`${r.code}-${r.name}`} className={className}>
+      <td className="mono">{r.code}</td><td>{r.name}</td>
+      <td className="num">{money(r.current)}</td><td className="num">{money(r.comparison)}</td>
+      <td className={`num ${r.change < 0 ? "neg" : ""}`}>{formatMoney(r.change)}</td>
+      <td className="num">{r.changePercent == null ? "n/a" : `${r.changePercent > 0 ? "+" : ""}${r.changePercent}%`}</td>
+    </tr>
+  );
+
+  return (
+    <>
+      {report.note && <MessageStrip tone="information">{report.note}</MessageStrip>}
+      <table className="table">
+        <thead><tr>
+          <th /><th />
+          <th className="num">{span(report.currentFrom, report.currentTo)}<div className="muted small">{report.currentFrom === report.currentTo ? "" : `${report.currentFrom} – ${report.currentTo}`}</div></th>
+          <th className="num">{span(report.comparisonFrom, report.comparisonTo)}<div className="muted small">{report.comparisonFrom === report.comparisonTo ? "" : `${report.comparisonFrom} – ${report.comparisonTo}`}</div></th>
+          <th className="num">{t("compare.change")}</th><th className="num">%</th>
+        </tr></thead>
+        <tbody>
+          {report.sections.map((s) => [
+            <tr key={s.name} className="strong"><td colSpan={6}>{t(SECTION_LABEL[s.name][0])}</td></tr>,
+            ...s.rows.map((r) => row(r)),
+            row({ ...s.total, name: t(SECTION_LABEL[s.name][1]) }, "strong"),
+          ])}
+        </tbody>
+        <tfoot>{report.summary.map((r) => row({ ...r, name: report.report === "ProfitAndLoss" ? t("reports.netProfit") : t("reports.unclosedProfit") }, "report-total"))}</tfoot>
+      </table>
+    </>
+  );
+}
+

@@ -430,7 +430,14 @@
     "account": "ሂሳብ",
     "voucher": "ሰነድ",
     "opening": "የመክፈቻ ቀሪ",
-    "closing": "የመዝጊያ ቀሪ"
+    "closing": "የመዝጊያ ቀሪ",
+    "compareWith": "አወዳድር ከ",
+    "compare": {
+      "None": "ምንም",
+      "PreviousPeriod": "ካለፈው ጊዜ",
+      "LastYear": "ካለፈው ዓመት ተመሳሳይ ጊዜ",
+      "LastYearToDate": "ካለፈው ዓመት እስከ ዛሬ"
+    }
   },
   "ageing": {
     "receivables": "ተሰብሳቢ",

@@ -140,6 +140,16 @@ public static class AccountingEndpoints
         acc.MapGet("/reports/profit-and-loss", async (Guid companyId, DateOnly from, DateOnly to, IQueryHandler<ProfitAndLossQuery, ProfitAndLossDto> h, CancellationToken ct) =>
                 (await h.Handle(new ProfitAndLossQuery(companyId, from, to), ct).ConfigureAwait(false)).ToHttp())
             .WithName("ProfitAndLoss").RequirePermission(AccountingPermissions.ReportsRead);
+        acc.MapGet("/reports/profit-and-loss/compare", async (Guid companyId, DateOnly from, DateOnly to, Gebeta.Accounting.Domain.Ledger.ReportComparison compare,
+                string? format, IQueryHandler<ComparativeProfitAndLossQuery, ComparativeReportDto> h, CancellationToken ct) =>
+                ComparativeResult(await h.Handle(new ComparativeProfitAndLossQuery(companyId, from, to, compare), ct).ConfigureAwait(false), format, $"profit-and-loss-{from:yyyy-MM-dd}"))
+            .WithName("ComparativeProfitAndLoss").RequirePermission(AccountingPermissions.ReportsRead);
+
+        acc.MapGet("/reports/balance-sheet/compare", async (Guid companyId, DateOnly asOf, Gebeta.Accounting.Domain.Ledger.ReportComparison compare,
+                string? format, IQueryHandler<ComparativeBalanceSheetQuery, ComparativeReportDto> h, CancellationToken ct) =>
+                ComparativeResult(await h.Handle(new ComparativeBalanceSheetQuery(companyId, asOf, compare), ct).ConfigureAwait(false), format, $"balance-sheet-{asOf:yyyy-MM-dd}"))
+            .WithName("ComparativeBalanceSheet").RequirePermission(AccountingPermissions.ReportsRead);
+
         acc.MapGet("/reports/balance-sheet", async (Guid companyId, DateOnly asOf, IQueryHandler<BalanceSheetQuery, BalanceSheetDto> h, CancellationToken ct) =>
                 (await h.Handle(new BalanceSheetQuery(companyId, asOf), ct).ConfigureAwait(false)).ToHttp())
             .WithName("BalanceSheet").RequirePermission(AccountingPermissions.ReportsRead);
@@ -179,6 +189,16 @@ public static class AccountingEndpoints
                 (await h.Handle(new TrialBalanceQuery(companyId, asOf), ct).ConfigureAwait(false)).ToHttp())
             .WithName("TrialBalance").RequirePermission(AccountingPermissions.ReportsRead);
     }
+
+    /// <summary>The comparative report as JSON, or as CSV with both columns, the change and the change in percent.</summary>
+    private static IResult ComparativeResult(Gebeta.SharedKernel.Result<ComparativeReportDto> result, string? format, string name) =>
+        result.IsSuccess && CsvFile.Requested(format)
+            ? CsvFile.Create($"{name}-compared.csv",
+                ["Section", "Code", "Account", $"{result.Value.CurrentFrom:yyyy-MM-dd} to {result.Value.CurrentTo:yyyy-MM-dd}",
+                 $"{result.Value.ComparisonFrom:yyyy-MM-dd} to {result.Value.ComparisonTo:yyyy-MM-dd}", "Change", "Change %"],
+                result.Value.Sections.SelectMany(s => s.Rows.Append(s.Total).Select(r => new object?[] { s.Name, r.Code, r.Name, r.Current, r.Comparison, r.Change, r.ChangePercent }))
+                    .Concat(result.Value.Summary.Select(r => new object?[] { "", r.Code, r.Name, r.Current, r.Comparison, r.Change, r.ChangePercent })))
+            : result.ToHttp();
 }
 
 /// <summary>Body of a credit or debit note: the date, and the lines to return (none = the whole invoice).</summary>

@@ -10,9 +10,10 @@ dedicated opening-balance import.
 > - employees, salary structures and the assignment history (steps 3–4), proved by recalculating the latest payroll;
 > - salary slip history (step 5), so back payments and reports see the months paid before the cut-over;
 > - annual leave balances at the cut-over (step 6);
+> - purchase and sales orders still open at the cut-over (part of step 10);
 > - cut-over balances, with `--cutover`: open invoices (step 8), opening stock (step 9) and the opening trial balance (step 7).
 >
-> Not yet built: users and roles, HR masters (grades, steps), open orders and assets. Each run prints, for every step, how many records were created,
+> Not yet built: users and roles, HR masters (grades, steps), BOMs, work orders and assets. Each run prints, for every step, how many records were created,
 > adopted (an existing Gebeta record with the same code was used) or already migrated, plus warnings, failures and the
 > step's check.
 >
@@ -27,7 +28,7 @@ dedicated opening-balance import.
 >     --steps parties,items    only these steps (company always runs first):
 >     --history-from 2024-07-08  slip history from this date (default: all, up to the cut-over)
 >                              parties, items, warehouses, employees, structures, assignments, history, payroll,
->                              leave, invoices, stock, opening
+>                              leave, invoices, orders, stock, opening
 > ```
 >
 > How the masters come over:
@@ -96,6 +97,21 @@ dedicated opening-balance import.
 >   - A negative balance (more taken than allocated) is a failure to correct in ERPNext.
 >   - Balances are kept to a tenth of a day.
 >
+> - **Open orders** (with `--cutover`): every submitted purchase or sales order that isn't completed,
+>   closed or cancelled.
+>   - Each becomes a new Gebeta order, submitted, for what is still to receive or deliver. It is in
+>     stock units: ERPNext keeps received and delivered quantities in the line's unit, so they are
+>     multiplied by the conversion factor. The old order number goes in the remark.
+>   - Lines of the same item are merged (Gebeta keeps an item once per order), at their combined
+>     value, with a warning when they went to different warehouses.
+>   - Each Gebeta order's total must equal what was left in ERPNext, to the cent.
+>   - Orders that only wait for billing are not brought. Goods received or delivered but not billed
+>     are reported with their totals (they are in the opening balances); their invoices are entered
+>     in Gebeta without an order.
+>   - Disabled customers and suppliers with open orders come over, like those with open balances.
+>     A party brought earlier as only a supplier (or only a customer) becomes Both on the run that
+>     needs the other side.
+>
 > How the cut-over balances come over (all dated the cut-over day):
 > - **Open invoices** come from ERPNext's Payment Ledger as at the cut-over day. Each becomes a
 >   Gebeta opening invoice for its outstanding amount, with its original date, due date and number
@@ -153,6 +169,10 @@ dedicated opening-balance import.
 > - A dry run counts records that depend on employees as if every employee were created. The real
 >   run only counts those that were, so its assignments, history and leave figures are lower while
 >   employees still fail.
+
+> - The rehearsal of open orders found that last case: a supplier brought on an earlier run whose
+>   disabled customer side had an open sales order. Reruns now upgrade such a party to Both.
+>   140 of 140 open orders come over.
 
 > Debt:
 > - Each record is its own command and transaction. That's fine for thousands of masters and open

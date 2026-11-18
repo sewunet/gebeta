@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Gebeta.Accounting.Contracts;
 using Gebeta.Core.Contracts;
+using Gebeta.Selling.Contracts;
+using Gebeta.Buying.Contracts;
 using Gebeta.Hr.Contracts;
 using Gebeta.Migration;
 using Gebeta.Stock.Contracts;
@@ -75,6 +77,10 @@ public class MigrationTests(GebetaApiFactory factory)
         public Task<IReadOnlyList<ErpAssignment>> AssignmentsAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpAssignment>>(Assignments);
         public List<ErpSalarySlip> History { get; } = []; // slips before the latest payroll
         public List<ErpLeaveBalance> Leaves { get; } = [];
+        public List<ErpOrderLine> Orders { get; } = [];
+
+        public Task<IReadOnlyList<ErpOrderLine>> OpenOrderLinesAsync(string c, DateOnly asOf, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ErpOrderLine>>(Orders);
 
         public Task<IReadOnlyList<ErpLeaveBalance>> LeaveBalancesAsync(string c, DateOnly asOf, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<ErpLeaveBalance>>(Leaves);
@@ -512,6 +518,63 @@ public class MigrationTests(GebetaApiFactory factory)
 
         var again = (await Run(erp, options)).Single(r => r.Name == "leave");
         Assert.Equal((0, 1), (again.Created, again.AlreadyMigrated));
+    }
+
+    [Fact]
+    public void An_open_order_line_comes_over_in_stock_units_with_lines_of_one_item_merged()
+    {
+        ErpOrderLine Line(decimal qty, decimal done, decimal rate, decimal factor, string warehouse, decimal billed = 0m) =>
+            new("Purchase", "PUR-ORD-0001", "Supplier", new(2026, 10, 1), null, "PEN", warehouse, qty, done, rate, factor, billed);
+
+        var (lines, warnings, notBilled) = MigrationRun.Remaining(
+        [
+            Line(10m, 4m, 120m, 12m, "Stores - X", billed: 300m), // 6 boxes of 12 left: 72 pens at 10
+            Line(2m, 0m, 100m, 1m, "Shop - X"),                    // 2 pens at 100
+        ]);
+
+        var line = Assert.Single(lines);
+        Assert.Equal((74m, 920m), (line.Qty, line.Amount));
+        Assert.Equal("Stores - X", line.Warehouse);
+        Assert.Contains("merged into Stores - X", Assert.Single(warnings), StringComparison.Ordinal);
+        Assert.Equal(180m, notBilled); // 4 boxes received (480) less 300 billed
+    }
+
+    [Fact]
+    public async Task Open_orders_come_over_for_what_is_left_and_a_supplier_becomes_both_when_its_customer_side_has_an_order()
+    {
+        const string name = "Gambella Orders Test";
+        var erp = new FakeErpNext(name, "0800000220");
+        erp.Customers.Add(new("Addis Cement Factory", "Addis Cement Factory", null, true)); // disabled customer side of an active supplier
+        var cutover = new DateOnly(2026, 7, 7);
+
+        // Masters first, without a cut-over: the factory comes over as a supplier only.
+        await Run(erp, new MigrationOptions(name, Steps: ["parties", "items", "warehouses"]));
+
+        erp.Orders.AddRange(
+        [
+            new("Purchase", "PUR-ORD-0007", "Addis Cement Factory", new(2026, 6, 20), new(2026, 7, 30), "Cement 50 kg", "Stores - GAM", 100m, 40m, 520m, 1m, 10_400m),
+            new("Sales", "SAL-ORD-0003", "CUST-0001", new(2026, 6, 25), null, "SUGAR-WHITE", "Finished Goods - GAM", 10m, 10m, 3_000m, 1m, 0m), // only billing open
+            new("Sales", "SAL-ORD-0004", "Addis Cement Factory", new(2026, 7, 1), new(2026, 7, 15), "SUGAR-WHITE", "Finished Goods - GAM", 5m, 0m, 3_100m, 1m, 0m),
+        ]);
+        var reports = await Run(erp, new MigrationOptions(name, Steps: ["parties", "orders"], Cutover: cutover));
+
+        Assert.Contains(reports.Single(r => r.Name == "parties").Warnings, w => w == "Addis Cement Factory: was only a supplier in Gebeta; now customer and supplier.");
+        var orders = reports.Single(r => r.Name == "orders");
+        Assert.True(orders.Ok, string.Join("; ", orders.Failures));
+        Assert.Equal("2 of 2 open orders (this run: 46,700.00 still to receive or deliver, each order's total equal)", orders.Check);
+        Assert.Contains(orders.Warnings, w => w.StartsWith("1 orders are fully received or delivered", StringComparison.Ordinal));
+        Assert.Contains(orders.Warnings, w => w.StartsWith("Received but not billed: 10,400.00; delivered but not billed: 30,000.00.", StringComparison.Ordinal));
+
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var company = (await admin.GetFromJsonAsync<List<CompanyDto>>(U("/api/core/companies"), Ct))!.Single(c => c.Name == name);
+        var purchase = Assert.Single((await admin.GetFromJsonAsync<List<PurchaseOrderDto>>(U($"/api/buying/purchase-orders?companyId={company.Id}&from=2026-01-01&to=2026-12-31"), Ct))!);
+        Assert.Equal(("Submitted", 31_200m, "Open at cut-over 2026-07-07: PUR-ORD-0007"), (purchase.Status, purchase.NetTotal, purchase.Remark)); // 60 bags at 520
+        Assert.Equal(60m, Assert.Single(purchase.Lines).Qty);
+        var sales = Assert.Single((await admin.GetFromJsonAsync<List<SalesOrderDto>>(U($"/api/selling/sales-orders?companyId={company.Id}&from=2026-01-01&to=2026-12-31"), Ct))!);
+        Assert.Equal(15_500m, sales.NetTotal);
+
+        var again = (await Run(erp, new MigrationOptions(name, Steps: ["parties", "orders"], Cutover: cutover))).Single(r => r.Name == "orders");
+        Assert.Equal((0, 2), (again.Created, again.AlreadyMigrated));
     }
 
     [Theory]

@@ -23,6 +23,13 @@ public sealed record ErpOutstanding(string AccountType, string PartyType, string
 public sealed record ErpFifoLayer(decimal Qty, decimal Rate);
 
 /// <summary>
+/// A line of a purchase or sales order still open (not completed, closed or cancelled). <see cref="Done"/> is what was received or
+/// delivered, in the line's own unit like <see cref="Qty"/>; <see cref="ConversionFactor"/> turns that unit into the stock unit.
+/// </summary>
+public sealed record ErpOrderLine(string Kind, string Order, string Party, DateOnly OrderDate, DateOnly? DueDate, string Item, string? Warehouse,
+    decimal Qty, decimal Done, decimal Rate, decimal ConversionFactor, decimal BilledAmount);
+
+/// <summary>
 /// An employee's balance of one leave type at cut-over, from ERPNext's leave ledger: every entry started by then (allocations add;
 /// applications, encashments and expiries take away). <see cref="AllocationCoversDate"/>: an allocation of this type runs over the day.
 /// </summary>
@@ -84,6 +91,9 @@ public interface IErpNextSource
     Task<IReadOnlyList<ErpStockBalance>> StockBalancesAsync(string company, DateOnly asOf, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ErpEmployee>> EmployeesAsync(string company, CancellationToken cancellationToken);
+
+    /// <summary>Lines of submitted purchase and sales orders dated by <paramref name="asOf"/> that are not completed, closed or cancelled.</summary>
+    Task<IReadOnlyList<ErpOrderLine>> OpenOrderLinesAsync(string company, DateOnly asOf, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ErpLeaveBalance>> LeaveBalancesAsync(string company, DateOnly asOf, CancellationToken cancellationToken);
 
@@ -190,6 +200,24 @@ public sealed class MariaDbErpNextSource(string connectionString) : IErpNextSour
             r => new ErpEmployee(r.GetString(0), Text(r, 1) ?? r.GetString(4), Text(r, 2), Text(r, 3), r.GetString(4), Text(r, 5), DateOnly.FromDateTime(r.GetDateTime(6)),
                 r.GetString(7), r.IsDBNull(8) ? null : DateOnly.FromDateTime(r.GetDateTime(8)), Text(r, 9)), cancellationToken).ConfigureAwait(false);
     }
+
+    public Task<IReadOnlyList<ErpOrderLine>> OpenOrderLinesAsync(string company, DateOnly asOf, CancellationToken cancellationToken) =>
+        QueryAsync("""
+            SELECT 'Purchase', o.name, o.supplier, o.transaction_date, o.schedule_date, i.item_code, i.warehouse,
+                   i.qty, i.received_qty, i.rate, i.conversion_factor, i.billed_amt, i.idx
+            FROM `tabPurchase Order` o JOIN `tabPurchase Order Item` i ON i.parent = o.name
+            WHERE o.company = @p AND o.docstatus = 1 AND o.status NOT IN ('Completed', 'Closed', 'Cancelled') AND o.transaction_date <= @asOf
+            UNION ALL
+            SELECT 'Sales', o.name, o.customer, o.transaction_date, o.delivery_date, i.item_code, i.warehouse,
+                   i.qty, i.delivered_qty, i.rate, i.conversion_factor, i.billed_amt, i.idx
+            FROM `tabSales Order` o JOIN `tabSales Order Item` i ON i.parent = o.name
+            WHERE o.company = @p AND o.docstatus = 1 AND o.status NOT IN ('Completed', 'Closed', 'Cancelled') AND o.transaction_date <= @asOf
+            ORDER BY 1, 2, 13
+            """, company,
+            r => new ErpOrderLine(r.GetString(0), r.GetString(1), r.GetString(2), DateOnly.FromDateTime(r.GetDateTime(3)),
+                r.IsDBNull(4) ? null : DateOnly.FromDateTime(r.GetDateTime(4)), r.GetString(5), Text(r, 6), r.GetDecimal(7), r.GetDecimal(8), r.GetDecimal(9),
+                r.IsDBNull(10) || r.GetDecimal(10) == 0m ? 1m : r.GetDecimal(10), r.GetDecimal(11)),
+            cancellationToken, ("@asOf", asOf.ToDateTime(TimeOnly.MinValue)));
 
     public Task<IReadOnlyList<ErpLeaveBalance>> LeaveBalancesAsync(string company, DateOnly asOf, CancellationToken cancellationToken) =>
         QueryAsync("""

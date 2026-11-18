@@ -80,7 +80,7 @@ public sealed partial class MigrationRun
 
     /// <summary>
     /// ERPNext keeps customers and suppliers apart; one name in both becomes one Gebeta party of type Both. Disabled ones are left
-    /// behind, unless they still have open balances at the cut-over: those come over so the balances can be settled.
+    /// behind, unless they still have open balances or orders at the cut-over: those come over so they can be settled.
     /// </summary>
     private async Task<StepReport> PartiesAsync(CancellationToken cancellationToken)
     {
@@ -88,15 +88,33 @@ public sealed partial class MigrationRun
         var byName = await PartiesToMigrateAsync(cancellationToken).ConfigureAwait(false);
         foreach (var (name, (party, _)) in byName.Where(p => p.Value.Party.Disabled).OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            report.Warnings.Add($"{PartyLabel(name, party.DisplayName)}: disabled in ERPNext but has open balances at the cut-over; migrated so they can be settled.");
+            report.Warnings.Add($"{PartyLabel(name, party.DisplayName)}: disabled in ERPNext but has open balances or orders at the cut-over; migrated so they can be settled.");
         }
 
         var known = await KnownAsync("Party", cancellationToken).ConfigureAwait(false);
+        var inGebeta = known.Count == 0 ? new Dictionary<Guid, PartyDto>()
+            : (await Query<ListPartiesQuery, IReadOnlyList<PartyDto>>(new ListPartiesQuery(_companyId), cancellationToken).ConfigureAwait(false)).Value.ToDictionary(p => p.Id);
         foreach (var (name, (party, type)) in byName.OrderBy(kv => kv.Key, StringComparer.Ordinal))
         {
-            if (known.ContainsKey(name))
+            if (known.TryGetValue(name, out var existingId))
             {
                 report.AlreadyMigrated++;
+                // A party brought earlier as only a supplier (or customer) may now be needed as the other too: a disabled customer side
+                // with an open order, say. It becomes Both; nothing else about it changes.
+                if (inGebeta.TryGetValue(existingId, out var current) && current.Type != type.ToString() && current.Type != nameof(PartyType.Both))
+                {
+                    var both = await Handle<UpdatePartyCommand, PartyDto>(new UpdatePartyCommand(existingId, current.Name, PartyType.Both, current.Tin,
+                        current.VatRegistrationNumber, current.Phone), cancellationToken).ConfigureAwait(false);
+                    if (both.IsFailure)
+                    {
+                        report.Failures.Add($"{name}: could not make it customer and supplier: {both.Error!.Message}");
+                    }
+                    else
+                    {
+                        report.Warnings.Add($"{PartyLabel(name, party.DisplayName)}: was only a {current.Type.ToLowerInvariant()} in Gebeta; now customer and supplier.");
+                    }
+                }
+
                 continue;
             }
 
@@ -135,7 +153,7 @@ public sealed partial class MigrationRun
         return report;
     }
 
-    /// <summary>The parties the migration brings: active customers and suppliers, plus disabled ones with open balances at the cut-over.</summary>
+    /// <summary>The parties the migration brings: active customers and suppliers, plus disabled ones with open balances or orders at the cut-over.</summary>
     private async Task<Dictionary<string, (ErpParty Party, PartyType Type)>> PartiesToMigrateAsync(CancellationToken cancellationToken)
     {
         var withBalance = new HashSet<string>(StringComparer.Ordinal);
@@ -143,6 +161,8 @@ public sealed partial class MigrationRun
         {
             withBalance.UnionWith((await source.OutstandingAsync(options.Company, cutover, cancellationToken).ConfigureAwait(false))
                 .Where(o => o.PartyType is "Customer" or "Supplier").Select(o => o.Party));
+            withBalance.UnionWith((await source.OpenOrderLinesAsync(options.Company, cutover, cancellationToken).ConfigureAwait(false))
+                .Where(l => l.Qty > l.Done).Select(l => l.Party));
         }
 
         bool Keep(ErpParty p) => !p.Disabled || withBalance.Contains(p.Name);

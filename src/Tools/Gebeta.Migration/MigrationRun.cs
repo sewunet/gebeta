@@ -53,7 +53,7 @@ public sealed class StepReport(string name)
 public sealed partial class MigrationRun(IServiceProvider services, IErpNextSource source, IdMap idMap, MigrationOptions options)
 {
     public static readonly string[] MasterSteps = ["parties", "items", "warehouses", "employees", "structures", "assignments", "history", "payroll"];
-    public static readonly string[] CutoverSteps = ["leave", "invoices", "stock", "opening"];
+    public static readonly string[] CutoverSteps = ["leave", "invoices", "orders", "stock", "opening"];
     public static readonly string[] AllSteps = ["company", .. MasterSteps, .. CutoverSteps];
 
     private Guid _companyId;
@@ -80,6 +80,7 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
             PartiesAsync, ItemsAsync, WarehousesAsync, EmployeesAsync, SalaryStructuresAsync, AssignmentsAsync, SlipHistoryAsync, PayrollCheckAsync,
             ct => Cutover("leave", OpeningLeaveAsync, ct),
             ct => Cutover("invoices", OpenInvoicesAsync, ct),
+            ct => Cutover("orders", OpenOrdersAsync, ct),
             ct => Cutover("stock", OpeningStockAsync, ct),
             ct => Cutover("opening", OpeningBalancesAsync, ct),
         ];

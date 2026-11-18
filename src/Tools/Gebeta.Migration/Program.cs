@@ -18,7 +18,7 @@ internal static class MigrationProgram
         var target = arguments.Get("target") ?? Environment.GetEnvironmentVariable("ConnectionStrings__Main");
         if (company is null || source is null || target is null)
         {
-            Console.Error.WriteLine("Usage: gebeta-migrate --company <ERPNext company> [--target-company <id>] [--tin <TIN>] [--legal-form <form>] [--steps parties,items,warehouses,employees,structures,assignments,history,payroll,leave,invoices,stock,opening] [--history-from yyyy-MM-dd] [--cutover yyyy-MM-dd] [--account-map file.csv] [--dry-run]");
+            Console.Error.WriteLine("Usage: gebeta-migrate --company <ERPNext company> [--target-company <id>] [--tin <TIN>] [--legal-form <form>] [--steps parties,items,warehouses,employees,structures,assignments,history,payroll,leave,invoices,orders,stock,opening] [--history-from yyyy-MM-dd] [--cutover yyyy-MM-dd] [--account-map file.csv] [--dry-run]");
             Console.Error.WriteLine("       ERPNext source: --source or ERPNEXT_DB; Gebeta database: --target or ConnectionStrings__Main.");
             return 2;
         }

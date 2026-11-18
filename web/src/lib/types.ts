@@ -52,6 +52,16 @@ export type AdditionalSalaryDto = {
   id: string; number?: string; companyId: string; payrollDate: string; component: string; abbreviation: string; type: "Earning" | "Deduction";
   isTaxable: boolean; status: string; remark?: string; lines: AdditionalSalaryLineDto[]; total: number; inSlips: number;
 };
+export type PayFigures = { gross: number; incomeTax: number; employeePension: number; employerPension: number; net: number; paymentDays: number };
+export type PayComparisonRow = {
+  employeeId: string; employeeNumber: string; employeeName: string; previous?: PayFigures; current?: PayFigures;
+  netChange: number; changePercent?: number; status: "Changed" | "New" | "Missing" | "Same"; flagged: boolean; reasons: string[];
+};
+export type PayTotals = { headcount: number; gross: number; incomeTax: number; employeePension: number; employerPension: number; net: number };
+export type PayrollComparisonDto = {
+  runId: string; periodStart: string; periodEnd: string; previousPeriodEnd: string; hasPrevious: boolean; thresholdPercent: number;
+  rows: PayComparisonRow[]; previousTotals: PayTotals; currentTotals: PayTotals; flaggedCount: number;
+};
 export type MyLeaveDto = { balances: LeaveBalanceDto[]; applications: LeaveApplicationDto[] };
 export type RoleDto = { id: string; name: string; description?: string; isSystem: boolean; permissions: string[] };
 

@@ -124,6 +124,9 @@ internal sealed class AssignmentRepository(PayrollDbContext db) : ISalaryStructu
     public async Task<IReadOnlyList<SalaryStructureAssignment>> ListForEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
         await db.Assignments.AsNoTracking().Where(a => a.EmployeeId == employeeId).OrderBy(a => a.FromDate).ToListAsync(cancellationToken).ConfigureAwait(false);
 
+    public async Task<IReadOnlyList<SalaryStructureAssignment>> StartingBetweenAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await db.Assignments.AsNoTracking().Where(a => a.CompanyId == companyId && a.FromDate >= from && a.FromDate <= to).ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public Task<SalaryStructureAssignment?> InForceOnAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken) =>
         db.Assignments.AsNoTracking().Where(a => a.EmployeeId == employeeId && a.FromDate <= date)
             .OrderByDescending(a => a.FromDate).FirstOrDefaultAsync(cancellationToken);
@@ -145,6 +148,9 @@ internal sealed class SalarySlipRepository(PayrollDbContext db) : ISalarySlipRep
     public Task<bool> HasActiveSlipAsync(Guid employeeId, DateOnly periodStart, DateOnly periodEnd, CancellationToken cancellationToken) =>
         db.SalarySlips.AnyAsync(s => s.EmployeeId == employeeId && s.DocStatus != Gebeta.SharedKernel.DocStatus.Cancelled
             && s.PeriodStart <= periodEnd && s.PeriodEnd >= periodStart, cancellationToken);
+
+    public async Task<IReadOnlyList<SalarySlip>> GetManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+        await db.SalarySlips.AsNoTracking().Where(s => ids.Contains(s.Id)).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public Task<bool> NumberExistsAsync(Guid companyId, string number, CancellationToken cancellationToken) =>
         db.SalarySlips.AnyAsync(s => s.CompanyId == companyId && s.Name == number, cancellationToken);
@@ -275,6 +281,9 @@ internal sealed class AdditionalPayRepository(PayrollDbContext db) : IAdditional
 
     public async Task<IReadOnlyList<AdditionalPayEntry>> ForSlipAsync(Guid salarySlipId, CancellationToken cancellationToken) =>
         await db.AdditionalPay.Where(e => e.SalarySlipId == salarySlipId).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<AdditionalPayEntry>> ForSlipsAsync(IReadOnlyCollection<Guid> salarySlipIds, CancellationToken cancellationToken) =>
+        await db.AdditionalPay.AsNoTracking().Where(e => e.SalarySlipId != null && salarySlipIds.Contains(e.SalarySlipId.Value)).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public async Task<IReadOnlyList<AdditionalPayEntry>> FromSourceAsync(Guid sourceId, CancellationToken cancellationToken) =>
         await db.AdditionalPay.Where(e => e.SourceId == sourceId).ToListAsync(cancellationToken).ConfigureAwait(false);

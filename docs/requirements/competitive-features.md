@@ -72,6 +72,15 @@ The list is ordered by score. Within a tie, the item with more risk behind it co
 
 ### 1. Payroll comparison with last month before submit
 
+> **Built (step 48).** `GET /api/payroll/runs/{id}/comparison` (CSV with `?format=csv`), and the
+> "Compare with last month" section of the payroll run screen. `PayrollComparisonTests` checks the worked
+> example below: every employee's figures and both months' totals, which equal the statutory reports.
+> Differences from this specification:
+> - **Criterion 11 is deferred:** the run does not store its flagged count when submitted, because that needs a
+>   schema change.
+> - **Criterion 7:** "left on <date>" is read from the employee's leaving date.
+> - **No "group by department" yet:** Gebeta has no departments.
+
 **In one line:** after **Generate**, the payroll run shows each employee's gross, tax, pension and net against
 the previous month, gives totals per component, and flags changes above a threshold, new employees and
 missing employees, all before **Submit**.

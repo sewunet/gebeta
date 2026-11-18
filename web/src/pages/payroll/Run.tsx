@@ -8,6 +8,7 @@ import { formatMoney } from "../../lib/ethiopian";
 import { can, type PayrollRunDto } from "../../lib/types";
 import { DynamicPage, FilterBar, FilterField, MessageStrip, ObjectStatus, statusTone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "./month";
+import { RunComparison } from "./RunComparison";
 
 /** The month's payroll run as a three-step process (create, generate slips, submit), with the declaration files. */
 export function Run() {
@@ -75,6 +76,8 @@ export function Run() {
           ))}
         </ol>
       </section>
+
+      {run?.slipsGenerated && <RunComparison run={run} />}
 
       {can(me, "payroll.reports.read") && (
         <section className="object-section">

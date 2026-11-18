@@ -17,6 +17,9 @@ public interface ISalaryStructureAssignmentRepository
     /// <summary>The assignment in force on <paramref name="date"/>: the latest one starting on or before it.</summary>
     Task<SalaryStructureAssignment?> InForceOnAsync(Guid employeeId, DateOnly date, CancellationToken cancellationToken);
 
+    /// <summary>The company's assignments taking effect between the dates (raises, new structures).</summary>
+    Task<IReadOnlyList<SalaryStructureAssignment>> StartingBetweenAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
+
     void Add(SalaryStructureAssignment assignment);
 }
 
@@ -32,6 +35,8 @@ public interface ISalarySlipRepository
     Task<IReadOnlyList<SalarySlip>> SubmittedForEmployeeAsync(Guid employeeId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
 
     Task<bool> NumberExistsAsync(Guid companyId, string number, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<SalarySlip>> GetManyAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken);
 
     void Add(SalarySlip slip);
 }
@@ -53,6 +58,9 @@ public interface IAdditionalPayRepository
     Task<IReadOnlyList<AdditionalPayEntry>> PendingAsync(Guid employeeId, DateOnly periodStart, DateOnly periodEnd, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<AdditionalPayEntry>> ForSlipAsync(Guid salarySlipId, CancellationToken cancellationToken);
+
+    /// <summary>The entries of many slips in one read (a payroll run's comparison).</summary>
+    Task<IReadOnlyList<AdditionalPayEntry>> ForSlipsAsync(IReadOnlyCollection<Guid> salarySlipIds, CancellationToken cancellationToken);
 
     /// <summary>The entries a document (an additional salary) gave.</summary>
     Task<IReadOnlyList<AdditionalPayEntry>> FromSourceAsync(Guid sourceId, CancellationToken cancellationToken);

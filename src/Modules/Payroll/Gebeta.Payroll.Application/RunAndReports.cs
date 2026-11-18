@@ -228,7 +228,8 @@ public sealed class PayrollReportsHandler(
     IEmployeeList employeeList,
     ICompanyDirectory companies,
     ICompanyAccess access,
-    PayrollOptions options)
+    PayrollOptions options,
+    SlipFigures figures)
     : IQueryHandler<IncomeTaxDeclarationQuery, IncomeTaxDeclarationDto>,
       IQueryHandler<PensionScheduleQuery, PensionScheduleDto>,
       IQueryHandler<BankTransferQuery, BankTransferDto>
@@ -331,15 +332,11 @@ public sealed class PayrollReportsHandler(
 
     private static decimal Sum(SalarySlip slip, Func<SalarySlipLine, bool> predicate) => slip.Lines.Where(predicate).Sum(l => l.Amount);
 
-    private bool IsIncomeTax(SalarySlipLine line) =>
-        line.Type == ComponentType.Deduction && (options.IncomeTaxComponents.Contains(line.Abbreviation) || line.Abbreviation == "BP_TAX"
-            || (line.Formula?.Contains("income_tax(", StringComparison.Ordinal) ?? false));
+    private bool IsIncomeTax(SalarySlipLine line) => figures.IsIncomeTax(line);
 
-    private bool IsEmployeePension(SalarySlipLine line) =>
-        line.Type == ComponentType.Deduction && (options.EmployeePensionComponents.Contains(line.Abbreviation) || line.Abbreviation == "BP_DED");
+    private bool IsEmployeePension(SalarySlipLine line) => figures.IsEmployeePension(line);
 
-    private bool IsEmployerPension(SalarySlipLine line) =>
-        line.Type == ComponentType.EmployerContribution && (options.EmployerPensionComponents.Contains(line.Abbreviation) || line.Abbreviation == "BP_EMP");
+    private bool IsEmployerPension(SalarySlipLine line) => figures.IsEmployerPension(line);
 
     private static string EthiopianMonth(DateOnly date)
     {
@@ -347,3 +344,27 @@ public sealed class PayrollReportsHandler(
         return $"{EthiopianMonthNames.English(e.MonthName)} {e.Year}";
     }
 }
+
+/// <summary>
+/// Which slip lines are income tax, employee pension and employer pension: one set of rules for the statutory reports and the payroll
+/// comparison, so their figures agree. Back payment lines (BP_TAX, BP_DED, BP_EMP) count in the month they are paid.
+/// </summary>
+public sealed class SlipFigures(PayrollOptions options)
+{
+    public bool IsIncomeTax(SalarySlipLine line) =>
+        line.Type == ComponentType.Deduction && (options.IncomeTaxComponents.Contains(line.Abbreviation) || line.Abbreviation == "BP_TAX"
+            || (line.Formula?.Contains("income_tax(", StringComparison.Ordinal) ?? false));
+
+    public bool IsEmployeePension(SalarySlipLine line) =>
+        line.Type == ComponentType.Deduction && (options.EmployeePensionComponents.Contains(line.Abbreviation) || line.Abbreviation == "BP_DED");
+
+    public bool IsEmployerPension(SalarySlipLine line) =>
+        line.Type == ComponentType.EmployerContribution && (options.EmployerPensionComponents.Contains(line.Abbreviation) || line.Abbreviation == "BP_EMP");
+
+    public decimal IncomeTax(SalarySlip slip) => slip.Lines.Where(IsIncomeTax).Sum(l => l.Amount);
+
+    public decimal EmployeePension(SalarySlip slip) => slip.Lines.Where(IsEmployeePension).Sum(l => l.Amount);
+
+    public decimal EmployerPension(SalarySlip slip) => slip.Lines.Where(IsEmployerPension).Sum(l => l.Amount);
+}
+

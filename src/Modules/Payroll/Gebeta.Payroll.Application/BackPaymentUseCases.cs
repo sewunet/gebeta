@@ -21,6 +21,9 @@ public sealed class PayrollOptions
     public IList<string> IncomeTaxComponents { get; } = ["IT"];
     public IList<string> EmployeePensionComponents { get; } = ["PE"];
     public IList<string> EmployerPensionComponents { get; } = ["PER"];
+
+    /// <summary>The payroll comparison flags an employee whose net pay changes by more than this, in percent.</summary>
+    public decimal ComparisonThresholdPercent { get; set; } = 10m;
 }
 
 /// <param name="AssignmentId">The revised salary structure assignment (the new salary).</param>

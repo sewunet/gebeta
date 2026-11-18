@@ -158,3 +158,18 @@ per employee or pasted from a spreadsheet (employee number and amount).
 - `additional_pay.source_id` is a plain reference shared by every document that gives entries.
   Back payments link their entries through `back_payment_id`.
 
+## Comparison with last month
+
+After **Generate**, the payroll run shows each employee's gross, income tax, pension and net against
+last month: the submitted slips of the period ending the day before this one, history slips
+included. Each row is *Changed*, *New*, *Missing* or *Same*.
+
+- **Flags:** a row is flagged when net pay moves by more than `Payroll:ComparisonThresholdPercent`
+  (default 10%), and *New* and *Missing* rows are always flagged.
+- **Reasons:** each row lists what the data shows: additional salary (`ADS-` number and amount),
+  back pay entries, different payment days, a new salary assignment, and the leaving date.
+- **Totals:** both months' totals use the same rules as the income tax and pension reports, through
+  `SlipFigures`.
+- **No block:** it is a warning, and submitting is never blocked.
+- **Reads:** everything is read in batches, never one query per employee.
+

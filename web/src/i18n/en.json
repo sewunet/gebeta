@@ -765,5 +765,24 @@
     "inSlips": "In salary slips",
     "cancel": "Cancel",
     "submittedHint": "Submitted: each employee's salary slip for this month takes their amount. It can be cancelled until a slip includes it."
+  },
+  "compare": {
+    "title": "Compare with last month",
+    "none": "No previous month to compare with.",
+    "explain": "Last month's submitted slips against this run. Rows that changed by more than {{threshold}}% of net pay, new employees and missing ones are flagged; check them before you submit.",
+    "flagged": "{{count}} to check",
+    "showAll": "Show everyone",
+    "last": "Last month",
+    "this": "This month",
+    "change": "Change",
+    "headcount": "Employees",
+    "employer": "Employer pension",
+    "reasons": "Why",
+    "status": {
+      "Changed": "Changed",
+      "New": "New",
+      "Missing": "Missing",
+      "Same": "Same"
+    }
   }
 }

@@ -221,3 +221,19 @@ public sealed record AdditionalSalaryLineDto(Guid EmployeeId, string EmployeeNum
 public sealed record AdditionalSalaryDto(Guid Id, string? Number, Guid CompanyId, DateOnly PayrollDate, string Component, string Abbreviation, string Type,
     bool IsTaxable, string Status, string? Remark, IReadOnlyList<AdditionalSalaryLineDto> Lines, decimal Total, int InSlips);
 
+/// <summary>One employee's month in the payroll comparison.</summary>
+public sealed record PayFigures(decimal Gross, decimal IncomeTax, decimal EmployeePension, decimal EmployerPension, decimal Net, decimal PaymentDays);
+
+/// <param name="Status">Changed, New, Missing or Same.</param>
+/// <param name="ChangePercent">The change in net pay, in percent; null when last month's net was not above zero.</param>
+/// <param name="Reasons">What the data says changed: additional salary, back pay, payment days, a new assignment, leaving.</param>
+public sealed record PayComparisonRow(Guid EmployeeId, string EmployeeNumber, string EmployeeName, PayFigures? Previous, PayFigures? Current,
+    decimal NetChange, decimal? ChangePercent, string Status, bool Flagged, IReadOnlyList<string> Reasons);
+
+public sealed record PayTotals(int Headcount, decimal Gross, decimal IncomeTax, decimal EmployeePension, decimal EmployerPension, decimal Net);
+
+/// <summary>A payroll run against the company's previous month, before it is submitted.</summary>
+/// <param name="PreviousPeriodEnd">The day before this period starts; there was no previous month when <see cref="HasPrevious"/> is false.</param>
+public sealed record PayrollComparisonDto(Guid RunId, DateOnly PeriodStart, DateOnly PeriodEnd, DateOnly PreviousPeriodEnd, bool HasPrevious,
+    decimal ThresholdPercent, IReadOnlyList<PayComparisonRow> Rows, PayTotals PreviousTotals, PayTotals CurrentTotals, int FlaggedCount);
+

@@ -32,6 +32,21 @@ public static class RunAndReportEndpoints
             .WithName("CreatePayrollRun")
             .RequirePermission(PayrollPermissions.RunsManage);
 
+        runs.MapGet("/{id:guid}/comparison", async (Guid id, string? format, IQueryHandler<PayrollComparisonQuery, PayrollComparisonDto> handler, CancellationToken ct) =>
+            {
+                var result = await handler.Handle(new PayrollComparisonQuery(id), ct).ConfigureAwait(false);
+                return result.IsSuccess && CsvFile.Requested(format)
+                    ? CsvFile.Create($"payroll-comparison-{result.Value.PeriodStart:yyyy-MM}.csv",
+                        ["Employee No", "Employee Name", "Status", "Flagged", "Last Gross", "Last Tax", "Last Pension", "Last Net", "Gross", "Tax", "Pension", "Net",
+                         "Net Change", "Change %", "Reasons"],
+                        result.Value.Rows.Select(r => new object?[] { r.EmployeeNumber, r.EmployeeName, r.Status, r.Flagged ? "yes" : "", r.Previous?.Gross,
+                            r.Previous?.IncomeTax, r.Previous?.EmployeePension, r.Previous?.Net, r.Current?.Gross, r.Current?.IncomeTax, r.Current?.EmployeePension,
+                            r.Current?.Net, r.NetChange, r.ChangePercent, string.Join("; ", r.Reasons) }))
+                    : result.ToHttp();
+            })
+            .WithName("PayrollComparison")
+            .RequirePermission(PayrollPermissions.RunsRead);
+
         runs.MapGet("/{id:guid}", async (Guid id, IQueryHandler<GetPayrollRunQuery, PayrollRunDto> handler, CancellationToken ct) =>
                 (await handler.Handle(new GetPayrollRunQuery(id), ct).ConfigureAwait(false)).ToHttp())
             .WithName("GetPayrollRun")

@@ -88,3 +88,8 @@ export function useRoles() {
 
 /** A role that lets its users see every company (their company list then does not matter). */
 export const seesAllCompanies = (role: RoleDto | undefined) => !!role?.permissions.some((p) => p === "*" || p === "core.*" || p === "core.companies.access-all");
+
+/** How many unread notifications the signed-in user has, for the bell; looked at again every minute. */
+export function useUnreadNotifications() {
+  return useQuery({ queryKey: ["notifications", "unread"], queryFn: () => api<{ count: number }>("/api/notifications/unread-count"), refetchInterval: 60_000 });
+}

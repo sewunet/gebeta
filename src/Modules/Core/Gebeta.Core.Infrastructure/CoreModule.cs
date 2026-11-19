@@ -76,6 +76,13 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.Attachments.RemoveAttachmentCommand, AttachmentDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Attachments.AttachmentHandler>());
         services.AddScoped<IQueryHandler<Gebeta.Core.Application.Attachments.ListAttachmentsQuery, IReadOnlyList<AttachmentDto>>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Attachments.AttachmentHandler>());
         services.AddScoped<IQueryHandler<Gebeta.Core.Application.Attachments.GetAttachmentFileQuery, Gebeta.Core.Application.Attachments.AttachmentFile>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Attachments.AttachmentHandler>());
+        services.AddScoped<Gebeta.Core.Domain.Notifications.INotificationRepository, NotificationRepository>();
+        services.AddScoped<INotifier, Persistence.CoreNotifier>(); // any module's way to put a message in a user's inbox
+        services.AddScoped<Gebeta.Core.Application.Notifications.NotificationHandler>();
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Notifications.ListMyNotificationsQuery, NotificationPageDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Notifications.NotificationHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Notifications.CountMyUnreadQuery, UnreadCountDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Notifications.NotificationHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Notifications.MarkNotificationReadCommand, NotificationDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Notifications.NotificationHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Notifications.MarkAllNotificationsReadCommand, UnreadCountDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Notifications.NotificationHandler>());
         services.AddScoped<Gebeta.Core.Application.CostCenters.CostCenterHandler>();
         services.AddScoped<ICostCenterDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.CostCenters.CreateCostCenterCommand, CostCenterDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());

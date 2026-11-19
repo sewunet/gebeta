@@ -31,6 +31,7 @@ public static class CoreEndpoints
         MapItems(endpoints);
         MapCostCenters(endpoints);
         MapAttachments(endpoints);
+        MapNotifications(endpoints);
         MapEmployees(endpoints);
 
         var parties = endpoints.MapGroup("/api/core/parties").WithTags("Core: Customers and suppliers");
@@ -82,6 +83,24 @@ public static class CoreEndpoints
                 CancellationToken ct) =>
                 (await h.Handle(new Gebeta.Core.Application.CostCenters.UpdateCostCenterCommand(id, b.Name, b.IsActive), ct).ConfigureAwait(false)).ToHttp())
             .WithName("UpdateCostCenter").RequirePermission(CorePermissions.CostCentersManage);
+    }
+
+    /// <summary>The signed-in user's own inbox. No permission is needed: every call is about the caller's own notifications, and nobody else's.</summary>
+    private static void MapNotifications(IEndpointRouteBuilder endpoints)
+    {
+        var inbox = endpoints.MapGroup("/api/notifications").WithTags("Core: Notifications");
+        inbox.MapGet("/", async (IQueryHandler<Gebeta.Core.Application.Notifications.ListMyNotificationsQuery, NotificationPageDto> h, CancellationToken ct, bool unread = false, int page = 1, int pageSize = 20) =>
+                (await h.Handle(new Gebeta.Core.Application.Notifications.ListMyNotificationsQuery(unread, page, pageSize), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListMyNotifications");
+        inbox.MapGet("/unread-count", async (IQueryHandler<Gebeta.Core.Application.Notifications.CountMyUnreadQuery, UnreadCountDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Notifications.CountMyUnreadQuery(), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CountMyUnreadNotifications");
+        inbox.MapPost("/{id:guid}/read", async (Guid id, ICommandHandler<Gebeta.Core.Application.Notifications.MarkNotificationReadCommand, NotificationDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Notifications.MarkNotificationReadCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("MarkNotificationRead");
+        inbox.MapPost("/read-all", async (ICommandHandler<Gebeta.Core.Application.Notifications.MarkAllNotificationsReadCommand, UnreadCountDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Notifications.MarkAllNotificationsReadCommand(), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("MarkAllNotificationsRead");
     }
 
     private static void MapAttachments(IEndpointRouteBuilder endpoints)

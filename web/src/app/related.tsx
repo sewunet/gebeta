@@ -6,22 +6,9 @@ import { api } from "../lib/api";
 import { formatDate, formatMoney } from "../lib/ethiopian";
 import type { Section } from "../ui/fiori";
 import { useSession } from "./context";
+import { RECORD_PAGE as PAGE } from "./recordPages";
 
 type RelatedDocument = { type: string; id?: string; number?: string; date?: string; status?: string; amount?: number };
-
-/** Where each kind of document opens; a kind without a page is listed without a link. */
-const PAGE: Record<string, string> = {
-  Invoice: "/accounting/invoices/$id",
-  Payment: "/accounting/payments/$id/voucher",
-  JournalEntry: "/accounting/journals/$id",
-  SalarySlip: "/payroll/slips/$id",
-  EmployeeLoan: "/payroll/loans/$id",
-  AdditionalSalary: "/payroll/additional-salary/$id",
-  PurchaseOrder: "/buying/orders/$id",
-  BlanketAgreement: "/buying/agreements/$id",
-  SalesOrder: "/selling/orders/$id",
-  StockEntry: "/stock/entries/$id",
-};
 
 /** The documents before and after this one (order, receipt, invoice, payment, journal; loan or additional salary, salary slip), in date order. */
 export function RelatedDocuments({ id, number }: { id: string; number?: string }) {

@@ -67,6 +67,12 @@ internal sealed class UserRepository(CoreDbContext db) : IUserRepository
         return db.Users.FirstOrDefaultAsync(u => u.ExternalId == null && u.Username == name, cancellationToken);
     }
 
+    public Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken)
+    {
+        var name = username.Trim().ToLowerInvariant();
+        return db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == name, cancellationToken);
+    }
+
     public Task<User?> GetByEmployeeAsync(Guid employeeId, CancellationToken cancellationToken) =>
         db.Users.FirstOrDefaultAsync(u => u.EmployeeId == employeeId, cancellationToken);
 

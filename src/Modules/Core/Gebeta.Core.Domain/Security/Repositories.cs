@@ -8,6 +8,9 @@ public interface IUserRepository
     /// <summary>An invited user (not signed in yet) with this username.</summary>
     Task<User?> GetInvitedAsync(string username, CancellationToken cancellationToken);
 
+    /// <summary>The user with this username (usernames are kept in lower case, matched without regard to case).</summary>
+    Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken);
+
     Task<bool> UsernameExistsAsync(string username, CancellationToken cancellationToken);
 
     Task<User?> GetByEmployeeAsync(Guid employeeId, CancellationToken cancellationToken);

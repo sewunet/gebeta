@@ -209,3 +209,7 @@ export type SalesOrderDto = {
   state: "Draft" | "ToDeliverAndBill" | "ToDeliver" | "ToBill" | "Completed" | "Closed" | "Cancelled";
   lines: SalesOrderLineDto[]; netTotal: number; percentDelivered: number; percentBilled: number; remark?: string;
 };
+
+/** A message in the signed-in user's inbox. LinkKind and LinkId name the record it is about, if any. */
+export type NotificationDto = { id: string; companyId: string; title: string; body?: string; linkKind?: string; linkId?: string; severity: string; createdAt: string; readAt?: string };
+export type NotificationPageDto = { items: NotificationDto[]; total: number; unread: number; page: number; pageSize: number };

@@ -28,7 +28,7 @@ rules and dunning.
 Next: **document flow** on every document (S), then **attachments** (M).
 
 **Not now:**
-- **Alerts** (B1 Alerts Management) need a notification inbox first.
+- **Alerts** (B1 Alerts Management): the notification inbox they need is built (step 62); the alert rules are not.
 - **Foreign-currency invoices and revaluation** are a large change (L). They matter once an importing customer
   goes live.
 - **Framework agreements** are built (step 61, Buying); tenders (Phase 5) can issue them later. Landed costs are built (step 59).
@@ -59,7 +59,7 @@ The method and scale are the same as in `competitive-features.md`:
 | 6 | Landed costs on goods received | B1 Landed Costs | Stock, Buying | 4 | M | 2.0 | Built (step 59), in Stock |
 | 7 | Framework (blanket) agreements with suppliers | B1 Blanket Agreements | Buying | 3 | M | 1.5 | Built (step 61), in Buying |
 | 8 | Foreign-currency invoices and month-end revaluation | B1 exchange rate differences | Accounting | 4 | L | 1.3 | Planned |
-| 9 | Alerts from saved conditions | B1 Alerts Management | Platform | 3 | M | 1.5 | Needs an inbox |
+| 9 | Alerts from saved conditions | B1 Alerts Management | Platform | 3 | M | 1.5 | Inbox built (step 62); rules not built |
 
 ---
 
@@ -396,7 +396,32 @@ vouchers (#2, built) can list their attachments.
     expiring) that notifies chosen users on a schedule.
   - SAP B1 builds alerts on saved queries; they notify but do not block
     ([SAP Learning: using alerts](https://learning.sap.com/courses/implementing-sap-business-one/using-alerts)).
-  - Needs an in-app notification inbox first, which Gebeta does not have.
+  - Needs an in-app notification inbox first.
+
+  > **Built (step 62): the inbox only, not the alerts.** Core keeps a per-user inbox (`core.notification`) and
+  > any module can send to it through `INotifier` (`Gebeta.Application`, like `IRecordPermissions`).
+  > - **Sending:** `NotifyUserAsync(companyId, username, message)` and `NotifyRoleAsync(companyId, roleName, message)`.
+  >   A message has a title, an optional body, an optional link to a record (kind and id, the kind names the
+  >   document flow uses) and a severity (Info, Warning, Critical). A role message is stored once per holder.
+  > - **Deny by default:** an unknown, inactive or no-access person gets nothing (the user must be assigned to the
+  >   company, or hold `core.companies.access-all`). Sending is best effort: a failure is logged and swallowed, so
+  >   the business action that sent it is never lost. A module without a notifier uses `NoNotifier`.
+  > - **API** (any signed-in user, no permission, always the caller's own): `GET /api/notifications?unread&page&pageSize`
+  >   (newest first, at most 100 a page; returns total and unread), `GET /api/notifications/unread-count`,
+  >   `POST /api/notifications/{id}/read`, `POST /api/notifications/read-all`. Another user's notification is
+  >   answered as not found, for everyone including administrators. Notifications of a company the user may no
+  >   longer work in are hidden.
+  > - **Web:** a bell with the unread count in the shell bar (checked every minute) and an inbox page at `/inbox`
+  >   that opens the record linked.
+  > - **One real producer:** when someone other than the creator cancels a purchase order, Buying tells its creator
+  >   (a Warning linking to the order).
+  >
+  > **Not built:** alert rules (saved conditions on a schedule) and the scheduler to run them; other producers
+  > (approval steps, overdue invoices, loans ending, stock below reorder level, contracts expiring); delivery by email,
+  > SMS or push; per-user preferences or muting; text in the reader's language (messages are stored as written by
+  > the sender, English for now); retention (nothing is deleted, so old read messages should be purged one day);
+  > live push (the bell polls); deleting a notification; the inbox does not yet follow a role message to
+  > someone assigned the role later.
 
 ## What SAP does that Gebeta should not copy
 

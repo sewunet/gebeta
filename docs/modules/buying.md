@@ -28,6 +28,9 @@ ordinary purchase invoice whose line debits 2150, which clears the charge (docs/
 
 ## Framework agreements
 
+> **Built (step 62).** When someone other than the creator cancels a purchase order, the creator gets a notification in their inbox
+> (`INotifier`, step 62; skipped when no notifier is installed).
+
 > **Built (step 61).** A framework (blanket) agreement is an agreement with one supplier for a period: items at agreed
 > rates, capped by a planned quantity per item, an amount for the whole agreement, or both. Purchase orders call off
 > against it and it shows what remains.

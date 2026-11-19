@@ -1045,5 +1045,22 @@
     "add": "ፋይል አያይዝ",
     "hint": "PDF፣ PNG፣ JPG፣ WebP፣ XLSX፣ DOCX፣ CSV ወይም TXT፤ እስከ 10 MB።",
     "confirmRemove": "{{name}} ይወገድ? መወገዱ በታሪክ ውስጥ ይታያል።"
+  },
+  "inbox": {
+    "title": "የመልዕክት ሳጥን",
+    "bellUnread": "የመልዕክት ሳጥን፣ {{count}} ያልተነበበ",
+    "none": "ምንም ማሳወቂያ የለም።",
+    "noneUnread": "ያልተነበበ የለም።",
+    "unreadOnly": "ያልተነበቡ ብቻ",
+    "markAll": "ሁሉንም እንደተነበበ ምልክት አድርግ",
+    "markRead": "እንደተነበበ ምልክት አድርግ",
+    "open": "ክፈት",
+    "previous": "ቀዳሚ",
+    "next": "ቀጣይ",
+    "severity": {
+      "Info": "መረጃ",
+      "Warning": "ማስጠንቀቂያ",
+      "Critical": "አስቸኳይ"
+    }
   }
 }

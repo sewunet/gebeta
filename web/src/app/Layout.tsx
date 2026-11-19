@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../lib/auth";
+import { useUnreadNotifications } from "../lib/queries";
 import { can } from "../lib/types";
+import { unreadLabel } from "../pages/inboxModel";
 import { APPS, GROUPS, type Group } from "./apps";
 import { useSession } from "./context";
 
@@ -29,6 +31,7 @@ export function Layout() {
   const { t } = useTranslation();
   const { signOut } = useAuth();
   const { me, modules, companies, company, setCompanyId, savePreferences } = useSession();
+  const unread = useUnreadNotifications().data?.count ?? 0;
   const [menu, setMenu] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const [folded, toggleGroup] = useFolded();
@@ -59,6 +62,10 @@ export function Layout() {
         <select className="shell-company" aria-label={t("common.company")} value={company?.id ?? ""} onChange={(e) => setCompanyId(e.target.value)}>
           {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        <Link to="/inbox" className="shell-icon shell-bell" aria-label={unread > 0 ? t("inbox.bellUnread", { count: unread }) : t("inbox.title")}>
+          <span aria-hidden>🔔</span>
+          {unread > 0 && <span className="bell-badge" aria-hidden>{unreadLabel(unread)}</span>}
+        </Link>
         <div className="shell-user" ref={userRef}>
           <button className="avatar" aria-label={me.fullName ?? me.username} aria-expanded={userMenu} onClick={() => setUserMenu((u) => !u)}>{initials}</button>
           {userMenu && (

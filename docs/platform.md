@@ -80,6 +80,12 @@ refer to. Each module adds its own details in its own extension tables.
   Core keeps the files; each module answers which permissions guard its records (`IRecordPermissions`), and an unclaimed record is refused.
 - Comments and a timeline on every document.
 
+## Notifications
+
+- Core keeps each user's in-app inbox (step 62). Any module sends to it through `INotifier` (a user by username, or every holder of a
+  role, in a company); the user reads only their own (`/api/notifications`). See `docs/requirements/sap-features.md` (9, Alerts) for what is
+  and is not built.
+
 ## Custom fields
 
 Customers (Sugar, FHC, others) need extra fields without code changes:

@@ -1045,5 +1045,22 @@
     "add": "Attach a file",
     "hint": "PDF, PNG, JPG, WebP, XLSX, DOCX, CSV or TXT, up to 10 MB.",
     "confirmRemove": "Remove {{name}}? The removal shows in the history."
+  },
+  "inbox": {
+    "title": "Inbox",
+    "bellUnread": "Inbox, {{count}} unread",
+    "none": "No notifications.",
+    "noneUnread": "Nothing unread.",
+    "unreadOnly": "Unread only",
+    "markAll": "Mark all read",
+    "markRead": "Mark read",
+    "open": "Open",
+    "previous": "Previous",
+    "next": "Next",
+    "severity": {
+      "Info": "Info",
+      "Warning": "Warning",
+      "Critical": "Critical"
+    }
   }
 }

@@ -47,7 +47,8 @@ public sealed class PurchaseOrderHandler(
     ICurrentUser currentUser,
     IBuyingNumbers numbers,
     IBuyingUnitOfWork unitOfWork,
-    TimeProvider clock)
+    TimeProvider clock,
+    INotifier? notifier = null)
     : ICommandHandler<CreatePurchaseOrderCommand, PurchaseOrderDto>,
       ICommandHandler<PurchaseOrderActionCommand, PurchaseOrderDto>,
       IQueryHandler<GetPurchaseOrderQuery, PurchaseOrderDto>,
@@ -176,6 +177,15 @@ public sealed class PurchaseOrderHandler(
         if (transaction is not null)
         {
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        // Tell whoever created the order when someone else cancels it. After the cancellation is saved; the notifier never fails the action.
+        if (command.Action == PurchaseOrderAction.Cancel && order.CreatedBy is { Length: > 0 } creator
+            && !string.Equals(creator, currentUser.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            await (notifier ?? NoNotifier.Instance).NotifyUserAsync(order.CompanyId, creator,
+                new NotificationMessage($"Purchase order {order.Name} was cancelled", $"{currentUser.Username ?? "Someone"} cancelled the order to {order.SupplierName}.",
+                    "PurchaseOrder", order.Id, NotificationSeverity.Warning), cancellationToken).ConfigureAwait(false);
         }
 
         return (await ToDtosAsync([order], cancellationToken).ConfigureAwait(false))[0];

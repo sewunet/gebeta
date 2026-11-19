@@ -5,6 +5,7 @@ import { Layout } from "./Layout";
 
 const root = createRootRoute({ component: Layout });
 
+const inbox = createRoute({ getParentRoute: () => root, path: "/inbox", component: lazyRouteComponent(() => import("../pages/Inbox"), "Inbox") });
 const salesOrders = createRoute({ getParentRoute: () => root, path: "/selling/orders", component: lazyRouteComponent(() => import("../pages/selling/SalesOrders"), "SalesOrders") });
 const salesOrderNew = createRoute({ getParentRoute: () => root, path: "/selling/orders/new", component: lazyRouteComponent(() => import("../pages/selling/SalesOrders"), "SalesOrderCreate") });
 const salesOrder = createRoute({ getParentRoute: () => root, path: "/selling/orders/$id", component: lazyRouteComponent(() => import("../pages/selling/SalesOrders"), "SalesOrderDetail") });
@@ -79,7 +80,7 @@ const banking = createRoute({ getParentRoute: () => root, path: "/accounting/ban
 const ageing = createRoute({ getParentRoute: () => root, path: "/accounting/ageing", component: lazyRouteComponent(() => import("../pages/accounting/Ageing"), "Ageing") });
 
 export const router = createRouter({
-  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, agreements, agreementNew, agreement, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, costCenters, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, loans, loanNew, loan, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, journalVoucher, paymentVoucher, cashVoucher, trialBalance, parties, party, partyStatement, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
+  routeTree: root.addChildren([inbox, salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, agreements, agreementNew, agreement, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, costCenters, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, loans, loanNew, loan, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, journalVoucher, paymentVoucher, cashVoucher, trialBalance, parties, party, partyStatement, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
 });
 
 declare module "@tanstack/react-router" {

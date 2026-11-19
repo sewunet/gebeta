@@ -36,6 +36,13 @@ a { color: var(--navy); }
 .shell-company { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.2); max-width: 260px; }
 .shell-company option { color: var(--ink); }
 .shell-user { position: relative; }
+.shell-bell { position: relative; text-decoration: none; line-height: 1; }
+.bell-badge { position: absolute; top: 0; right: 0; min-width: 16px; padding: 1px 4px; border-radius: 8px; background: var(--gold); color: var(--navy-deep); font-size: 11px; font-weight: 700; text-align: center; }
+.inbox-list { list-style: none; margin: 0; padding: 0; }
+.inbox-item { display: flex; justify-content: space-between; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--line, #e5e5e5); }
+.inbox-item.unread { border-left: 3px solid var(--gold); background: rgba(0,0,0,.02); }
+.inbox-item p { margin: 2px 0; }
+.inbox-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; white-space: nowrap; }
 .avatar { width: 34px; height: 34px; padding: 0; border-radius: 50%; background: var(--gold); color: var(--navy-deep); font-weight: 700; font-size: 13px; }
 .avatar:hover:not(:disabled) { background: var(--gold-dark); }
 .popover { position: absolute; right: 0; top: 44px; min-width: 260px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 10px 30px rgba(10,39,64,.18); padding: 14px; display: grid; gap: 12px; }

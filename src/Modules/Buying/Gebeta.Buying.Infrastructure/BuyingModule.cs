@@ -1,6 +1,7 @@
 using Gebeta.Application;
 using Gebeta.Buying.Application;
 using Gebeta.Buying.Contracts;
+using Gebeta.Buying.Domain.Agreements;
 using Gebeta.Buying.Domain.Orders;
 using Gebeta.Buying.Infrastructure.Persistence;
 using Gebeta.Buying.Presentation;
@@ -38,6 +39,7 @@ public sealed class BuyingModule : IErpModule
         services.AddScoped<IBuyingUnitOfWork>(sp => sp.GetRequiredService<BuyingDbContext>());
         services.AddScoped<IBuyingNumbers, BuyingNumbers>();
         services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+        services.AddScoped<IBlanketAgreementRepository, BlanketAgreementRepository>();
         services.AddScoped<IModuleMigrator, BuyingMigrator>();
         services.AddOutboxDispatcher<BuyingDbContext>(Id, BuyingDbContext.SchemaName);
         context.Capabilities
@@ -50,6 +52,12 @@ public sealed class BuyingModule : IErpModule
         services.AddScoped<ICommandHandler<PurchaseOrderActionCommand, PurchaseOrderDto>>(sp => sp.GetRequiredService<PurchaseOrderHandler>());
         services.AddScoped<IQueryHandler<GetPurchaseOrderQuery, PurchaseOrderDto>>(sp => sp.GetRequiredService<PurchaseOrderHandler>());
         services.AddScoped<IQueryHandler<ListPurchaseOrdersQuery, IReadOnlyList<PurchaseOrderDto>>>(sp => sp.GetRequiredService<PurchaseOrderHandler>());
+
+        services.AddScoped<BlanketAgreementHandler>();
+        services.AddScoped<ICommandHandler<CreateBlanketAgreementCommand, BlanketAgreementDto>>(sp => sp.GetRequiredService<BlanketAgreementHandler>());
+        services.AddScoped<ICommandHandler<BlanketAgreementActionCommand, BlanketAgreementDto>>(sp => sp.GetRequiredService<BlanketAgreementHandler>());
+        services.AddScoped<IQueryHandler<GetBlanketAgreementQuery, BlanketAgreementDto>>(sp => sp.GetRequiredService<BlanketAgreementHandler>());
+        services.AddScoped<IQueryHandler<ListBlanketAgreementsQuery, IReadOnlyList<BlanketAgreementDto>>>(sp => sp.GetRequiredService<BlanketAgreementHandler>());
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints) => BuyingEndpoints.Map(endpoints);

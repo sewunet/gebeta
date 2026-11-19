@@ -18,6 +18,7 @@ const PAGE: Record<string, string> = {
   EmployeeLoan: "/payroll/loans/$id",
   AdditionalSalary: "/payroll/additional-salary/$id",
   PurchaseOrder: "/buying/orders/$id",
+  BlanketAgreement: "/buying/agreements/$id",
   SalesOrder: "/selling/orders/$id",
   StockEntry: "/stock/entries/$id",
 };

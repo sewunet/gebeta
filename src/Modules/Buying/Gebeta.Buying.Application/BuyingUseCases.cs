@@ -1,5 +1,6 @@
 using Gebeta.Application;
 using Gebeta.Buying.Contracts;
+using Gebeta.Buying.Domain.Agreements;
 using Gebeta.Buying.Domain.Orders;
 using Gebeta.SharedKernel;
 
@@ -18,7 +19,8 @@ public interface IOrderFulfilment
 
 public sealed record PurchaseOrderLineInput(Guid ItemId, decimal Qty, decimal Rate, Guid? WarehouseId);
 
-public sealed record CreatePurchaseOrderCommand(Guid CompanyId, Guid SupplierId, DateOnly OrderDate, DateOnly? RequiredBy, IReadOnlyList<PurchaseOrderLineInput> Lines, string? Remark)
+public sealed record CreatePurchaseOrderCommand(Guid CompanyId, Guid SupplierId, DateOnly OrderDate, DateOnly? RequiredBy, IReadOnlyList<PurchaseOrderLineInput> Lines, string? Remark,
+    Guid? AgreementId = null)
     : ICommand<PurchaseOrderDto>;
 
 public enum PurchaseOrderAction
@@ -37,6 +39,7 @@ public sealed record ListPurchaseOrdersQuery(Guid CompanyId, DateOnly From, Date
 
 public sealed class PurchaseOrderHandler(
     IPurchaseOrderRepository orders,
+    IBlanketAgreementRepository agreements,
     IItemDirectory items,
     IPartyDirectory parties,
     IOrderFulfilment fulfilment,
@@ -81,11 +84,27 @@ public sealed class PurchaseOrderHandler(
         PurchaseOrder order;
         try
         {
-            order = PurchaseOrder.Create(command.CompanyId, supplier.Id, supplier.Name, command.OrderDate, command.RequiredBy ?? command.OrderDate, lines, command.Remark);
+            order = PurchaseOrder.Create(command.CompanyId, supplier.Id, supplier.Name, command.OrderDate, command.RequiredBy ?? command.OrderDate, lines, command.Remark,
+                command.AgreementId);
         }
         catch (DomainException ex)
         {
             return Error.Validation(ex.Message);
+        }
+
+        if (command.AgreementId is { } agreementId)
+        {
+            // An early answer; submitting checks again under a lock.
+            var agreement = await agreements.GetAsync(agreementId, cancellationToken).ConfigureAwait(false);
+            if (agreement is null || agreement.CompanyId != command.CompanyId)
+            {
+                return Error.Validation("Choose an agreement of this company.");
+            }
+
+            if (await CheckCallOffAsync(agreement, order, cancellationToken).ConfigureAwait(false) is { } refusal)
+            {
+                return Error.Validation(refusal);
+            }
         }
 
         await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
@@ -107,11 +126,31 @@ public sealed class PurchaseOrderHandler(
             return Error.NotFound("Purchase order", command.Id);
         }
 
+        // Submitting an order that calls off against an agreement takes a lock on the agreement, so two orders cannot overdraw it together.
+        await using var transaction = command.Action == PurchaseOrderAction.Submit && order.AgreementId is not null
+            ? await unitOfWork.BeginTransactionAsync(cancellationToken).ConfigureAwait(false)
+            : null;
         try
         {
             switch (command.Action)
             {
-                case PurchaseOrderAction.Submit: order.Submit(); break;
+                case PurchaseOrderAction.Submit:
+                    if (order.AgreementId is { } agreementId)
+                    {
+                        var agreement = await agreements.GetLockedAsync(agreementId, cancellationToken).ConfigureAwait(false);
+                        if (agreement is null)
+                        {
+                            return Error.Validation("The agreement of this order no longer exists.");
+                        }
+
+                        if (await CheckCallOffAsync(agreement, order, cancellationToken).ConfigureAwait(false) is { } refusal)
+                        {
+                            return Error.Validation(refusal);
+                        }
+                    }
+
+                    order.Submit();
+                    break;
                 case PurchaseOrderAction.Close: order.Close(); break;
                 case PurchaseOrderAction.Reopen: order.Reopen(); break;
                 default:
@@ -134,6 +173,11 @@ public sealed class PurchaseOrderHandler(
         order.ModifiedAt = clock.GetUtcNow();
         order.ModifiedBy = currentUser.Username;
         await unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         return (await ToDtosAsync([order], cancellationToken).ConfigureAwait(false))[0];
     }
 
@@ -154,6 +198,21 @@ public sealed class PurchaseOrderHandler(
 
         var list = await orders.ListAsync(query.CompanyId, query.From, query.To, cancellationToken).ConfigureAwait(false);
         return Result.Success<IReadOnlyList<PurchaseOrderDto>>(await ToDtosAsync(list, cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>Why the order may not call off against the agreement as it stands, or null when it may.</summary>
+    private async Task<string?> CheckCallOffAsync(BlanketAgreement agreement, PurchaseOrder order, CancellationToken cancellationToken)
+    {
+        var called = await orders.CalledOffAsync([agreement.Id], cancellationToken).ConfigureAwait(false);
+        try
+        {
+            agreement.CheckCallOff(order.SupplierId, order.PostingDate, order.Lines, BlanketAgreement.Summarise(called.GetValueOrDefault(agreement.Id) ?? []));
+            return null;
+        }
+        catch (DomainException ex)
+        {
+            return ex.Message;
+        }
     }
 
     private async Task<PurchaseOrder?> AccessibleAsync(Guid id, CancellationToken cancellationToken)
@@ -181,6 +240,8 @@ public sealed class PurchaseOrderHandler(
             }
         }
 
+        var agreementNumbers = (await agreements.GetManyAsync(list.Where(o => o.AgreementId is not null).Select(o => o.AgreementId!.Value).Distinct().ToList(), cancellationToken)
+            .ConfigureAwait(false)).ToDictionary(a => a.Id, a => a.Name);
         static Dictionary<Guid, decimal> Sum(IReadOnlyList<OrderedItemQty>? q) =>
             (q ?? []).GroupBy(x => x.ItemId).ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
         return list.Select(o =>
@@ -190,7 +251,7 @@ public sealed class PurchaseOrderHandler(
             return new PurchaseOrderDto(o.Id, o.Name, o.CompanyId, o.SupplierId, o.SupplierName, o.PostingDate, o.RequiredBy, o.DocStatus.ToString(), o.StateFor(r, b).ToString(),
                 o.Lines.Select(l => new PurchaseOrderLineDto(l.ItemId, l.ItemCode, l.ItemName, l.Uom, l.Qty, l.Rate, l.Amount, l.WarehouseId,
                     r.GetValueOrDefault(l.ItemId), b.GetValueOrDefault(l.ItemId))).ToList(),
-                o.NetTotal, o.PercentOf(r), o.PercentOf(b), o.Remark);
+                o.NetTotal, o.PercentOf(r), o.PercentOf(b), o.Remark, o.AgreementId, o.AgreementId is { } a ? agreementNumbers.GetValueOrDefault(a) : null);
         }).ToList();
     }
 }

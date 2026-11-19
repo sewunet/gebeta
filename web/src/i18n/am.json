@@ -51,7 +51,8 @@
     "loans": "ብድርና ቋሚ ተቀናሾች",
     "reports": "ሪፖርቶች",
     "settings": "ቅንብሮች",
-    "costCenters": "የወጪ ማዕከላት"
+    "costCenters": "የወጪ ማዕከላት",
+    "agreements": "የስምምነት ማዕቀፍ"
   },
   "common": {
     "company": "ኩባንያ",
@@ -557,7 +558,8 @@
     "myLeave": "ቀሪ ፈቃድዎ እና ጥያቄዎችዎ",
     "additionalSalary": "የትርፍ ሰዓት፣ አበሎች፣ ተቀናሾች",
     "loans": "ቅድሚያ ክፍያ፣ እድር፣ የፍርድ ቤት ትዕዛዝ",
-    "costCenters": "እርሻ፣ ፋብሪካ፣ ዋና መሥሪያ ቤት"
+    "costCenters": "እርሻ፣ ፋብሪካ፣ ዋና መሥሪያ ቤት",
+    "agreements": "ከአቅራቢዎች ጋር የተስማሙ ዋጋዎችና ብዛቶች"
   },
   "ui": {
     "search": "ፈልግ",
@@ -698,7 +700,34 @@
     "order": "የግዢ ትዕዛዝ",
     "draftHint": "ይህ ረቂቅ ነው፤ ትዕዛዙን ለመስጠት ያቅርቡት።",
     "receivingAgainst": "ከ{{supplier}} በ{{number}} መሠረት እየተቀበሉ ነው፤ ዝርዝሮቹ ገና የሚመጣውን ያሳያሉ።",
-    "billingAgainst": "የ{{supplier}} ደረሰኝ ለ{{number}}፤ ዝርዝሮቹ ደረሰኝ ያልተቆረጠላቸውን ያሳያሉ።"
+    "billingAgainst": "የ{{supplier}} ደረሰኝ ለ{{number}}፤ ዝርዝሮቹ ደረሰኝ ያልተቆረጠላቸውን ያሳያሉ።",
+    "agr": {
+      "title": "የስምምነት ማዕቀፍ",
+      "new": "አዲስ የስምምነት ማዕቀፍ",
+      "validFrom": "ከ",
+      "validTo": "እስከ",
+      "amountLimit": "የተስማማ መጠን",
+      "planned": "የታቀደ ብዛት",
+      "called": "የተጠራ",
+      "remaining": "የቀረ",
+      "agreedRate": "የተስማማ ዋጋ",
+      "callOffs": "በዚህ ስምምነት ላይ የተሰጡ ትዕዛዞች",
+      "callOff": "የግዢ ትዕዛዝ ፍጠር",
+      "agreement": "ስምምነት",
+      "none": "ስምምነት የለም",
+      "capHint": "የተስማማ መጠን፣ ወይም በእያንዳንዱ ዕቃ የታቀደ ብዛት፣ ወይም ሁለቱንም ያስገቡ። የግዢ ትዕዛዞች ከላይ ባሉት ቀናት መካከል በእነዚህ ዋጋዎች ከቀረው መጠን ያልበለጠ ሊጠሩ ይችላሉ።",
+      "draftHint": "ይህ ረቂቅ ነው፤ የግዢ ትዕዛዞች እንዲጠሩበት ያቅርቡት።",
+      "calledQty": "የተጠራ ብዛት",
+      "searchHint": "ቁጥር ወይም አቅራቢ",
+      "orderHint": "ዝርዝሮቹ የተስማማውን ዋጋ ይይዛሉ፤ ትዕዛዙ ከጊዜው ውጪ ቢሆን፣ ለሌላ አቅራቢ ቢሆን ወይም ከቀረው ቢበልጥ ውድቅ ይደረጋል።",
+      "states": {
+        "Draft": "ረቂቅ",
+        "Active": "ንቁ",
+        "Exhausted": "ሙሉ በሙሉ የተጠራ",
+        "Expired": "ጊዜው ያለፈበት",
+        "Cancelled": "የተሰረዘ"
+      }
+    }
   },
   "sell": {
     "searchHint": "ቁጥር፣ ደንበኛ ወይም ዕቃ",
@@ -1003,7 +1032,8 @@
       "PurchaseOrder": "የግዢ ትዕዛዝ",
       "SalesOrder": "የሽያጭ ትዕዛዝ",
       "StockEntry": "የንብረት እንቅስቃሴ",
-      "Order": "ትዕዛዝ"
+      "Order": "ትዕዛዝ",
+      "BlanketAgreement": "የስምምነት ማዕቀፍ"
     }
   },
   "attachments": {

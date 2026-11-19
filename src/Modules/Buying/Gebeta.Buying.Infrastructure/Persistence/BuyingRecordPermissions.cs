@@ -1,5 +1,6 @@
 using Gebeta.Application;
 using Gebeta.Buying.Contracts;
+using Gebeta.Buying.Domain.Agreements;
 using Gebeta.Buying.Domain.Orders;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +15,11 @@ internal sealed class BuyingRecordPermissions(BuyingDbContext db) : IRecordPermi
         {
             return new RecordPermissions(BuyingPermissions.OrdersRead, BuyingPermissions.OrdersCreate);
         }
+        if (await db.Set<BlanketAgreement>().AsNoTracking().AnyAsync(e => e.Id == recordId && e.CompanyId == companyId, cancellationToken).ConfigureAwait(false))
+        {
+            return new RecordPermissions(BuyingPermissions.AgreementsRead, BuyingPermissions.AgreementsCreate);
+        }
+
         return null;
     }
 }

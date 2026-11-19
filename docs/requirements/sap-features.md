@@ -31,7 +31,7 @@ Next: **document flow** on every document (S), then **attachments** (M).
 - **Alerts** (B1 Alerts Management) need a notification inbox first.
 - **Foreign-currency invoices and revaluation** are a large change (L). They matter once an importing customer
   goes live.
-- **Framework agreements** wait for Phase 5 (tenders). Landed costs are built (step 59).
+- **Framework agreements** are built (step 61, Buying); tenders (Phase 5) can issue them later. Landed costs are built (step 59).
 - **Internal reconciliation** of open items on accounts such as 1400 Employee Advances is worth doing after
   cost centres.
 
@@ -57,7 +57,7 @@ The method and scale are the same as in `competitive-features.md`:
 | 4 | Change history (who changed what) | B1 Change Log | Platform | 5 | M | 2.5 | Planned |
 | 5 | Attachments on documents and master data | B1 Attachments tab | Platform | 4 | M | 2.0 | Planned |
 | 6 | Landed costs on goods received | B1 Landed Costs | Stock, Buying | 4 | M | 2.0 | Built (step 59), in Stock |
-| 7 | Framework (blanket) agreements with suppliers | B1 Blanket Agreements | Buying | 3 | M | 1.5 | Phase 5 (tenders) |
+| 7 | Framework (blanket) agreements with suppliers | B1 Blanket Agreements | Buying | 3 | M | 1.5 | Built (step 61), in Buying |
 | 8 | Foreign-currency invoices and month-end revaluation | B1 exchange rate differences | Accounting | 4 | L | 1.3 | Planned |
 | 9 | Alerts from saved conditions | B1 Alerts Management | Platform | 3 | M | 1.5 | Needs an inbox |
 
@@ -374,6 +374,10 @@ vouchers (#2, built) can list their attachments.
   - Why it matters: Ethiopian imports carry duty, excise, surtax and large LC charges.
   - Belongs with Phase 5 "LC".
 - **Framework (blanket) agreements (M, value 3):**
+
+  > **Built (step 61).** Buying keeps a **Blanket Agreement** document (`BPA-<FY>-#####`, `/api/buying/agreements`: create, get,
+  > list (optionally by supplier), submit, cancel) and purchase orders take an optional `agreementId` to call off against it.
+  > See "Framework agreements" in `docs/modules/buying.md` for the rules and the decisions to revisit.
   - What: an agreement with a supplier for a planned quantity or amount at agreed prices over a period.
     Purchase orders call off against it, and it shows what remains.
   - SAP B1 has this as blanket agreements

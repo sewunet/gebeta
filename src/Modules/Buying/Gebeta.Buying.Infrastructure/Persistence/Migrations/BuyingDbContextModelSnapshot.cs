@@ -23,11 +23,111 @@ namespace Gebeta.Buying.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Gebeta.Buying.Domain.Agreements.BlanketAgreement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AmendedFromId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("amended_from_id");
+
+                    b.Property<decimal?>("AmountLimit")
+                        .HasPrecision(21, 6)
+                        .HasColumnType("numeric(21,6)")
+                        .HasColumnName("amount_limit");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("DocStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("doc_status");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("name");
+
+                    b.Property<DateOnly>("PostingDate")
+                        .HasColumnType("date")
+                        .HasColumnName("posting_date");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("remark");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("supplier_name");
+
+                    b.Property<DateOnly>("ValidFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_from");
+
+                    b.Property<DateOnly>("ValidTo")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_to");
+
+                    b.Property<string>("_lines")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("lines");
+
+                    b.HasKey("Id")
+                        .HasName("pk_blanket_agreement");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("ix_blanket_agreement_supplier_id");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_blanket_agreement_company_id_name");
+
+                    b.HasIndex("CompanyId", "PostingDate")
+                        .HasDatabaseName("ix_blanket_agreement_company_id_posting_date");
+
+                    b.ToTable("blanket_agreement", "buying");
+                });
+
             modelBuilder.Entity("Gebeta.Buying.Domain.Orders.PurchaseOrder", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<Guid?>("AgreementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("agreement_id");
 
                     b.Property<Guid?>("AmendedFromId")
                         .HasColumnType("uuid")
@@ -100,6 +200,9 @@ namespace Gebeta.Buying.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_purchase_order");
+
+                    b.HasIndex("AgreementId")
+                        .HasDatabaseName("ix_purchase_order_agreement_id");
 
                     b.HasIndex("SupplierId")
                         .HasDatabaseName("ix_purchase_order_supplier_id");
@@ -260,6 +363,15 @@ namespace Gebeta.Buying.Infrastructure.Persistence.Migrations
                         .HasFilter("processed_at IS NULL");
 
                     b.ToTable("outbox_message", "buying");
+                });
+
+            modelBuilder.Entity("Gebeta.Buying.Domain.Orders.PurchaseOrder", b =>
+                {
+                    b.HasOne("Gebeta.Buying.Domain.Agreements.BlanketAgreement", null)
+                        .WithMany()
+                        .HasForeignKey("AgreementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_purchase_order_blanket_agreement_agreement_id");
                 });
 #pragma warning restore 612, 618
         }

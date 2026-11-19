@@ -195,6 +195,13 @@ export type PurchaseOrderDto = {
   id: string; number?: string; companyId: string; supplierId: string; supplierName: string; orderDate: string; requiredBy: string; status: string;
   state: "Draft" | "ToReceiveAndBill" | "ToReceive" | "ToBill" | "Completed" | "Closed" | "Cancelled";
   lines: PurchaseOrderLineDto[]; netTotal: number; percentReceived: number; percentBilled: number; remark?: string;
+  agreementId?: string; agreementNumber?: string;
+};
+export type AgreementLineDto = { itemId: string; itemCode: string; itemName: string; uom: string; rate: number; plannedQty?: number; calledQty: number; calledAmount: number; remainingQty?: number };
+export type BlanketAgreementDto = {
+  id: string; number?: string; companyId: string; supplierId: string; supplierName: string; agreementDate: string; validFrom: string; validTo: string; status: string;
+  state: "Draft" | "Active" | "Exhausted" | "Expired" | "Cancelled"; amountLimit?: number; calledAmount: number; remainingAmount?: number;
+  lines: AgreementLineDto[]; callOffs: { orderId: string; number?: string; orderDate: string; amount: number; state: string }[]; remark?: string;
 };
 export type SalesOrderLineDto = { itemId: string; itemCode: string; itemName: string; uom: string; qty: number; rate: number; amount: number; warehouseId?: string; deliveredQty: number; billedQty: number };
 export type SalesOrderDto = {

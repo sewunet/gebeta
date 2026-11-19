@@ -1,6 +1,6 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useSession } from "../../app/context";
 import { api, post } from "../../lib/api";
@@ -8,7 +8,7 @@ import { formatDate, formatMoney, todayIso } from "../../lib/ethiopian";
 import { can, type PurchaseOrderDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, type Tone } from "../../ui/fiori";
 import { currentMonth, monthRange } from "../payroll/month";
-import { useItems, useParties, usePurchaseOrder, useWarehouses } from "../../lib/queries";
+import { useBlanketAgreement, useItems, useParties, usePurchaseOrder, useWarehouses } from "../../lib/queries";
 import { historySection } from "../../app/history";
 import { attachmentsSection } from "../../app/attachments";
 import { relatedSection } from "../../app/related";
@@ -90,7 +90,14 @@ export function PurchaseOrderCreate() {
   const parties = useParties();
   const items = useItems();
   const warehouses = useWarehouses();
+  const { agreement: agreementId } = useSearch({ from: "/buying/orders/new" });
+  const agreement = useBlanketAgreement(agreementId);
   const [lines, setLines] = useState<Line[]>([{ itemId: "", qty: "", rate: "", warehouseId: "" }]);
+  // Calling off an agreement: its items come with their agreed rates; the buyer enters the quantities.
+  const agreedId = agreement.data?.id;
+  useEffect(() => {
+    if (agreement.data) setLines(agreement.data.lines.map((l) => ({ itemId: l.itemId, qty: "", rate: String(l.rate), warehouseId: "" })));
+  }, [agreedId]); // eslint-disable-line react-hooks/exhaustive-deps
   const create = useMutation({
     mutationFn: (body: object) => post<PurchaseOrderDto>("/api/buying/purchase-orders", body),
     onSuccess: (o) => { void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] }); void navigate({ to: "/buying/orders/$id", params: { id: o.id } }); },
@@ -102,7 +109,7 @@ export function PurchaseOrderCreate() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     create.mutate({
-      companyId: company.id, supplierId: f.get("supplierId"), orderDate: f.get("orderDate"), requiredBy: f.get("requiredBy") || null, remark: f.get("remark") || null,
+      companyId: company.id, supplierId: f.get("supplierId"), orderDate: f.get("orderDate"), requiredBy: f.get("requiredBy") || null, remark: f.get("remark") || null, agreementId: agreementId ?? null,
       lines: lines.filter((l) => l.itemId && Number(l.qty) > 0).map((l) => ({ itemId: l.itemId, qty: Number(l.qty), rate: Number(l.rate || 0), warehouseId: l.warehouseId || null })),
     });
   };
@@ -123,7 +130,7 @@ export function PurchaseOrderCreate() {
           <h2>{t("ui.general")}</h2>
           <div className="form-columns">
             <label>{t("inv.supplier")}<span className="required" aria-hidden>*</span>
-              <select name="supplierId" required defaultValue="">
+              <select name="supplierId" required defaultValue={agreement.data?.supplierId ?? ""} key={agreedId ?? "free"}>
                 <option value="" disabled>—</option>
                 {parties.data?.filter((p) => p.type !== "Customer").map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -135,6 +142,7 @@ export function PurchaseOrderCreate() {
         </section>
         <section className="object-section">
           <h2>{t("ui.lines")}</h2>
+          {agreement.data && <MessageStrip tone="information">{t("buy.agr.agreement")} {agreement.data.number}: {t("buy.agr.orderHint")}</MessageStrip>}
           <table className="table edit-table">
             <thead><tr><th>{t("nav.items")}</th><th className="num">{t("stock.qty")}</th><th className="num">{t("inv.rate")}</th><th>{t("stock.to")}</th><th className="num">{t("cash.amount")}</th><th /></tr></thead>
             <tbody>{lines.map((l, i) => (
@@ -229,6 +237,7 @@ export function PurchaseOrderDetail() {
             { label: t("inv.supplier"), value: o.supplierName },
             { label: t("attendance.date"), value: formatDate(o.orderDate, me.calendar, am) },
             { label: t("buy.requiredBy"), value: formatDate(o.requiredBy, me.calendar, am) },
+            { label: t("buy.agr.agreement"), value: o.agreementId ? <Link to="/buying/agreements/$id" params={{ id: o.agreementId }}>{o.agreementNumber}</Link> : null, hidden: !o.agreementId },
             { label: t("acc.remark"), value: o.remark },
           ]} />
         ) },

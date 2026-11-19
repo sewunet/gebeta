@@ -30,5 +30,22 @@ public static class BuyingEndpoints
                     (await h.Handle(new PurchaseOrderActionCommand(id, action), ct).ConfigureAwait(false)).ToHttp())
                 .WithName($"{action}PurchaseOrder").RequirePermission(BuyingPermissions.OrdersSubmit);
         }
+
+        var ag = endpoints.MapGroup("/api/buying/agreements").WithTags("Buying");
+        ag.MapGet("/", async (Guid companyId, Guid? supplierId, IQueryHandler<ListBlanketAgreementsQuery, IReadOnlyList<BlanketAgreementDto>> h, CancellationToken ct) =>
+                (await h.Handle(new ListBlanketAgreementsQuery(companyId, supplierId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListBlanketAgreements").RequirePermission(BuyingPermissions.AgreementsRead);
+        ag.MapGet("/{id:guid}", async (Guid id, IQueryHandler<GetBlanketAgreementQuery, BlanketAgreementDto> h, CancellationToken ct) =>
+                (await h.Handle(new GetBlanketAgreementQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetBlanketAgreement").RequirePermission(BuyingPermissions.AgreementsRead);
+        ag.MapPost("/", async (CreateBlanketAgreementCommand command, ICommandHandler<CreateBlanketAgreementCommand, BlanketAgreementDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateBlanketAgreement").RequirePermission(BuyingPermissions.AgreementsCreate);
+        foreach (var action in Enum.GetValues<BlanketAgreementAction>())
+        {
+            ag.MapPost($"/{{id:guid}}/{action.ToString().ToLowerInvariant()}", async (Guid id, ICommandHandler<BlanketAgreementActionCommand, BlanketAgreementDto> h, CancellationToken ct) =>
+                    (await h.Handle(new BlanketAgreementActionCommand(id, action), ct).ConfigureAwait(false)).ToHttp())
+                .WithName($"{action}BlanketAgreement").RequirePermission(BuyingPermissions.AgreementsSubmit);
+        }
     }
 }

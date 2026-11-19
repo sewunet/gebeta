@@ -51,7 +51,8 @@
     "loans": "Loans and deductions",
     "reports": "Reports",
     "settings": "Settings",
-    "costCenters": "Cost centres"
+    "costCenters": "Cost centres",
+    "agreements": "Framework agreements"
   },
   "common": {
     "company": "Company",
@@ -557,7 +558,8 @@
     "myLeave": "Your balance and requests",
     "additionalSalary": "Overtime, allowances, deductions",
     "loans": "Advances, Idir, court orders",
-    "costCenters": "Estate, factory, head office"
+    "costCenters": "Estate, factory, head office",
+    "agreements": "Agreed prices and quantities with suppliers"
   },
   "ui": {
     "search": "Search",
@@ -698,7 +700,34 @@
     "order": "Purchase order",
     "draftHint": "This is a draft: submit it to place the order.",
     "receivingAgainst": "Receiving against {{number}} from {{supplier}}: the lines show what is still to come.",
-    "billingAgainst": "Billing {{number}} from {{supplier}}: the lines show what is not billed yet."
+    "billingAgainst": "Billing {{number}} from {{supplier}}: the lines show what is not billed yet.",
+    "agr": {
+      "title": "Framework agreement",
+      "new": "New framework agreement",
+      "validFrom": "Valid from",
+      "validTo": "Valid to",
+      "amountLimit": "Agreed amount",
+      "planned": "Planned quantity",
+      "called": "Called off",
+      "remaining": "Remaining",
+      "agreedRate": "Agreed rate",
+      "callOffs": "Orders against this agreement",
+      "callOff": "Create purchase order",
+      "agreement": "Agreement",
+      "none": "No agreement",
+      "capHint": "Give an agreed amount, a planned quantity on every item, or both. Purchase orders can then call off up to what remains, at these rates, between the dates above.",
+      "draftHint": "This is a draft: submit it so purchase orders can call off against it.",
+      "calledQty": "Called off qty",
+      "searchHint": "Number or supplier",
+      "orderHint": "Lines take the agreed rate; the order is refused if it is outside the period, for another supplier, or above what remains.",
+      "states": {
+        "Draft": "Draft",
+        "Active": "Active",
+        "Exhausted": "Fully called off",
+        "Expired": "Expired",
+        "Cancelled": "Cancelled"
+      }
+    }
   },
   "sell": {
     "searchHint": "Number, customer or item",
@@ -1003,7 +1032,8 @@
       "PurchaseOrder": "Purchase order",
       "SalesOrder": "Sales order",
       "StockEntry": "Stock entry",
-      "Order": "Order"
+      "Order": "Order",
+      "BlanketAgreement": "Framework agreement"
     }
   },
   "attachments": {

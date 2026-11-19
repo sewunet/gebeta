@@ -5,7 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "../app/context";
 import { api } from "./api";
-import { can, type BankAccountDto, type CashierDto, type CostCenterDto, type ItemDto, type PartyDto, type PurchaseOrderDto, type RoleDto, type SalaryStructureDto, type SalesOrderDto, type UserDto, type WarehouseDto } from "./types";
+import { can, type BankAccountDto, type BlanketAgreementDto, type CashierDto, type CostCenterDto, type ItemDto, type PartyDto, type PurchaseOrderDto, type RoleDto, type SalaryStructureDto, type SalesOrderDto, type UserDto, type WarehouseDto } from "./types";
 
 /** Customers and suppliers of the selected company (kept in Core). */
 export function useParties() {
@@ -51,6 +51,10 @@ export function useBankAccounts() {
 export function useCashiers() {
   const { company } = useSession();
   return useQuery({ queryKey: ["cashiers", company?.id], queryFn: () => api<CashierDto[]>(`/api/cash/cashiers?companyId=${company!.id}`), enabled: !!company });
+}
+
+export function useBlanketAgreement(id: string | undefined) {
+  return useQuery({ queryKey: ["agreement", id], queryFn: () => api<BlanketAgreementDto>(`/api/buying/agreements/${id}`), enabled: !!id });
 }
 
 export function usePurchaseOrder(id: string | undefined) {

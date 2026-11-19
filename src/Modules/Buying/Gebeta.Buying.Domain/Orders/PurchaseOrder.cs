@@ -45,11 +45,15 @@ public sealed class PurchaseOrder : DocumentBase
     public DateOnly RequiredBy { get; private set; }
     public string? Remark { get; private set; }
     public bool IsClosed { get; private set; }
+
+    /// <summary>The framework agreement this order calls off against, if any.</summary>
+    public Guid? AgreementId { get; private set; }
+
     public IReadOnlyList<PurchaseOrderLine> Lines => _lines;
     public decimal NetTotal => _lines.Sum(l => l.Amount);
 
     public static PurchaseOrder Create(Guid companyId, Guid supplierId, string supplierName, DateOnly orderDate, DateOnly requiredBy, IReadOnlyList<PurchaseOrderLine> lines,
-        string? remark)
+        string? remark, Guid? agreementId = null)
     {
         ArgumentNullException.ThrowIfNull(lines);
         if (lines.Count == 0 || lines.Any(l => l.Qty <= 0m || l.Rate < 0m))
@@ -70,7 +74,7 @@ public sealed class PurchaseOrder : DocumentBase
         return new PurchaseOrder(companyId, orderDate)
         {
             SupplierId = supplierId, SupplierName = supplierName, RequiredBy = requiredBy, _lines = lines.ToList(),
-            Remark = string.IsNullOrWhiteSpace(remark) ? null : remark.Trim(),
+            Remark = string.IsNullOrWhiteSpace(remark) ? null : remark.Trim(), AgreementId = agreementId,
         };
     }
 
@@ -123,4 +127,7 @@ public interface IPurchaseOrderRepository
     Task<PurchaseOrder?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyList<PurchaseOrder>> ListAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
     void Add(PurchaseOrder order);
+
+    /// <summary>What submitted orders (closed ones too, cancelled ones not) have called off, per item, for each agreement.</summary>
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<PurchaseOrder>>> CalledOffAsync(IReadOnlyCollection<Guid> agreementIds, CancellationToken cancellationToken);
 }

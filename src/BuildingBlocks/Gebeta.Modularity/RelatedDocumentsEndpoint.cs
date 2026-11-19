@@ -22,6 +22,7 @@ public static class RelatedDocumentsEndpoint
         ["EmployeeLoan"] = "payroll.loans.read",
         ["AdditionalSalary"] = "payroll.additional-salary.read",
         ["BackPayment"] = "payroll.back-payments.read",
+        ["BlanketAgreement"] = "buying.agreements.read",
         ["PurchaseOrder"] = "buying.orders.read",
         ["SalesOrder"] = "selling.orders.read",
         ["StockEntry"] = "stock.entries.read",

@@ -9,8 +9,12 @@ const salesOrders = createRoute({ getParentRoute: () => root, path: "/selling/or
 const salesOrderNew = createRoute({ getParentRoute: () => root, path: "/selling/orders/new", component: lazyRouteComponent(() => import("../pages/selling/SalesOrders"), "SalesOrderCreate") });
 const salesOrder = createRoute({ getParentRoute: () => root, path: "/selling/orders/$id", component: lazyRouteComponent(() => import("../pages/selling/SalesOrders"), "SalesOrderDetail") });
 const purchaseOrders = createRoute({ getParentRoute: () => root, path: "/buying/orders", component: lazyRouteComponent(() => import("../pages/buying/PurchaseOrders"), "PurchaseOrders") });
-const purchaseOrderNew = createRoute({ getParentRoute: () => root, path: "/buying/orders/new", component: lazyRouteComponent(() => import("../pages/buying/PurchaseOrders"), "PurchaseOrderCreate") });
+const purchaseOrderNew = createRoute({ getParentRoute: () => root, path: "/buying/orders/new", component: lazyRouteComponent(() => import("../pages/buying/PurchaseOrders"), "PurchaseOrderCreate"),
+  validateSearch: (s: Record<string, unknown>): { agreement?: string } => ({ agreement: typeof s.agreement === "string" ? s.agreement : undefined }) });
 const purchaseOrder = createRoute({ getParentRoute: () => root, path: "/buying/orders/$id", component: lazyRouteComponent(() => import("../pages/buying/PurchaseOrders"), "PurchaseOrderDetail") });
+const agreements = createRoute({ getParentRoute: () => root, path: "/buying/agreements", component: lazyRouteComponent(() => import("../pages/buying/Agreements"), "Agreements") });
+const agreementNew = createRoute({ getParentRoute: () => root, path: "/buying/agreements/new", component: lazyRouteComponent(() => import("../pages/buying/Agreements"), "AgreementCreate") });
+const agreement = createRoute({ getParentRoute: () => root, path: "/buying/agreements/$id", component: lazyRouteComponent(() => import("../pages/buying/Agreements"), "AgreementDetail") });
 const items = createRoute({ getParentRoute: () => root, path: "/items", component: lazyRouteComponent(() => import("../pages/stock/Items"), "Items") });
 const item = createRoute({ getParentRoute: () => root, path: "/items/$id", component: lazyRouteComponent(() => import("../pages/stock/Items"), "ItemDetail") });
 const warehouses = createRoute({ getParentRoute: () => root, path: "/stock/warehouses", component: lazyRouteComponent(() => import("../pages/stock/Warehouses"), "Warehouses") });
@@ -75,7 +79,7 @@ const banking = createRoute({ getParentRoute: () => root, path: "/accounting/ban
 const ageing = createRoute({ getParentRoute: () => root, path: "/accounting/ageing", component: lazyRouteComponent(() => import("../pages/accounting/Ageing"), "Ageing") });
 
 export const router = createRouter({
-  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, costCenters, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, loans, loanNew, loan, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, journalVoucher, paymentVoucher, cashVoucher, trialBalance, parties, party, partyStatement, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
+  routeTree: root.addChildren([salesOrders, salesOrderNew, salesOrder, purchaseOrders, purchaseOrderNew, purchaseOrder, agreements, agreementNew, agreement, items, item, warehouses, stockEntries, stockEntryNew, stockEntry, stockBalance, stockLedger, dashboard, companies, companyPage, costCenters, employees, employeePage, myPayslips, myPayslip, myLeave, users, userPage, roles, rolePage, slips, slip, run, structures, structureNew, structure, additionalSalaries, additionalSalaryNew, additionalSalary, loans, loanNew, loan, calculator, leave, attendance, cashiers, cashier, pettyCash, accounts, journals, journalNew, journal, journalVoucher, paymentVoucher, cashVoucher, trialBalance, parties, party, partyStatement, invoices, invoiceNew, invoice, taxReports, periods, financial, ageing, receipt, banking]),
 });
 
 declare module "@tanstack/react-router" {

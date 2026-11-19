@@ -23,6 +23,7 @@ export const APPS: AppEntry[] = [
   { id: "sales-orders", group: "selling", path: "/selling/orders", title: "nav.salesOrders", subtitle: "tiles.salesOrders", permission: "selling.orders.read", module: "selling" },
 
   { id: "purchase-orders", group: "buying", path: "/buying/orders", title: "nav.purchaseOrders", subtitle: "tiles.purchaseOrders", permission: "buying.orders.read", module: "buying" },
+  { id: "agreements", group: "buying", path: "/buying/agreements", title: "nav.agreements", subtitle: "tiles.agreements", permission: "buying.agreements.read", module: "buying" },
 
   { id: "items", group: "stock", path: "/items", title: "nav.items", subtitle: "tiles.items", permission: "core.items.read" },
   { id: "stock-entries", group: "stock", path: "/stock/entries", title: "nav.stockEntries", subtitle: "tiles.stockEntries", permission: "stock.entries.read", module: "stock" },

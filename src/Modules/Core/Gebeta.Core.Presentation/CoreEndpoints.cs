@@ -30,6 +30,7 @@ public static class CoreEndpoints
         MapSettings(endpoints);
         MapItems(endpoints);
         MapCostCenters(endpoints);
+        MapAttachments(endpoints);
         MapEmployees(endpoints);
 
         var parties = endpoints.MapGroup("/api/core/parties").WithTags("Core: Customers and suppliers");
@@ -81,6 +82,61 @@ public static class CoreEndpoints
                 CancellationToken ct) =>
                 (await h.Handle(new Gebeta.Core.Application.CostCenters.UpdateCostCenterCommand(id, b.Name, b.IsActive), ct).ConfigureAwait(false)).ToHttp())
             .WithName("UpdateCostCenter").RequirePermission(CorePermissions.CostCentersManage);
+    }
+
+    private static void MapAttachments(IEndpointRouteBuilder endpoints)
+    {
+        var files = endpoints.MapGroup("/api/attachments").WithTags("Core: Attachments");
+        files.MapGet("/", async (Guid companyId, Guid entityId, IQueryHandler<Gebeta.Core.Application.Attachments.ListAttachmentsQuery, IReadOnlyList<AttachmentDto>> h,
+                CancellationToken ct) => (await h.Handle(new Gebeta.Core.Application.Attachments.ListAttachmentsQuery(companyId, entityId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListAttachments").RequirePermission(CorePermissions.AttachmentsRead);
+
+        // A form upload (companyId, entityId, file). Bearer tokens, not cookies, so there is no cross-site form to guard against.
+        files.MapPost("/", async (HttpRequest request, ICommandHandler<Gebeta.Core.Application.Attachments.AddAttachmentCommand, AttachmentDto> h, CancellationToken ct) =>
+            {
+                if (!request.HasFormContentType)
+                {
+                    return Results.Problem(title: "Send the file as a form upload (multipart/form-data).", statusCode: StatusCodes.Status400BadRequest);
+                }
+
+                var form = await request.ReadFormAsync(ct).ConfigureAwait(false);
+                if (form.Files.Count != 1 || !Guid.TryParse(form["companyId"], out var companyId) || !Guid.TryParse(form["entityId"], out var entityId))
+                {
+                    return Results.Problem(title: "Send one file with the companyId and entityId it belongs to.", statusCode: StatusCodes.Status400BadRequest);
+                }
+
+                var file = form.Files[0];
+                if (file.Length > Gebeta.Core.Domain.Attachments.Attachment.MaxBytes)
+                {
+                    return Results.Problem(title: "A file is at most 10 MB.", statusCode: StatusCodes.Status400BadRequest);
+                }
+
+                using var buffer = new MemoryStream();
+                await file.CopyToAsync(buffer, ct).ConfigureAwait(false);
+                return (await h.Handle(new Gebeta.Core.Application.Attachments.AddAttachmentCommand(companyId, entityId, file.FileName, buffer.ToArray()), ct)
+                    .ConfigureAwait(false)).ToHttp();
+            })
+            .DisableAntiforgery()
+            .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(Gebeta.Core.Domain.Attachments.Attachment.MaxBytes + 64 * 1024))
+            .WithName("AddAttachment").RequirePermission(CorePermissions.AttachmentsManage);
+
+        // Always a download, never shown in the page: an uploaded file cannot run as part of Gebeta.
+        files.MapGet("/{id:guid}/content", async (Guid id, HttpResponse response,
+                IQueryHandler<Gebeta.Core.Application.Attachments.GetAttachmentFileQuery, Gebeta.Core.Application.Attachments.AttachmentFile> h, CancellationToken ct) =>
+            {
+                var file = await h.Handle(new Gebeta.Core.Application.Attachments.GetAttachmentFileQuery(id), ct).ConfigureAwait(false);
+                if (file.IsFailure)
+                {
+                    return file.ToHttp();
+                }
+
+                response.Headers["X-Content-Type-Options"] = "nosniff";
+                return Results.File(file.Value.Bytes, file.Value.ContentType, file.Value.FileName);
+            })
+            .WithName("GetAttachmentContent").RequirePermission(CorePermissions.AttachmentsRead);
+        files.MapDelete("/{id:guid}", async (Guid id, ICommandHandler<Gebeta.Core.Application.Attachments.RemoveAttachmentCommand, AttachmentDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Attachments.RemoveAttachmentCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("RemoveAttachment").RequirePermission(CorePermissions.AttachmentsManage);
     }
 
     private static void MapEmployees(IEndpointRouteBuilder endpoints)

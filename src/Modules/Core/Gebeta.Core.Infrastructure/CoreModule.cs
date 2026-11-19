@@ -69,6 +69,12 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<Gebeta.Core.Domain.Parties.IPartyRepository, PartyRepository>();
         services.AddScoped<Gebeta.Core.Domain.Items.IItemRepository, ItemRepository>();
         services.AddScoped<Gebeta.Core.Domain.CostCenters.ICostCenterRepository, CostCenterRepository>();
+        services.AddScoped<Gebeta.Core.Domain.Attachments.IAttachmentRepository, AttachmentRepository>();
+        services.AddScoped<Gebeta.Core.Application.Attachments.AttachmentHandler>();
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Attachments.AddAttachmentCommand, AttachmentDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Attachments.AttachmentHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Attachments.RemoveAttachmentCommand, AttachmentDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Attachments.AttachmentHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Attachments.ListAttachmentsQuery, IReadOnlyList<AttachmentDto>>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Attachments.AttachmentHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Attachments.GetAttachmentFileQuery, Gebeta.Core.Application.Attachments.AttachmentFile>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Attachments.AttachmentHandler>());
         services.AddScoped<Gebeta.Core.Application.CostCenters.CostCenterHandler>();
         services.AddScoped<ICostCenterDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.CostCenters.CreateCostCenterCommand, CostCenterDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());

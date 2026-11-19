@@ -24,6 +24,86 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Gebeta.Core.Domain.Attachments.Attachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("file_name");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sha256");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size");
+
+                    b.HasKey("Id")
+                        .HasName("pk_attachment");
+
+                    b.HasIndex("CompanyId", "EntityId")
+                        .HasDatabaseName("ix_attachment_company_id_entity_id");
+
+                    b.ToTable("attachment", "core");
+                });
+
+            modelBuilder.Entity("Gebeta.Core.Domain.Attachments.AttachmentContent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("data");
+
+                    b.HasKey("Id")
+                        .HasName("pk_attachment_content");
+
+                    b.ToTable("attachment_content", "core");
+                });
+
             modelBuilder.Entity("Gebeta.Core.Domain.Companies.Company", b =>
                 {
                     b.Property<Guid>("Id")
@@ -804,6 +884,16 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                         .HasFilter("processed_at IS NULL");
 
                     b.ToTable("outbox_message", "core");
+                });
+
+            modelBuilder.Entity("Gebeta.Core.Domain.Attachments.AttachmentContent", b =>
+                {
+                    b.HasOne("Gebeta.Core.Domain.Attachments.Attachment", null)
+                        .WithOne()
+                        .HasForeignKey("Gebeta.Core.Domain.Attachments.AttachmentContent", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_attachment_content_attachment_id");
                 });
 #pragma warning restore 612, 618
         }

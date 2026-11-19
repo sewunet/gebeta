@@ -29,6 +29,10 @@ public static class CorePermissions
     /// <summary>The change history of any record (who changed what, when); checked by the platform endpoint /api/history.</summary>
     public const string HistoryRead = "core.history.read";
 
+    /// <summary>See and download the files attached to records; add and remove them.</summary>
+    public const string AttachmentsRead = "core.attachments.read";
+    public const string AttachmentsManage = "core.attachments.manage";
+
     public static IReadOnlyList<string> All { get; } =
-        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage, ItemsRead, ItemsManage, CostCentersRead, CostCentersManage, HistoryRead];
+        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage, ItemsRead, ItemsManage, CostCentersRead, CostCentersManage, HistoryRead, AttachmentsRead, AttachmentsManage];
 }

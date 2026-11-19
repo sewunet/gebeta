@@ -304,10 +304,12 @@ it ([SAP Business One help: Change Log](https://help.sap.com/saphelp_sbo92/helpd
 > - **Permissions:** `core.attachments.read` and `core.attachments.manage`, granted to the roles that keep
 >   records.
 >
-> Known limitation, to fix before attachments hold sensitive files at scale:
-> - **Access is checked by company, not by the record's own permission.** A user with attachments
->   permission in a company could download a file on a payroll record if they had its id. The ids are
->   random, and the lists need the record's id, but a per-record check is the proper fix.
+> - **A file is as private as its record:** every module answers which permissions guard its records
+>   (`IRecordPermissions`, like related documents). Listing and downloading need the record's read
+>   permission, adding and removing its write permission (an invoice's or an order's create, a master's
+>   manage), on top of the attachments permission, and the record must belong to the company named.
+>   - A record no installed module claims (or one the user may not reach) is refused as not found.
+>   - A new kind of record gets attachments by answering it in its module.
 >
 > Not yet:
 > - **No virus scanning.**

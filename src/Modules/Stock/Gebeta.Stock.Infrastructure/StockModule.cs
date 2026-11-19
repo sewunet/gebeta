@@ -33,6 +33,7 @@ public sealed class StockModule : IErpModule
 
         services.AddDbContext<StockDbContext>(options => StockDbContext.Configure(options, connectionString));
         services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<StockDbContext>>(); // this module's records in /api/history
+        services.AddScoped<IRecordPermissions, Persistence.StockRecordPermissions>(); // which permission guards a record, for its attachments
         services.AddScoped<IRelatedDocuments, Persistence.StockRelatedDocuments>(); // links in /api/documents/{id}/related
         services.AddScoped<IStockUnitOfWork>(sp => sp.GetRequiredService<StockDbContext>());
         services.AddScoped<IStockNumbers, StockNumbers>();

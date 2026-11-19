@@ -54,7 +54,7 @@ public class AttachmentTests(GebetaApiFactory factory)
         Assert.Contains(history, h => h is { EntityType: "Attachment", Action: "Created" });
 
         // Another company's record, or a user without the company: nothing.
-        Assert.Empty((await admin.GetFromJsonAsync<List<AttachmentDto>>(U($"/api/attachments?companyId={other.Id}&entityId={employee.Id}"), Ct))!);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync(U($"/api/attachments?companyId={other.Id}&entityId={employee.Id}"), Ct)).StatusCode);
         using var stranger = factory.ClientFor("attachment.stranger");
         Assert.Equal(HttpStatusCode.Forbidden, (await stranger.GetAsync(U($"/api/attachments/{file.Id}/content"), Ct)).StatusCode);
 

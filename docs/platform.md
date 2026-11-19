@@ -77,6 +77,7 @@ refer to. Each module adds its own details in its own extension tables.
 ## Attachments and comments
 
 - Files in S3-compatible storage; private by default; access checked against the parent document.
+  Core keeps the files; each module answers which permissions guard its records (`IRecordPermissions`), and an unclaimed record is refused.
 - Comments and a timeline on every document.
 
 ## Custom fields

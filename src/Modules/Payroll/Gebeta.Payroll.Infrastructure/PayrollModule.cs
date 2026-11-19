@@ -34,6 +34,7 @@ public sealed class PayrollModule : IErpModule
 
         services.AddDbContext<PayrollDbContext>(options => PayrollDbContext.Configure(options, connectionString));
         services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<PayrollDbContext>>(); // this module's records in /api/history
+        services.AddScoped<IRecordPermissions, Persistence.PayrollRecordPermissions>(); // which permission guards a record, for its attachments
         services.AddScoped<IRelatedDocuments, Persistence.PayrollRelatedDocuments>(); // links in /api/documents/{id}/related
         services.AddScoped<IPayrollUnitOfWork>(sp => sp.GetRequiredService<PayrollDbContext>());
         services.AddScoped<IPayrollNumbers, PayrollNumbers>();

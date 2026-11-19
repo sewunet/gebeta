@@ -33,6 +33,7 @@ public sealed class SellingModule : IErpModule
 
         services.AddDbContext<SellingDbContext>(options => SellingDbContext.Configure(options, connectionString));
         services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<SellingDbContext>>(); // this module's records in /api/history
+        services.AddScoped<IRecordPermissions, Persistence.SellingRecordPermissions>(); // which permission guards a record, for its attachments
         services.AddScoped<IRelatedDocuments, Persistence.SellingRelatedDocuments>(); // links in /api/documents/{id}/related
         services.AddScoped<ISellingUnitOfWork>(sp => sp.GetRequiredService<SellingDbContext>());
         services.AddScoped<ISellingNumbers, SellingNumbers>();

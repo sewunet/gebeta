@@ -68,3 +68,17 @@ public interface IRelatedDocuments
     /// <summary>This module's document with that number, to turn a reference into a link; null when it is not one of this module's.</summary>
     Task<RelatedDocument?> FindAsync(Guid companyId, string number, CancellationToken cancellationToken);
 }
+
+/// <summary>The permissions that guard one record: reading it, and changing it (what adding or removing a file on it needs).</summary>
+public sealed record RecordPermissions(string Read, string Write);
+
+/// <summary>
+/// Which permissions guard a record, answered by the module that owns it (docs/requirements/sap-features.md #5). Attachments live in Core and name a
+/// record only by id and company; Core asks every installed module and follows the answer, so a file is as private as its record. A record no
+/// installed module claims is refused (deny by default).
+/// </summary>
+public interface IRecordPermissions
+{
+    /// <summary>The permissions of this module's record with that id in that company; null when it is not one of this module's records.</summary>
+    Task<RecordPermissions?> ForAsync(Guid companyId, Guid recordId, CancellationToken cancellationToken);
+}

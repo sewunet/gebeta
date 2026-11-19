@@ -36,6 +36,7 @@ public sealed class AccountingModule : IErpModule
 
         services.AddDbContext<AccountingDbContext>(options => AccountingDbContext.Configure(options, connectionString));
         services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<AccountingDbContext>>(); // this module's records in /api/history
+        services.AddScoped<IRecordPermissions, Persistence.AccountingRecordPermissions>(); // which permission guards a record, for its attachments
         services.AddScoped<IRelatedDocuments, Persistence.AccountingRelatedDocuments>(); // links in /api/documents/{id}/related
         services.AddScoped<IAccountingUnitOfWork>(sp => sp.GetRequiredService<AccountingDbContext>());
         services.AddScoped<IAccountingNumbers, AccountingNumbers>();

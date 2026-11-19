@@ -42,6 +42,13 @@ public sealed class StockModule : IErpModule
         context.Capabilities.Provide<Gebeta.Buying.Contracts.IPurchaseReceiptLookup, StockPurchaseReceipts>()
             .Provide<Gebeta.Selling.Contracts.ISalesDeliveryLookup, StockSalesDeliveries>();
 
+        services.AddScoped<StockReposter>();
+        services.AddScoped<LandedCostHandler>();
+        services.AddScoped<ICommandHandler<CreateLandedCostCommand, LandedCostDto>>(sp => sp.GetRequiredService<LandedCostHandler>());
+        services.AddScoped<ICommandHandler<SubmitLandedCostCommand, LandedCostDto>>(sp => sp.GetRequiredService<LandedCostHandler>());
+        services.AddScoped<ICommandHandler<CancelLandedCostCommand, LandedCostDto>>(sp => sp.GetRequiredService<LandedCostHandler>());
+        services.AddScoped<IQueryHandler<GetLandedCostQuery, LandedCostDto>>(sp => sp.GetRequiredService<LandedCostHandler>());
+        services.AddScoped<IQueryHandler<ListLandedCostsQuery, IReadOnlyList<LandedCostDto>>>(sp => sp.GetRequiredService<LandedCostHandler>());
         services.AddScoped<StockHandler>();
         services.AddScoped<IQueryHandler<ListWarehousesQuery, IReadOnlyList<WarehouseDto>>>(sp => sp.GetRequiredService<StockHandler>());
         services.AddScoped<ICommandHandler<CreateWarehouseCommand, WarehouseDto>>(sp => sp.GetRequiredService<StockHandler>());

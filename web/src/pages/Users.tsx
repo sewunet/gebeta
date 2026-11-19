@@ -10,6 +10,7 @@ import { can, type UserDto } from "../lib/types";
 import { Dialog, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus } from "../ui/fiori";
 import { userStatus } from "./userStatus";
 import { historySection } from "../app/history";
+import { attachmentsSection } from "../app/attachments";
 
 /** List report of users with search and status; "Invite" sets someone up before their first sign-in. */
 export function Users() {
@@ -208,6 +209,7 @@ export function UserDetail() {
             )}
           </>
         ) },
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "User")
       ]}
     />

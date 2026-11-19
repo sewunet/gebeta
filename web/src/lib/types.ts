@@ -179,6 +179,11 @@ export type StockEntryDto = {
   id: string; number?: string; companyId: string; purpose: "Receipt" | "Issue" | "Transfer" | "Reconciliation"; postingDate: string; status: string; counterAccountCode: string;
   remark?: string; lines: StockEntryLineDto[]; totalValue: number; partyId?: string; partyName?: string; reference?: string;
 };
+export type LandedCostDto = {
+  id: string; number?: string; companyId: string; receiptId: string; receiptNumber: string; postingDate: string; status: string; remark?: string; totalCharges: number;
+  charges: { description: string; amount: number; basis: string; accountCode: string }[];
+  lines: { receiptLineIndex: number; itemId: string; itemCode: string; itemName: string; qty: number; receivedValue: number; weight?: number; volume?: number; allocated: number }[];
+};
 export type StockBalanceRow = { itemId: string; itemCode: string; itemName: string; uom: string; warehouseId: string; warehouse: string; qty: number; rate: number; value: number; method: string };
 export type StockBalanceDto = { companyId: string; asOf: string; rows: StockBalanceRow[]; totalValue: number };
 export type StockLedgerDto = {

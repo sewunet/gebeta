@@ -10,7 +10,9 @@ import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, 
 import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useParties, usePurchaseOrder, useSalesOrder, useWarehouses } from "../../lib/queries";
 import { historySection } from "../../app/history";
+import { attachmentsSection } from "../../app/attachments";
 import { relatedSection } from "../../app/related";
+import { LandedCosts } from "./LandedCosts";
 
 const refreshKeys = ["stock-entries", "stock-entry", "stock-balance", "stock-ledger", "item-setting"];
 
@@ -287,7 +289,10 @@ export function StockEntryDetail() {
             { label: t("acc.remark"), value: e.remark },
           ]} />
         ) },
+        ...(e.purpose === "Receipt" && e.status === "Submitted" && can(me, "stock.landedcosts.read")
+          ? [{ id: "landed", title: t("landed.title"), content: <LandedCosts receipt={e} /> }] : []),
         ...relatedSection(t, id, e.number),
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "StockEntry")
       ]}
     />

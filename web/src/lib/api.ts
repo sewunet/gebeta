@@ -12,7 +12,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const user = await userManager.getUser();
   const headers = new Headers(init.headers);
   if (user?.access_token) headers.set("Authorization", `Bearer ${user.access_token}`);
-  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  // A form upload sets its own multipart content type (with the boundary); everything else is JSON.
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
   const response = await fetch(path, { ...init, headers });
   if (response.status === 401) {

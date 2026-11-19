@@ -10,6 +10,7 @@ import { can, type ItemDto, type ItemStockSettingDto, type StockBalanceDto } fro
 import { Dialog, EditFooter, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus } from "../../ui/fiori";
 import { useItems } from "../../lib/queries";
 import { historySection } from "../../app/history";
+import { attachmentsSection } from "../../app/attachments";
 
 const UOMS = ["pcs", "kg", "quintal", "ton", "litre", "metre", "bag", "box", "set", "trip", "hour"];
 
@@ -188,6 +189,7 @@ export function ItemDetail() {
             ) : <div className="empty">{t("stock.noStock")}</div>}
           </>
         ) },
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "Item")
       ]}
     />

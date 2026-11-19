@@ -8,8 +8,12 @@ public static class StockPermissions
     public const string EntriesCreate = "stock.entries.create";
     public const string EntriesSubmit = "stock.entries.submit";
     public const string ReportsRead = "stock.reports.read";
+    public const string LandedCostsRead = "stock.landedcosts.read";
+    public const string LandedCostsCreate = "stock.landedcosts.create";
+    public const string LandedCostsSubmit = "stock.landedcosts.submit";
 
-    public static IReadOnlyList<string> All { get; } = [WarehousesRead, WarehousesManage, EntriesRead, EntriesCreate, EntriesSubmit, ReportsRead];
+    public static IReadOnlyList<string> All { get; } =
+        [WarehousesRead, WarehousesManage, EntriesRead, EntriesCreate, EntriesSubmit, ReportsRead, LandedCostsRead, LandedCostsCreate, LandedCostsSubmit];
 }
 
 public sealed record WarehouseDto(Guid Id, Guid CompanyId, string Code, string Name, string StockAccountCode);
@@ -47,3 +51,12 @@ public sealed record StockEntryCancelled(Guid SourceId, string SourceNumber, Gui
 /// </summary>
 public sealed record StockJournalAdjusted(Guid AdjustmentId, Guid VoucherId, string VoucherNumber, Guid CompanyId, DateOnly PostingDate, string Remark,
     IReadOnlyList<StockJournalLine> Lines, DateTimeOffset OccurredAt);
+
+public sealed record LandedChargeDto(string Description, decimal Amount, string Basis, string AccountCode);
+
+public sealed record LandedCostLineDto(int ReceiptLineIndex, Guid ItemId, string ItemCode, string ItemName, decimal Qty, decimal ReceivedValue, decimal? Weight, decimal? Volume,
+    decimal Allocated);
+
+/// <summary>Extra costs added to the stock value of a received goods entry. <c>Basis</c> is Value, Quantity, Weight or Volume.</summary>
+public sealed record LandedCostDto(Guid Id, string? Number, Guid CompanyId, Guid ReceiptId, string ReceiptNumber, DateOnly PostingDate, string Status, string? Remark,
+    IReadOnlyList<LandedChargeDto> Charges, IReadOnlyList<LandedCostLineDto> Lines, decimal TotalCharges);

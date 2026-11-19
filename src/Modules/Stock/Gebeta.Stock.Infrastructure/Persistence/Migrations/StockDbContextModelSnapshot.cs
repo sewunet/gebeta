@@ -171,6 +171,91 @@ namespace Gebeta.Stock.Infrastructure.Persistence.Migrations
                     b.ToTable("outbox_message", "stock");
                 });
 
+            modelBuilder.Entity("Gebeta.Stock.Domain.Ledger.LandedCost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AmendedFromId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("amended_from_id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("DocStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("doc_status");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("name");
+
+                    b.Property<DateOnly>("PostingDate")
+                        .HasColumnType("date")
+                        .HasColumnName("posting_date");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("receipt_id");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("receipt_number");
+
+                    b.Property<string>("Remark")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("remark");
+
+                    b.Property<string>("_charges")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("charges");
+
+                    b.Property<string>("_lines")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("lines");
+
+                    b.HasKey("Id")
+                        .HasName("pk_landed_cost");
+
+                    b.HasIndex("ReceiptId")
+                        .HasDatabaseName("ix_landed_cost_receipt_id");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_landed_cost_company_id_name");
+
+                    b.ToTable("landed_cost", "stock");
+                });
+
             modelBuilder.Entity("Gebeta.Stock.Domain.Ledger.StockEntry", b =>
                 {
                     b.Property<Guid>("Id")

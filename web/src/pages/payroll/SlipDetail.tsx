@@ -8,6 +8,7 @@ import { formatDate, formatMoney } from "../../lib/ethiopian";
 import { can, type SalarySlipDto } from "../../lib/types";
 import { Fields, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
 import { historySection } from "../../app/history";
+import { attachmentsSection } from "../../app/attachments";
 import { relatedSection } from "../../app/related";
 
 /** Object page of one salary slip: pay figures in the header, earnings, deductions and employer contributions below. */
@@ -79,6 +80,7 @@ export function SlipDetail() {
         { id: "deductions", title: t("fields.deductions"), content: table("Deduction", s.totalDeductions) },
         { id: "employer", title: t("fields.employer"), content: table("EmployerContribution", s.employerContributions) },
         ...relatedSection(t, id, s.number),
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "SalarySlip")
       ]}
     />

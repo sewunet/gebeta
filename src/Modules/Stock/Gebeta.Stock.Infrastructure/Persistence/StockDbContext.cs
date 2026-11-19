@@ -20,6 +20,7 @@ public sealed class StockDbContext(DbContextOptions<StockDbContext> options, Tim
     public DbSet<StockItemSetting> ItemSettings => Set<StockItemSetting>();
     public DbSet<StockEntry> Entries => Set<StockEntry>();
     public DbSet<StockLedgerEntry> Ledger => Set<StockLedgerEntry>();
+    public DbSet<LandedCost> LandedCosts => Set<LandedCost>();
 
     // New ledger rows in the order the domain added them; numbered in that order on save (see AssignSequence).
     private readonly List<StockLedgerEntry> _newLedgerRows = [];
@@ -108,6 +109,31 @@ internal sealed class StockEntryConfiguration : IEntityTypeConfiguration<StockEn
         builder.Property<List<StockEntryLine>>("_lines").HasColumnName("lines").IsJsonList();
         builder.Ignore(e => e.Lines);
         builder.Ignore(e => e.TotalValue);
+        builder.Ignore(e => e.DocumentType);
+        builder.Property(e => e.CreatedBy).HasMaxLength(140);
+        builder.Property(e => e.ModifiedBy).HasMaxLength(140);
+        builder.Ignore(e => e.DomainEvents);
+    }
+}
+
+internal sealed class LandedCostConfiguration : IEntityTypeConfiguration<LandedCost>
+{
+    public void Configure(EntityTypeBuilder<LandedCost> builder)
+    {
+        builder.ToTable("landed_cost");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.Name).HasMaxLength(60);
+        builder.HasIndex(e => new { e.CompanyId, e.Name }).IsUnique();
+        builder.HasIndex(e => e.ReceiptId);
+        builder.Property(e => e.DocStatus).HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.ReceiptNumber).HasMaxLength(60).IsRequired();
+        builder.Property(e => e.Remark).HasMaxLength(300);
+        builder.Property<List<LandedCharge>>("_charges").HasColumnName("charges").IsJsonList();
+        builder.Property<List<LandedCostLine>>("_lines").HasColumnName("lines").IsJsonList();
+        builder.Ignore(e => e.Charges);
+        builder.Ignore(e => e.Lines);
+        builder.Ignore(e => e.TotalCharges);
         builder.Ignore(e => e.DocumentType);
         builder.Property(e => e.CreatedBy).HasMaxLength(140);
         builder.Property(e => e.ModifiedBy).HasMaxLength(140);
@@ -220,6 +246,16 @@ internal sealed class StockRepository(StockDbContext db) : IStockRepository
             .OrderBy(e => e.PostingDate).ThenBy(e => e.Name).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public void Add(StockEntry entry) => db.Entries.Add(entry);
+
+    public Task<LandedCost?> GetLandedCostAsync(Guid id, CancellationToken cancellationToken) => db.LandedCosts.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<LandedCost>> ListLandedCostsAsync(Guid receiptId, CancellationToken cancellationToken) =>
+        await db.LandedCosts.AsNoTracking().Where(c => c.ReceiptId == receiptId).OrderBy(c => c.PostingDate).ThenBy(c => c.Name).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<bool> HasLiveLandedCostAsync(Guid receiptId, CancellationToken cancellationToken) =>
+        db.LandedCosts.AnyAsync(c => c.ReceiptId == receiptId && c.DocStatus == Gebeta.SharedKernel.DocStatus.Submitted, cancellationToken);
+
+    public void Add(LandedCost landedCost) => db.LandedCosts.Add(landedCost);
 }
 
 /// <summary>Goods received against purchase orders: submitted stock receipts whose reference is the order number (for Buying).</summary>

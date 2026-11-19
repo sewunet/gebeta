@@ -10,6 +10,7 @@ import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, 
 import { currentMonth, monthRange } from "../payroll/month";
 import { useItems, useParties, useSalesOrder, useWarehouses } from "../../lib/queries";
 import { historySection } from "../../app/history";
+import { attachmentsSection } from "../../app/attachments";
 import { relatedSection } from "../../app/related";
 
 const TONE: Record<SalesOrderDto["state"], Tone> = {
@@ -232,6 +233,7 @@ export function SalesOrderDetail() {
           ]} />
         ) },
         ...relatedSection(t, id, o.number),
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "SalesOrder")
       ]}
     />

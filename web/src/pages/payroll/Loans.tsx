@@ -9,6 +9,7 @@ import { useEmployees } from "../../lib/hooks";
 import { can, type EmployeeLoanDto } from "../../lib/types";
 import { DynamicPage, Fields, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
 import { historySection } from "../../app/history";
+import { attachmentsSection } from "../../app/attachments";
 import { relatedSection } from "../../app/related";
 
 type Kind = "Loan" | "StandingDeduction";
@@ -212,6 +213,7 @@ export function LoanDetail() {
           </table>
         ) : <div className="empty">{t("loans.noRepayments")}</div> },
         ...relatedSection(t, id, l.number),
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "EmployeeLoan")
       ]}
     />

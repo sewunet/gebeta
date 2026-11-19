@@ -10,6 +10,7 @@ import { can, type AdditionalSalaryDto } from "../../lib/types";
 import { DynamicPage, FilterBar, FilterField, ListReport, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../ui/fiori";
 import { parsePastedRows } from "./pasteRows";
 import { historySection } from "../../app/history";
+import { attachmentsSection } from "../../app/attachments";
 import { relatedSection } from "../../app/related";
 
 const monthStart = (iso: string) => `${iso.slice(0, 7)}-01`;
@@ -191,6 +192,7 @@ export function AdditionalSalaryDetail() {
         </table>
       ) },
         ...relatedSection(t, id, a.number),
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "AdditionalSalary")
       ]}
     />

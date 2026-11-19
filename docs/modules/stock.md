@@ -31,6 +31,13 @@
 > over), with an adjustment journal for that. At cut-over, leave stock out of the opening balances journal and bring it
 > in with an opening count against the equity account the opening balances used (e.g. 3100), so the two together match
 > the old trial balance. Purchase and sales orders follow receipts and deliveries (docs/modules/buying.md, selling.md).
+>
+> **Landed costs** (step 59): freight, duty, clearing and LC charges are added to a submitted receipt by value,
+> quantity, weight or volume (`LandedCost`, `LCV-` numbers). Submitting raises the receipt's ledger rows and
+> reposts later movements, so item cost and issued cost include them; the charges are credited to 2150 by default
+> (the forwarder's invoice clears it). A receipt with live landed costs cannot be cancelled. Details and limits:
+> docs/requirements/sap-features.md ("Landed costs").
+>
 > Not yet: batches and serial numbers, units of measure conversions, automatic matching of invoices to goods received.
 
 ## Scope

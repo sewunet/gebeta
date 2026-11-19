@@ -9,6 +9,7 @@ import { formatDate, formatMoney } from "../../../lib/ethiopian";
 import { can, type JournalEntryDto } from "../../../lib/types";
 import { Fields, MessageStrip, ObjectPage, ObjectStatus, statusTone } from "../../../ui/fiori";
 import { historySection } from "../../../app/history";
+import { attachmentsSection } from "../../../app/attachments";
 import { relatedSection } from "../../../app/related";
 
 const CANCELLABLE = ["Manual", "Opening", "YearEnd", "Bank"];
@@ -76,6 +77,7 @@ export function JournalDetail() {
           </table>
         ) },
         ...relatedSection(t, id, j.number),
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "JournalEntry")
       ]}
     />

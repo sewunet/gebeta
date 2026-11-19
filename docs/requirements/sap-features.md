@@ -31,7 +31,7 @@ Next: **document flow** on every document (S), then **attachments** (M).
 - **Alerts** (B1 Alerts Management) need a notification inbox first.
 - **Foreign-currency invoices and revaluation** are a large change (L). They matter once an importing customer
   goes live.
-- **Landed costs** and **framework agreements** wait for Phase 5 (LC, tenders).
+- **Framework agreements** wait for Phase 5 (tenders). Landed costs are built (step 59).
 - **Internal reconciliation** of open items on accounts such as 1400 Employee Advances is worth doing after
   cost centres.
 
@@ -56,7 +56,7 @@ The method and scale are the same as in `competitive-features.md`:
 | 3 | Cost centres on postings, P&L by cost centre | B1 cost accounting, distribution rules | Accounting, Payroll, Cash | 5 | M | 2.5 | Planned |
 | 4 | Change history (who changed what) | B1 Change Log | Platform | 5 | M | 2.5 | Planned |
 | 5 | Attachments on documents and master data | B1 Attachments tab | Platform | 4 | M | 2.0 | Planned |
-| 6 | Landed costs on goods received | B1 Landed Costs | Stock, Buying | 4 | M | 2.0 | Phase 5 (LC) |
+| 6 | Landed costs on goods received | B1 Landed Costs | Stock, Buying | 4 | M | 2.0 | Built (step 59), in Stock |
 | 7 | Framework (blanket) agreements with suppliers | B1 Blanket Agreements | Buying | 3 | M | 1.5 | Phase 5 (tenders) |
 | 8 | Foreign-currency invoices and month-end revaluation | B1 exchange rate differences | Accounting | 4 | L | 1.3 | Planned |
 | 9 | Alerts from saved conditions | B1 Alerts Management | Platform | 3 | M | 1.5 | Needs an inbox |
@@ -292,6 +292,27 @@ it ([SAP Business One help: Change Log](https://help.sap.com/saphelp_sbo92/helpd
 
 ## 5. Attachments (M, value 4)
 
+> **Built (step 58).** Core keeps files for records of every module (`/api/attachments`), with an
+> **Attachments** section on 13 object pages.
+> - **Storage:** the bytes are in their own table (`core.attachment_content`), so lists never load them
+>   and database backups include them with their records.
+> - **What is accepted:** PDF, PNG, JPG, WebP, XLSX, DOCX, CSV and TXT, up to 10 MB.
+>   - The first bytes must match the type, so a program renamed to `.pdf` is refused.
+>   - The content type is Gebeta's own, never the browser's.
+>   - Downloads are always served as a download with `nosniff`, never shown inside Gebeta.
+> - **History:** adding and removing a file show in the record's history.
+> - **Permissions:** `core.attachments.read` and `core.attachments.manage`, granted to the roles that keep
+>   records.
+>
+> Known limitation, to fix before attachments hold sensitive files at scale:
+> - **Access is checked by company, not by the record's own permission.** A user with attachments
+>   permission in a company could download a file on a payroll record if they had its id. The ids are
+>   random, and the lists need the record's id, but a per-record check is the proper fix.
+>
+> Not yet:
+> - **No virus scanning.**
+> - **No object storage:** files live in the database, which is fine at a few GB.
+
 **In one line:** files (PDF, images) can be attached to any document or master record. Examples: the supplier's
 invoice scan, the court order behind a standing deduction, a contract, an ID copy.
 
@@ -311,6 +332,39 @@ vouchers (#2, built) can list their attachments.
 ## 6–9 in brief
 
 - **Landed costs (M, value 4):**
+
+  > **Built (step 59).** Stock keeps a **Landed Cost** document (`LCV-<FY>-#####`, `/api/stock/landed-costs`:
+  > create, get, list by receipt, submit, cancel) against one submitted stock receipt, shown as a **Landed costs**
+  > section on the receipt's page.
+  > - **Charges:** each has a description, an amount, a basis (value, quantity, weight or volume) and a credit
+  >   account. Each charge is shared across the receipt's lines by its own basis, to the cent; the rounding
+  >   leftover goes to the line with the largest share, so the shares always add up to the charge.
+  >   Weight and volume are typed on the landed cost for each line (any one unit; only the shares matter). Value
+  >   is the value the line was received at.
+  > - **Submitting** adds each line's share to its receipt ledger row and to the receipt line's value, then
+  >   reposts everything after it with the existing reposting (step 30): goods already issued or transferred are
+  >   repriced, each repriced entry gets its adjustment journal, FIFO layers and the moving average follow. All in
+  >   one transaction under the item and warehouse locks. Accounting gets one journal for the charges: debit the
+  >   stock account, credit the charge accounts. Cancelling takes it all back the same way.
+  > - **Decision for the owner to confirm:** the charges are credited to account **2150** (Stock Received But Not
+  >   Billed) unless another account is given. The forwarder's or customs invoice, entered in Accounting with its
+  >   line on 2150, then clears it, as for goods received (step 31). So no link to Buying or Accounting was
+  >   needed, and Stock and Buying still run alone. A customer who pays duty from cash or a bank can name that
+  >   account instead.
+  > - **Rules:** the receipt must be submitted; the landed cost cannot be dated before the receipt or in the
+  >   future; a receipt with a posted landed cost cannot be cancelled until it is cancelled; a basis with nothing
+  >   to share by (no weights given) is refused.
+  > - **Permissions:** `stock.landedcosts.read`, `.create`, `.submit` (Store Keeper has `stock.*`).
+  > - **Not yet:**
+  >   - one landed cost across several receipts, or a purchase invoice's lines pulled in as charges;
+  >   - weight and volume held on the item (typed each time today);
+  >   - editing a draft (create a new one);
+  >   - a landed cost list page, print voucher and link in "related documents";
+  >   - the journal is dated on the landed cost's date, while the stock ledger takes the cost from the
+  >     receipt's date (reports as of a date between the two differ from the general ledger until the later date);
+  >   - customs duty and excise as their own tax types (they are plain charges).
+  > - **Screen:** not yet opened in a browser; it builds and type-checks only.
+
   - What: allocate freight, customs duty, clearing and LC bank charges to the items of a goods receipt, by
     value, quantity, weight or volume, so item cost includes them.
   - In SAP, the landed cost document is based on the goods receipt and updates the item unit cost

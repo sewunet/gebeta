@@ -20,6 +20,12 @@ alone. The web app's **Receive goods** opens a stock receipt filled from the ord
 reference, what is still to come); **Record supplier invoice** opens a purchase invoice filled with what is not billed
 yet, on 2150 for stock items (cleared against the goods received).
 
+## Landed costs
+
+Landed costs (freight, duty, clearing, LC charges) are kept by Stock against the goods receipt, not by Buying: they
+change stock value, and Buying keeps no copy of receipts. Nothing in Buying changes; the forwarder's invoice is an
+ordinary purchase invoice whose line debits 2150, which clears the charge (docs/modules/stock.md).
+
 ## Not yet
 
 Material requests, supplier quotations, approval rules, over-receipt tolerance, returns to supplier against an order,

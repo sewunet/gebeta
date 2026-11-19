@@ -186,7 +186,7 @@ public sealed class StockEntry : DocumentBase
 
     internal void SetLineValues(IReadOnlyList<decimal> values) => _lines = _lines.Select((l, i) => l with { Value = values[i] }).ToList();
 
-    /// <summary>Reposting changed the value of one line (issues and transfers; a receipt's value never changes).</summary>
+    /// <summary>Reposting changed the value of one line (issues, transfers and counts), or a landed cost added to a receipt line.</summary>
     public void RevalueLine(int index, decimal value) => _lines = _lines.Select((l, i) => i == index ? l with { Value = value } : l).ToList();
 }
 
@@ -265,6 +265,17 @@ public sealed class StockLedgerEntry : Entity
     };
 
     public void MarkCancelled() => IsCancelled = true;
+
+    /// <summary>A landed cost adds to (or, when cancelled, takes from) the value of a receipt; reposting then reprices what came after it.</summary>
+    public void AddLandedCost(decimal amount)
+    {
+        if (Kind != MovementKind.Receipt)
+        {
+            throw new DomainException("landed.receipt", "Landed costs are added to receipts only.");
+        }
+
+        ValueChange += amount;
+    }
 
     /// <summary>Reposting: the new computed value of this movement and the state after it.</summary>
     /// <summary>Reposting a stock count: the counted state stays; what changes is the difference from the stock before it.</summary>
@@ -489,4 +500,12 @@ public interface IStockRepository
     Task<StockEntry?> GetEntryAsync(Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyList<StockEntry>> ListEntriesAsync(Guid companyId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
     void Add(StockEntry entry);
+
+    Task<LandedCost?> GetLandedCostAsync(Guid id, CancellationToken cancellationToken);
+    Task<IReadOnlyList<LandedCost>> ListLandedCostsAsync(Guid receiptId, CancellationToken cancellationToken);
+
+    /// <summary>Whether a submitted landed cost is still added to this receipt (it cannot be cancelled until that is cancelled).</summary>
+    Task<bool> HasLiveLandedCostAsync(Guid receiptId, CancellationToken cancellationToken);
+
+    void Add(LandedCost landedCost);
 }

@@ -60,7 +60,7 @@ periods stay in ERPNext (read-only) or are migrated for history.
 ## Phase 5: Stock, Buying, Selling
 
 Items, warehouses, stock ledger and valuation, reposting, material requests, purchase orders and
-receipts, LC, tender and supplier scoring, sales orders and delivery, transport orders.
+receipts, landed costs (built, step 59), LC, tender and supplier scoring, sales orders and delivery, transport orders.
 
 ## Phase 6: Manufacturing, Assets, Projects
 

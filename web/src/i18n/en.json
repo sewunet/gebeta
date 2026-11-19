@@ -586,6 +586,37 @@
     "tradeLicense": "Trade licence no.",
     "fixedFields": "The abbreviation, TIN, legal form, currency and fiscal year cannot be changed here: documents and accounts are named after them."
   },
+  "landed": {
+    "title": "Landed costs",
+    "none": "No landed costs on this receipt.",
+    "add": "Add landed costs",
+    "charges": "Charges",
+    "description": "Charge (freight, duty, clearing…)",
+    "amount": "Amount",
+    "basis": "Share by",
+    "bases": {
+      "Value": "Value",
+      "Quantity": "Quantity",
+      "Weight": "Weight",
+      "Volume": "Volume"
+    },
+    "account": "Credit account",
+    "accountHint": "2150",
+    "addCharge": "Add charge",
+    "weight": "Weight",
+    "volume": "Volume",
+    "share": "Added cost",
+    "received": "Received value",
+    "newCost": "Cost with charges",
+    "weightsHint": "Give each line's total weight or volume (one unit for all lines; only the shares matter).",
+    "hint": "Each charge is added to the stock value of the receipt's lines, so the item cost includes it, and later issues are repriced. The charge is credited to the account given (default 2150, cleared by the forwarder's or customs invoice).",
+    "save": "Save draft",
+    "post": "Post",
+    "cancel": "Cancel",
+    "posted": "Landed cost {{number}} posted.",
+    "cancelled": "Landed cost {{number}} cancelled.",
+    "total": "Charges"
+  },
   "stock": {
     "stockItem": "Stock item",
     "nonStock": "Not stocked",
@@ -974,5 +1005,15 @@
       "StockEntry": "Stock entry",
       "Order": "Order"
     }
+  },
+  "attachments": {
+    "title": "Attachments",
+    "none": "No files attached.",
+    "file": "File",
+    "size": "Size",
+    "added": "Added",
+    "add": "Attach a file",
+    "hint": "PDF, PNG, JPG, WebP, XLSX, DOCX, CSV or TXT, up to 10 MB.",
+    "confirmRemove": "Remove {{name}}? The removal shows in the history."
   }
 }

@@ -8,6 +8,7 @@ import { formData } from "../lib/hooks";
 import { can, type CompanyDto } from "../lib/types";
 import { EditFooter, Fields, ListReport, MessageStrip, ObjectPage, ObjectStatus } from "../ui/fiori";
 import { historySection } from "../app/history";
+import { attachmentsSection } from "../app/attachments";
 
 /** List report of the companies this user can work in. */
 export function Companies() {
@@ -105,6 +106,7 @@ export function CompanyDetail() {
           { label: t("companies.timeZone"), value: c.timeZone },
         ]} />
       ) },
+        ...attachmentsSection(t, me, id),
         ...historySection(t, me, id, "Company")
       ]}
     />

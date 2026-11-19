@@ -46,6 +46,22 @@ public static class StockEndpoints
                 (await h.Handle(new CancelStockEntryCommand(id), ct).ConfigureAwait(false)).ToHttp())
             .WithName("CancelStockEntry").RequirePermission(StockPermissions.EntriesSubmit);
 
+        st.MapGet("/landed-costs", async (Guid receiptId, IQueryHandler<ListLandedCostsQuery, IReadOnlyList<LandedCostDto>> h, CancellationToken ct) =>
+                (await h.Handle(new ListLandedCostsQuery(receiptId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListLandedCosts").RequirePermission(StockPermissions.LandedCostsRead);
+        st.MapGet("/landed-costs/{id:guid}", async (Guid id, IQueryHandler<GetLandedCostQuery, LandedCostDto> h, CancellationToken ct) =>
+                (await h.Handle(new GetLandedCostQuery(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("GetLandedCost").RequirePermission(StockPermissions.LandedCostsRead);
+        st.MapPost("/landed-costs", async (CreateLandedCostCommand command, ICommandHandler<CreateLandedCostCommand, LandedCostDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateLandedCost").RequirePermission(StockPermissions.LandedCostsCreate);
+        st.MapPost("/landed-costs/{id:guid}/submit", async (Guid id, ICommandHandler<SubmitLandedCostCommand, LandedCostDto> h, CancellationToken ct) =>
+                (await h.Handle(new SubmitLandedCostCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("SubmitLandedCost").RequirePermission(StockPermissions.LandedCostsSubmit);
+        st.MapPost("/landed-costs/{id:guid}/cancel", async (Guid id, ICommandHandler<CancelLandedCostCommand, LandedCostDto> h, CancellationToken ct) =>
+                (await h.Handle(new CancelLandedCostCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CancelLandedCost").RequirePermission(StockPermissions.LandedCostsSubmit);
+
         st.MapGet("/reports/balance", async (Guid companyId, DateOnly asOf, IQueryHandler<StockBalanceQuery, StockBalanceDto> h, CancellationToken ct) =>
                 (await h.Handle(new StockBalanceQuery(companyId, asOf), ct).ConfigureAwait(false)).ToHttp())
             .WithName("StockBalance").RequirePermission(StockPermissions.ReportsRead);

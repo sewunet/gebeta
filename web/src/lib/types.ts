@@ -213,3 +213,12 @@ export type SalesOrderDto = {
 /** A message in the signed-in user's inbox. LinkKind and LinkId name the record it is about, if any. */
 export type NotificationDto = { id: string; companyId: string; title: string; body?: string; linkKind?: string; linkId?: string; severity: string; createdAt: string; readAt?: string };
 export type NotificationPageDto = { items: NotificationDto[]; total: number; unread: number; page: number; pageSize: number };
+
+/** A check a module offers for alerts. ThresholdUnit is days, percent or instalments; absent when the condition has no threshold. */
+export type AlertConditionDto = { id: string; name: string; description: string; requiredPermission: string; thresholdUnit?: string; defaultThreshold?: number; minThreshold?: number; maxThreshold?: number };
+/** A saved alert. LastError is set when the last run could not check the condition; conditionAvailable is false when its module is not installed. */
+export type AlertRuleDto = {
+  id: string; companyId: string; conditionId: string; name: string; threshold?: number; userNames: string[]; roleNames: string[]; isEnabled: boolean;
+  lastRunOn?: string; lastRunAt?: string; lastMatchCount: number; lastNotifiedCount: number; lastError?: string; conditionAvailable: boolean;
+};
+export type AlertRunDto = { ruleId: string; matched: number; notified: number; cleared: number; skipped: boolean; error?: string };

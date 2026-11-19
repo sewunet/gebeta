@@ -32,6 +32,7 @@ public static class CoreEndpoints
         MapCostCenters(endpoints);
         MapAttachments(endpoints);
         MapNotifications(endpoints);
+        MapAlerts(endpoints);
         MapEmployees(endpoints);
 
         var parties = endpoints.MapGroup("/api/core/parties").WithTags("Core: Customers and suppliers");
@@ -83,6 +84,36 @@ public static class CoreEndpoints
                 CancellationToken ct) =>
                 (await h.Handle(new Gebeta.Core.Application.CostCenters.UpdateCostCenterCommand(id, b.Name, b.IsActive), ct).ConfigureAwait(false)).ToHttp())
             .WithName("UpdateCostCenter").RequirePermission(CorePermissions.CostCentersManage);
+    }
+
+    /// <summary>Alert rules (docs/requirements/sap-features.md #9). The schedule runs them daily; "run" does it now.</summary>
+    private static void MapAlerts(IEndpointRouteBuilder endpoints)
+    {
+        var alerts = endpoints.MapGroup("/api/core/alerts").WithTags("Core: Alerts");
+        alerts.MapGet("/conditions", async (IQueryHandler<Gebeta.Core.Application.Alerts.ListAlertConditionsQuery, IReadOnlyList<AlertConditionDto>> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Alerts.ListAlertConditionsQuery(), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListAlertConditions").RequirePermission(CorePermissions.AlertsRead);
+        alerts.MapGet("/rules", async (Guid companyId, IQueryHandler<Gebeta.Core.Application.Alerts.ListAlertRulesQuery, IReadOnlyList<AlertRuleDto>> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Alerts.ListAlertRulesQuery(companyId), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("ListAlertRules").RequirePermission(CorePermissions.AlertsRead);
+        alerts.MapPost("/rules", async (Gebeta.Core.Application.Alerts.CreateAlertRuleCommand command, ICommandHandler<Gebeta.Core.Application.Alerts.CreateAlertRuleCommand, AlertRuleDto> h, CancellationToken ct) =>
+                (await h.Handle(command, ct).ConfigureAwait(false)).ToHttp())
+            .WithName("CreateAlertRule").RequirePermission(CorePermissions.AlertsManage);
+        alerts.MapPut("/rules/{id:guid}", async (Guid id, AlertRuleBody r, ICommandHandler<Gebeta.Core.Application.Alerts.UpdateAlertRuleCommand, AlertRuleDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Alerts.UpdateAlertRuleCommand(id, r.Name, r.Threshold, r.UserNames, r.RoleNames), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("UpdateAlertRule").RequirePermission(CorePermissions.AlertsManage);
+        alerts.MapPost("/rules/{id:guid}/enable", async (Guid id, ICommandHandler<Gebeta.Core.Application.Alerts.SetAlertRuleEnabledCommand, AlertRuleDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Alerts.SetAlertRuleEnabledCommand(id, true), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("EnableAlertRule").RequirePermission(CorePermissions.AlertsManage);
+        alerts.MapPost("/rules/{id:guid}/disable", async (Guid id, ICommandHandler<Gebeta.Core.Application.Alerts.SetAlertRuleEnabledCommand, AlertRuleDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Alerts.SetAlertRuleEnabledCommand(id, false), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("DisableAlertRule").RequirePermission(CorePermissions.AlertsManage);
+        alerts.MapDelete("/rules/{id:guid}", async (Guid id, ICommandHandler<Gebeta.Core.Application.Alerts.DeleteAlertRuleCommand, AlertRuleDto> h, CancellationToken ct) =>
+                (await h.Handle(new Gebeta.Core.Application.Alerts.DeleteAlertRuleCommand(id), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("DeleteAlertRule").RequirePermission(CorePermissions.AlertsManage);
+        alerts.MapPost("/rules/{id:guid}/run", async (Guid id, ICommandHandler<Gebeta.Core.Application.Alerts.RunAlertRuleCommand, AlertRunDto> h, CancellationToken ct, DateOnly? asOf = null) =>
+                (await h.Handle(new Gebeta.Core.Application.Alerts.RunAlertRuleCommand(id, asOf), ct).ConfigureAwait(false)).ToHttp())
+            .WithName("RunAlertRule").RequirePermission(CorePermissions.AlertsManage);
     }
 
     /// <summary>The signed-in user's own inbox. No permission is needed: every call is about the caller's own notifications, and nobody else's.</summary>
@@ -361,6 +392,8 @@ public sealed record ModuleDto(string Id, string Name, string Version, IReadOnly
 public sealed record PartyBody(string Name, Gebeta.Core.Domain.Parties.PartyType Type, string? Tin, string? VatRegistrationNumber, string? Phone);
 
 public sealed record EmployeeBody(string FirstName, string FatherName, string? GrandfatherName, Gebeta.Core.Domain.Employees.Gender Gender, DateOnly DateOfJoining, string? Tin);
+
+public sealed record AlertRuleBody(string? Name, int? Threshold, IReadOnlyList<string>? UserNames, IReadOnlyList<string>? RoleNames);
 
 public sealed record LeavingBody(DateOnly? DateOfLeaving);
 

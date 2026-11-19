@@ -374,6 +374,10 @@ namespace Gebeta.Accounting.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_invoice_company_id_order_reference")
                         .HasFilter("order_reference IS NOT NULL");
 
+                    b.HasIndex("CompanyId", "Kind", "DueDate")
+                        .HasDatabaseName("ix_invoice_company_id_kind_due_date")
+                        .HasFilter("outstanding > 0");
+
                     b.HasIndex("CompanyId", "Kind", "PostingDate")
                         .HasDatabaseName("ix_invoice_company_id_kind_posting_date");
 

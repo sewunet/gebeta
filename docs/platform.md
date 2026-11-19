@@ -85,6 +85,8 @@ refer to. Each module adds its own details in its own extension tables.
 - Core keeps each user's in-app inbox (step 62). Any module sends to it through `INotifier` (a user by username, or every holder of a
   role, in a company); the user reads only their own (`/api/notifications`). See `docs/requirements/sap-features.md` (9, Alerts) for what is
   and is not built.
+- Alert rules (step 63) turn saved conditions that modules offer (`IAlertCondition`) into inbox notifications on a daily schedule, once per
+  item, through `INotifier`; `/api/core/alerts`, permissions `core.alerts.read` / `core.alerts.manage`.
 
 ## Custom fields
 
@@ -104,5 +106,6 @@ Customers (Sugar, FHC, others) need extra fields without code changes:
 
 ## Background jobs and scheduling
 
+- Alert rules are run daily by a small hosted service in Core (no Hangfire needed yet; see Notifications).
 - Hangfire for queued and recurring jobs (daily leave accrual, exchange rate import, reminders).
 - A job page in the UI shows progress and failures.

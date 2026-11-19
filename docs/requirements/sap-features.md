@@ -398,6 +398,45 @@ vouchers (#2, built) can list their attachments.
     ([SAP Learning: using alerts](https://learning.sap.com/courses/implementing-sap-business-one/using-alerts)).
   - Needs an in-app notification inbox first.
 
+  > **Built (step 63): alerts from saved conditions.** A module offers named **conditions** through
+  > `IAlertCondition` (`Gebeta.Application`, registered as plain scoped services like `IRelatedDocuments`); Core
+  > stores **alert rules** and runs them. Core works with no condition installed (no conditions, no rules).
+  > - **Conditions built:** `accounting.overdue-sales-invoices` and `accounting.overdue-purchase-invoices` (submitted
+  >   invoices still owed, due at least N days ago; credit and debit notes left out), `payroll.loans-nearly-repaid`
+  >   (loans, not standing deductions, with at most N instalments left, balance over instalment rounded up; paused
+  >   loans left out), `buying.agreements-expiring` (submitted agreements ending within N days) and
+  >   `buying.agreements-nearly-exhausted` (the amount, or an item's planned quantity, called off by at least N
+  >   percent; one item each, so an agreement can alert several times). Each declares the permission it reads.
+  >   Fixed, tested code: no user-written queries.
+  > - **Rule:** condition, company, name, threshold (days, percent or instalments, within the condition's range),
+  >   usernames and/or role names to tell, on/off. API `/api/core/alerts`: `GET conditions`, `GET rules?companyId`,
+  >   `POST rules`, `PUT rules/{id}`, `POST rules/{id}/enable|disable`, `DELETE rules/{id}`, `POST rules/{id}/run`
+  >   (`?asOf=` judges by another date). New permissions `core.alerts.read` (list) and `core.alerts.manage`
+  >   (create, change, switch, delete, run); `core.*` covers both, so Core Administrator has them.
+  > - **Who may:** the caller must work in the company and hold the permission the condition reads, or the
+  >   condition and its rules are not found (a user who cannot see invoices cannot set up or run an invoice alert).
+  >   Recipients must exist and may read what the alert shows; this is checked again each run (a role that lost
+  >   the permission is skipped, and the rule says so). Delivery goes through `INotifier` to each person once, even
+  >   when named and also holding a named role; the notifier still refuses people with no access to the company.
+  > - **Schedule:** a hosted service in Core looks every 10 minutes and, from 06:00 Ethiopian time, runs each enabled
+  >   rule that has not run on that date (`LastRunOn` is kept on the rule, so restarts do not repeat it and several
+  >   servers share the work; each rule is locked `FOR UPDATE SKIP LOCKED` while it runs). Settings `Alerts:Enabled`,
+  >   `Alerts:RunHour`, `Alerts:PollSeconds`. "Run now" works whatever the schedule setting.
+  > - **No spam:** what a rule has told is kept (`core.alert_notified`, one row per rule and item key). An item is
+  >   told once; it is forgotten when it stops matching, so it is told again if it comes back. Switching a rule off
+  >   and on, or changing its threshold, keeps what is remembered. A condition that fails (or whose module is gone)
+  >   changes nothing and the error shows on the rule. More than 10 new items in one run arrive as one summary
+  >   message each, so a rule switched on over a backlog does not flood the inbox; a run looks at 500 items at most.
+  >   If none of the named people may read the items, nothing is remembered, so they are told once someone can be.
+  > - **Web:** Settings, Alerts (`/alerts`): list with last run and counts, add, edit, switch on/off, run now, delete.
+  >   English and Amharic texts; not opened in a browser by the author.
+  >
+  > **Not built:** *stock below reorder level* (Stock keeps no reorder level yet; add the field, then one condition);
+  > a contract expiring beyond framework agreements (employment, lease); delivery by email or SMS; per-person
+  > preferences; per-company run hour; messages in the reader's language (conditions write English, and a summary
+  > names at most 5 items); the same item cannot be re-announced after N days while still matching (no reminders);
+  > a history of runs; a unit test of the scheduler loop itself (the run is tested through the same runner).
+
   > **Built (step 62): the inbox only, not the alerts.** Core keeps a per-user inbox (`core.notification`) and
   > any module can send to it through `INotifier` (`Gebeta.Application`, like `IRecordPermissions`).
   > - **Sending:** `NotifyUserAsync(companyId, username, message)` and `NotifyRoleAsync(companyId, roleName, message)`.

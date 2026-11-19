@@ -24,6 +24,119 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Gebeta.Core.Domain.Alerts.AlertNotified", b =>
+                {
+                    b.Property<Guid>("RuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rule_id");
+
+                    b.Property<string>("ItemKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("item_key");
+
+                    b.Property<DateTimeOffset>("NotifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("notified_at");
+
+                    b.HasKey("RuleId", "ItemKey")
+                        .HasName("pk_alert_notified");
+
+                    b.ToTable("alert_notified", "core");
+                });
+
+            modelBuilder.Entity("Gebeta.Core.Domain.Alerts.AlertRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<string>("ConditionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("condition_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error");
+
+                    b.Property<int>("LastMatchCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("last_match_count");
+
+                    b.Property<int>("LastNotifiedCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("last_notified_count");
+
+                    b.Property<DateTimeOffset?>("LastRunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_run_at");
+
+                    b.Property<DateOnly?>("LastRunOn")
+                        .HasColumnType("date")
+                        .HasColumnName("last_run_on");
+
+                    b.Property<DateTimeOffset?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_at");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("modified_by");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("Threshold")
+                        .HasColumnType("integer")
+                        .HasColumnName("threshold");
+
+                    b.PrimitiveCollection<List<string>>("_roleNames")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("role_names");
+
+                    b.PrimitiveCollection<List<string>>("_userNames")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("user_names");
+
+                    b.HasKey("Id")
+                        .HasName("pk_alert_rule");
+
+                    b.HasIndex(new[] { "CompanyId" }, "ix_alert_rule_company")
+                        .HasDatabaseName("ix_alert_rule_company");
+
+                    b.HasIndex(new[] { "LastRunOn" }, "ix_alert_rule_enabled_last_run")
+                        .HasDatabaseName("ix_alert_rule_enabled_last_run")
+                        .HasFilter("is_enabled");
+
+                    b.ToTable("alert_rule", "core");
+                });
+
             modelBuilder.Entity("Gebeta.Core.Domain.Attachments.Attachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -959,6 +1072,16 @@ namespace Gebeta.Core.Infrastructure.Persistence.Migrations
                         .HasFilter("processed_at IS NULL");
 
                     b.ToTable("outbox_message", "core");
+                });
+
+            modelBuilder.Entity("Gebeta.Core.Domain.Alerts.AlertNotified", b =>
+                {
+                    b.HasOne("Gebeta.Core.Domain.Alerts.AlertRule", null)
+                        .WithMany()
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_alert_notified_alert_rule_rule_id");
                 });
 
             modelBuilder.Entity("Gebeta.Core.Domain.Attachments.AttachmentContent", b =>

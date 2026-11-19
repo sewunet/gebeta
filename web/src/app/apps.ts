@@ -59,6 +59,7 @@ export const APPS: AppEntry[] = [
 
   { id: "companies", group: "settings", path: "/companies", title: "nav.companies", subtitle: "tiles.companies", permission: "core.companies.read" },
   { id: "cost-centers", group: "settings", path: "/cost-centers", title: "nav.costCenters", subtitle: "tiles.costCenters", permission: "core.cost-centers.read" },
+  { id: "alerts", group: "settings", path: "/alerts", title: "nav.alerts", subtitle: "tiles.alerts", permission: "core.alerts.read" },
   { id: "users", group: "settings", path: "/users", title: "nav.users", subtitle: "tiles.users", permission: "core.users.read" },
   { id: "roles", group: "settings", path: "/roles", title: "nav.roles", subtitle: "tiles.roles", permission: "core.roles.read" },
 ];

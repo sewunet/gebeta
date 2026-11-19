@@ -143,6 +143,12 @@ public class ModuleIndependenceTests(GebetaApiFactory shared)
         var company = await CompanyAsync(admin, "ACO", "0800000301");
         Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync(U($"/api/core/items?companyId={company.Id}"), Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await admin.GetAsync(U($"/api/stock/warehouses?companyId={company.Id}"), Ct)).StatusCode); // not installed
+
+        // Alerts work with no module offering a condition: nothing to choose from, no rules, and a rule on a condition nobody offers is not found.
+        Assert.Empty((await admin.GetFromJsonAsync<List<AlertConditionDto>>(U("/api/core/alerts/conditions"), Ct))!);
+        Assert.Empty((await admin.GetFromJsonAsync<List<AlertRuleDto>>(U($"/api/core/alerts/rules?companyId={company.Id}"), Ct))!);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsJsonAsync(U("/api/core/alerts/rules"),
+            new { companyId = company.Id, conditionId = "accounting.overdue-sales-invoices", userNames = new[] { GebetaApiFactory.AdminUser } }, Ct)).StatusCode);
     }
 
     [Theory]

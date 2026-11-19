@@ -33,6 +33,10 @@ public static class CorePermissions
     public const string AttachmentsRead = "core.attachments.read";
     public const string AttachmentsManage = "core.attachments.manage";
 
+    /// <summary>See alert rules and the conditions modules offer; create, change, switch and run them.</summary>
+    public const string AlertsRead = "core.alerts.read";
+    public const string AlertsManage = "core.alerts.manage";
+
     public static IReadOnlyList<string> All { get; } =
-        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage, ItemsRead, ItemsManage, CostCentersRead, CostCentersManage, HistoryRead, AttachmentsRead, AttachmentsManage];
+        [CompaniesRead, CompaniesCreate, CompaniesManage, CompaniesAccessAll, UsersRead, UsersManage, RolesRead, RolesManage, NamingSeriesRead, NamingSeriesManage, HolidaysRead, HolidaysManage, EmployeesRead, EmployeesManage, PartiesRead, PartiesManage, ItemsRead, ItemsManage, CostCentersRead, CostCentersManage, HistoryRead, AttachmentsRead, AttachmentsManage, AlertsRead, AlertsManage];
 }

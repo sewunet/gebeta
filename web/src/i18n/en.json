@@ -52,7 +52,8 @@
     "reports": "Reports",
     "settings": "Settings",
     "costCenters": "Cost centres",
-    "agreements": "Framework agreements"
+    "agreements": "Framework agreements",
+    "alerts": "Alerts"
   },
   "common": {
     "company": "Company",
@@ -559,7 +560,8 @@
     "additionalSalary": "Overtime, allowances, deductions",
     "loans": "Advances, Idir, court orders",
     "costCenters": "Estate, factory, head office",
-    "agreements": "Agreed prices and quantities with suppliers"
+    "agreements": "Agreed prices and quantities with suppliers",
+    "alerts": "Overdue invoices, loans ending, contracts expiring"
   },
   "ui": {
     "search": "Search",
@@ -1061,6 +1063,43 @@
       "Info": "Info",
       "Warning": "Warning",
       "Critical": "Critical"
+    }
+  },
+  "alerts": {
+    "explain": "An alert checks a condition once a day and tells the people you name in their inbox. Each item is announced once, and again only if it clears and comes back. Alerts only notify; they never block anything.",
+    "noConditions": "No installed module offers an alert condition you may read.",
+    "condition": "Condition",
+    "threshold": "Threshold",
+    "recipients": "Tells",
+    "users": "Usernames, comma separated",
+    "roles": "Roles, comma separated",
+    "roleTag": "role",
+    "lastRun": "Last run",
+    "counts": "{{matched}} matched, {{notified}} new",
+    "never": "Not run yet",
+    "on": "On",
+    "off": "Off",
+    "switchOn": "Switch on",
+    "switchOff": "Switch off",
+    "runNow": "Run now",
+    "delete": "Delete",
+    "confirmDelete": "Delete the alert \"{{name}}\"?",
+    "add": "Add alert",
+    "chooseCondition": "Choose a condition",
+    "unavailable": "module not installed",
+    "ran": "{{matched}} matched, {{notified}} new, {{cleared}} cleared.",
+    "skipped": "Another run has this alert; nothing was done.",
+    "unit": {
+      "days": "days",
+      "percent": "percent",
+      "instalments": "instalments"
+    },
+    "conditions": {
+      "accounting_overdue_sales_invoices": "Overdue sales invoices",
+      "accounting_overdue_purchase_invoices": "Overdue purchase invoices",
+      "payroll_loans_nearly_repaid": "Employee loans nearly repaid",
+      "buying_agreements_expiring": "Framework agreements expiring",
+      "buying_agreements_nearly_exhausted": "Framework agreements nearly used up"
     }
   }
 }

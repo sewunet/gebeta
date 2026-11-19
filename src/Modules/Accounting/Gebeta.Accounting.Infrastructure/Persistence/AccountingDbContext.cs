@@ -248,6 +248,7 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Gebeta.Acc
         builder.HasIndex(i => new { i.CompanyId, i.Name }).IsUnique();
         builder.HasIndex(i => new { i.CompanyId, i.Kind, i.PostingDate });
         builder.HasIndex(i => new { i.CompanyId, i.PartyId, i.PostingDate }); // statements of account
+        builder.HasIndex(i => new { i.CompanyId, i.Kind, i.DueDate }).HasFilter("outstanding > 0"); // what is overdue (alerts), without reading paid invoices
         builder.Property(i => i.Kind).HasConversion<string>().HasMaxLength(20);
         builder.Property(i => i.DocStatus).HasConversion<string>().HasMaxLength(20);
         builder.Property(i => i.PartyName).HasMaxLength(140).IsRequired();

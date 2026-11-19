@@ -52,7 +52,8 @@
     "reports": "ሪፖርቶች",
     "settings": "ቅንብሮች",
     "costCenters": "የወጪ ማዕከላት",
-    "agreements": "የስምምነት ማዕቀፍ"
+    "agreements": "የስምምነት ማዕቀፍ",
+    "alerts": "ማንቂያዎች"
   },
   "common": {
     "company": "ኩባንያ",
@@ -559,7 +560,8 @@
     "additionalSalary": "የትርፍ ሰዓት፣ አበሎች፣ ተቀናሾች",
     "loans": "ቅድሚያ ክፍያ፣ እድር፣ የፍርድ ቤት ትዕዛዝ",
     "costCenters": "እርሻ፣ ፋብሪካ፣ ዋና መሥሪያ ቤት",
-    "agreements": "ከአቅራቢዎች ጋር የተስማሙ ዋጋዎችና ብዛቶች"
+    "agreements": "ከአቅራቢዎች ጋር የተስማሙ ዋጋዎችና ብዛቶች",
+    "alerts": "ያለፈባቸው ደረሰኞች፣ የሚያልቁ ብድሮች፣ የሚያበቁ ውሎች"
   },
   "ui": {
     "search": "ፈልግ",
@@ -1061,6 +1063,43 @@
       "Info": "መረጃ",
       "Warning": "ማስጠንቀቂያ",
       "Critical": "አስቸኳይ"
+    }
+  },
+  "alerts": {
+    "explain": "ማንቂያ በቀን አንድ ጊዜ ሁኔታን ይፈትሻል፣ የሰየሟቸውንም ሰዎች በመልዕክት ሳጥናቸው ያሳውቃል። እያንዳንዱ ንጥል አንድ ጊዜ ብቻ ይነገራል፤ ከጠፋና ከተመለሰ ብቻ እንደገና ይነገራል። ማንቂያ ያሳውቃል እንጂ ምንም አያግድም።",
+    "noConditions": "እርስዎ ማየት የሚችሉት የማንቂያ ሁኔታ የሚሰጥ የተጫነ ሞጁል የለም።",
+    "condition": "ሁኔታ",
+    "threshold": "ገደብ",
+    "recipients": "የሚያሳውቀው",
+    "users": "የተጠቃሚ ስሞች፣ በነጠላ ሰረዝ የተለዩ",
+    "roles": "ሚናዎች፣ በነጠላ ሰረዝ የተለዩ",
+    "roleTag": "ሚና",
+    "lastRun": "መጨረሻ የሮጠው",
+    "counts": "{{matched}} ተገኝቷል፣ {{notified}} አዲስ",
+    "never": "ገና አልሮጠም",
+    "on": "በርቷል",
+    "off": "ጠፍቷል",
+    "switchOn": "አብራ",
+    "switchOff": "አጥፋ",
+    "runNow": "አሁን አሂድ",
+    "delete": "ሰርዝ",
+    "confirmDelete": "ማንቂያውን \"{{name}}\" ይሰረዝ?",
+    "add": "ማንቂያ ጨምር",
+    "chooseCondition": "ሁኔታ ይምረጡ",
+    "unavailable": "ሞጁሉ አልተጫነም",
+    "ran": "{{matched}} ተገኝቷል፣ {{notified}} አዲስ፣ {{cleared}} ጠርቷል።",
+    "skipped": "ይህን ማንቂያ ሌላ ሩጫ ይዞታል፤ ምንም አልተደረገም።",
+    "unit": {
+      "days": "ቀናት",
+      "percent": "በመቶ",
+      "instalments": "ክፍያዎች"
+    },
+    "conditions": {
+      "accounting_overdue_sales_invoices": "ያለፈባቸው የሽያጭ ደረሰኞች",
+      "accounting_overdue_purchase_invoices": "ያለፈባቸው የግዢ ደረሰኞች",
+      "payroll_loans_nearly_repaid": "ሊጠናቀቁ የተቃረቡ የሰራተኛ ብድሮች",
+      "buying_agreements_expiring": "የሚያበቁ ማዕቀፍ ስምምነቶች",
+      "buying_agreements_nearly_exhausted": "ሊያልቁ የተቃረቡ ማዕቀፍ ስምምነቶች"
     }
   }
 }

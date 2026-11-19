@@ -14,20 +14,8 @@ public class NotificationTests(GebetaApiFactory factory)
 
     private static Uri U(string path) => new(path, UriKind.Relative);
 
-    /// <summary>A user working in the company with a role of their own holding these permissions.</summary>
-    private async Task<(HttpClient Client, MeDto Me, RoleDto Role)> UserWithAsync(HttpClient admin, string username, Guid? companyId, params string[] permissions)
-    {
-        var client = factory.ClientFor(username);
-        var me = (await client.GetFromJsonAsync<MeDto>(U("/api/me"), Ct))!;
-        var role = (await (await admin.PostAsJsonAsync(U("/api/core/roles"), new { name = $"Role of {username}", permissions }, Ct)).Content.ReadFromJsonAsync<RoleDto>(Ct))!;
-        (await admin.PutAsync(U($"/api/core/users/{me.Id}/roles/{role.Id}"), null, Ct)).EnsureSuccessStatusCode();
-        if (companyId is { } c)
-        {
-            (await admin.PutAsync(U($"/api/core/users/{me.Id}/companies/{c}"), null, Ct)).EnsureSuccessStatusCode();
-        }
-
-        return (client, me, role);
-    }
+    private Task<(HttpClient Client, MeDto Me, RoleDto Role)> UserWithAsync(HttpClient admin, string username, Guid? companyId, params string[] permissions) =>
+        factory.UserWithAsync(admin, username, companyId, permissions);
 
     private static async Task<NotificationPageDto> InboxAsync(HttpClient client, string query = "") =>
         (await client.GetFromJsonAsync<NotificationPageDto>(U($"/api/notifications{query}"), Ct))!;

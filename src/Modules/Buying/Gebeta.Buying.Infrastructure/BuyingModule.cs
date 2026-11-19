@@ -36,6 +36,8 @@ public sealed class BuyingModule : IErpModule
         services.AddScoped<IChangeHistory, Gebeta.Persistence.ModuleChangeHistory<BuyingDbContext>>(); // this module's records in /api/history
         services.AddScoped<IRecordPermissions, Persistence.BuyingRecordPermissions>(); // which permission guards a record, for its attachments
         services.AddScoped<IRelatedDocuments, Persistence.BuyingRelatedDocuments>(); // links in /api/documents/{id}/related
+        services.AddScoped<IAlertCondition, Persistence.AgreementsExpiringCondition>(); // saved conditions for alert rules
+        services.AddScoped<IAlertCondition, Persistence.AgreementsNearlyExhaustedCondition>();
         services.AddScoped<IBuyingUnitOfWork>(sp => sp.GetRequiredService<BuyingDbContext>());
         services.AddScoped<IBuyingNumbers, BuyingNumbers>();
         services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();

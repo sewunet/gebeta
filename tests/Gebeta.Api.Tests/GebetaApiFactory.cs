@@ -54,9 +54,11 @@ public sealed class GebetaApiFactory : WebApplicationFactory<Program>, IAsyncLif
         builder.UseSetting("Database:MigrateOnStartup", "true");
         builder.UseSetting("Security:BootstrapAdmins:0", AdminUser);
         builder.UseSetting("RabbitMq:Enabled", "false"); // events stay in the outbox; delivery is tested in Gebeta.Messaging.Tests
+        builder.UseSetting("Alerts:Enabled", "false");   // the daily alert schedule stays off so it cannot run a rule in the middle of a test; "run now" is tested
 
         builder.ConfigureTestServices(services =>
         {
+            services.AddSingleton<Gebeta.Application.IAlertCondition>(ControllableAlertCondition.Instance); // a condition the tests steer
             services.AddAuthentication(TestAuthHandler.SchemeName)
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
             services.PostConfigure<AuthenticationOptions>(o =>

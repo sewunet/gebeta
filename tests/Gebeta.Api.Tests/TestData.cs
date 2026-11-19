@@ -28,4 +28,28 @@ public static class TestData
         created.EnsureSuccessStatusCode();
         return (await created.Content.ReadFromJsonAsync<CompanyDto>(cancellationToken))!;
     }
+
+    /// <summary>
+    /// A user signed in as <paramref name="username"/> (the first sign-in creates them) with a role of their own holding exactly these permissions, and, when
+    /// <paramref name="companyId"/> is given, working in that company. Usernames must be unique across tests, like company names.
+    /// </summary>
+    public static async Task<(HttpClient Client, MeDto Me, RoleDto Role)> UserWithAsync(this GebetaApiFactory factory, HttpClient admin, string username, Guid? companyId,
+        params string[] permissions)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        ArgumentNullException.ThrowIfNull(admin);
+        var ct = TestContext.Current.CancellationToken;
+        var client = factory.ClientFor(username);
+        var me = (await client.GetFromJsonAsync<MeDto>(new Uri("/api/me", UriKind.Relative), ct))!;
+        var created = await admin.PostAsJsonAsync(new Uri("/api/core/roles", UriKind.Relative), new { name = $"Role of {username}", permissions }, ct);
+        created.EnsureSuccessStatusCode();
+        var role = (await created.Content.ReadFromJsonAsync<RoleDto>(ct))!;
+        (await admin.PutAsync(new Uri($"/api/core/users/{me.Id}/roles/{role.Id}", UriKind.Relative), null, ct)).EnsureSuccessStatusCode();
+        if (companyId is { } c)
+        {
+            (await admin.PutAsync(new Uri($"/api/core/users/{me.Id}/companies/{c}", UriKind.Relative), null, ct)).EnsureSuccessStatusCode();
+        }
+
+        return (client, me, role);
+    }
 }

@@ -83,6 +83,20 @@ public sealed class CoreModule : IErpModule
         services.AddScoped<IQueryHandler<Gebeta.Core.Application.Notifications.CountMyUnreadQuery, UnreadCountDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Notifications.NotificationHandler>());
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.Notifications.MarkNotificationReadCommand, NotificationDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Notifications.NotificationHandler>());
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.Notifications.MarkAllNotificationsReadCommand, UnreadCountDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Notifications.NotificationHandler>());
+        services.AddScoped<Gebeta.Core.Domain.Alerts.IAlertRuleRepository, AlertRuleRepository>();
+        services.AddScoped<Gebeta.Core.Application.Alerts.AlertRunner>();
+        services.AddScoped<Gebeta.Core.Application.Alerts.AlertRuleHandler>();
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Alerts.ListAlertConditionsQuery, IReadOnlyList<AlertConditionDto>>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Alerts.AlertRuleHandler>());
+        services.AddScoped<IQueryHandler<Gebeta.Core.Application.Alerts.ListAlertRulesQuery, IReadOnlyList<AlertRuleDto>>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Alerts.AlertRuleHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Alerts.CreateAlertRuleCommand, AlertRuleDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Alerts.AlertRuleHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Alerts.UpdateAlertRuleCommand, AlertRuleDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Alerts.AlertRuleHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Alerts.SetAlertRuleEnabledCommand, AlertRuleDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Alerts.AlertRuleHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Alerts.DeleteAlertRuleCommand, AlertRuleDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Alerts.AlertRuleHandler>());
+        services.AddScoped<ICommandHandler<Gebeta.Core.Application.Alerts.RunAlertRuleCommand, AlertRunDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.Alerts.AlertRuleHandler>());
+        var alertOptions = new AlertOptions();
+        context.Configuration.GetSection(AlertOptions.Section).Bind(alertOptions);
+        services.AddSingleton(alertOptions);
+        services.AddHostedService<AlertScheduler>(); // the daily run of alert rules
         services.AddScoped<Gebeta.Core.Application.CostCenters.CostCenterHandler>();
         services.AddScoped<ICostCenterDirectory>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());
         services.AddScoped<ICommandHandler<Gebeta.Core.Application.CostCenters.CreateCostCenterCommand, CostCenterDto>>(sp => sp.GetRequiredService<Gebeta.Core.Application.CostCenters.CostCenterHandler>());

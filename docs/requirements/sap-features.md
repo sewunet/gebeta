@@ -199,7 +199,7 @@ component on the object page. No new data is stored. Links across modules use ca
 > - **No "by cost centre" columns layout** yet: one cost centre at a time, through the filter.
 > - **Payroll looks up the cost centre when a slip is submitted:** a profile changed between creating and
 >   submitting a slip uses the new cost centre.
-> - **The migration tool does not map the old cost centres yet.**
+> - **Migration:** the tool maps the old cost centres and each employee's payroll cost centre, with the bank details (steps `costcenters` and `profiles`, step 57).
 
 **In one line:**
 - **The cost centre list:** each company keeps a short list of cost centres, as a tree. For example: Estate,

@@ -55,7 +55,7 @@ public sealed class StepReport(string name)
 /// </summary>
 public sealed partial class MigrationRun(IServiceProvider services, IErpNextSource source, IdMap idMap, MigrationOptions options)
 {
-    public static readonly string[] MasterSteps = ["users", "parties", "items", "warehouses", "employees", "structures", "assignments", "history", "payroll"];
+    public static readonly string[] MasterSteps = ["users", "parties", "items", "warehouses", "costcenters", "employees", "profiles", "structures", "assignments", "history", "payroll"];
     public static readonly string[] CutoverSteps = ["leave", "invoices", "orders", "stock", "opening"];
     public static readonly string[] AllSteps = ["company", .. MasterSteps, .. CutoverSteps];
 
@@ -68,7 +68,8 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
     /// <summary>The module(s) each step writes into; a step runs when any of them is installed.</summary>
     public static readonly IReadOnlyDictionary<string, string[]> StepModules = new Dictionary<string, string[]>
     {
-        ["users"] = ["core"], ["parties"] = ["core"], ["items"] = ["core"], ["warehouses"] = ["stock"], ["employees"] = ["core"],
+        ["users"] = ["core"], ["parties"] = ["core"], ["items"] = ["core"], ["warehouses"] = ["stock"], ["costcenters"] = ["core"], ["employees"] = ["core"],
+        ["profiles"] = ["payroll"],
         ["structures"] = ["payroll"], ["assignments"] = ["payroll"], ["history"] = ["payroll"], ["payroll"] = ["payroll"],
         ["leave"] = ["hr"], ["invoices"] = ["accounting"], ["orders"] = ["buying", "selling"], ["stock"] = ["stock"], ["opening"] = ["accounting"],
     };
@@ -92,7 +93,7 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
 
         Func<CancellationToken, Task<StepReport>>[] runners =
         [
-            UsersAsync, PartiesAsync, ItemsAsync, WarehousesAsync, EmployeesAsync, SalaryStructuresAsync, AssignmentsAsync, SlipHistoryAsync, PayrollCheckAsync,
+            UsersAsync, PartiesAsync, ItemsAsync, WarehousesAsync, CostCentersAsync, EmployeesAsync, PayrollProfilesAsync, SalaryStructuresAsync, AssignmentsAsync, SlipHistoryAsync, PayrollCheckAsync,
             ct => Cutover("leave", OpeningLeaveAsync, ct),
             ct => Cutover("invoices", OpenInvoicesAsync, ct),
             ct => Cutover("orders", OpenOrdersAsync, ct),
@@ -169,6 +170,7 @@ public sealed partial class MigrationRun(IServiceProvider services, IErpNextSour
             "Warehouse" => (await source.WarehousesAsync(options.Company, cancellationToken).ConfigureAwait(false)).Where(w => !w.Disabled).Select(w => w.Name),
             "Employee" => (await source.EmployeesAsync(options.Company, cancellationToken).ConfigureAwait(false)).Where(e => e.Status != "Left").Select(e => e.Name),
             "Salary Structure" => (await source.SalaryStructuresAsync(options.Company, cancellationToken).ConfigureAwait(false)).Select(s => s.Name),
+            "Cost Center" => (await source.CostCentersAsync(options.Company, cancellationToken).ConfigureAwait(false)).Select(c => c.Name),
             _ => throw new ArgumentOutOfRangeException(nameof(doctype), doctype, null),
         };
         var names = active.ToHashSet(StringComparer.Ordinal);

@@ -47,9 +47,11 @@ public sealed class EmployeePayrollProfile : Entity, IAudited
     public Result Update(PaymentMethod method, string? bankName, string? accountNumber, string? pensionNumber)
     {
         var account = accountNumber?.Replace(" ", string.Empty, StringComparison.Ordinal).Trim();
-        if (method == PaymentMethod.BankTransfer && (string.IsNullOrWhiteSpace(bankName) || string.IsNullOrWhiteSpace(account)))
+        // A bank transfer may wait for its account (as an employee with no profile does); the payroll checks flag it until it is entered.
+        // An account, once given, needs its bank.
+        if (method == PaymentMethod.BankTransfer && !string.IsNullOrWhiteSpace(account) && string.IsNullOrWhiteSpace(bankName))
         {
-            return Result.Failure(Error.Validation("A bank transfer needs the bank name and the account number."));
+            return Result.Failure(Error.Validation("Name the bank the account is at."));
         }
 
         if (account is { Length: > 0 } && (account.Length is < 6 or > 30 || !account.All(char.IsAsciiDigit)))

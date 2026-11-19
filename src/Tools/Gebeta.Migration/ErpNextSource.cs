@@ -38,6 +38,12 @@ public sealed record ErpOrderLine(string Kind, string Order, string Party, DateO
 /// </summary>
 public sealed record ErpLeaveBalance(string Employee, string LeaveType, decimal Balance, bool AllocationCoversDate);
 
+/// <summary>A cost centre that takes postings (not a group). <see cref="IsCompanyDefault"/>: the company's default, which becomes Gebeta's Main.</summary>
+public sealed record ErpCostCenter(string Name, string CostCenterName, string? Number, bool IsCompanyDefault);
+
+/// <summary>How an employee is paid and where their salary cost goes (Employee: salary_mode, bank_name, bank_ac_no, payroll_cost_center, pension_id).</summary>
+public sealed record ErpPayrollProfile(string Employee, string? SalaryMode, string? BankName, string? BankAccount, string? PayrollCostCenter, string? PensionId);
+
 /// <summary>An employee. Ethiopian names as usually kept in ERPNext: first name, father's name (middle_name), grandfather's name (last_name).</summary>
 public sealed record ErpEmployee(string Name, string FirstName, string? FatherName, string? GrandfatherName, string FullName, string? Gender, DateOnly DateOfJoining,
     string Status, DateOnly? RelievingDate, string? Tin);
@@ -94,6 +100,12 @@ public interface IErpNextSource
     Task<IReadOnlyList<ErpStockBalance>> StockBalancesAsync(string company, DateOnly asOf, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ErpEmployee>> EmployeesAsync(string company, CancellationToken cancellationToken);
+
+    /// <summary>The company's cost centres that take postings (enabled, not groups).</summary>
+    Task<IReadOnlyList<ErpCostCenter>> CostCentersAsync(string company, CancellationToken cancellationToken);
+
+    /// <summary>The payroll details of the company's employees (payment method, bank, cost centre, pension number).</summary>
+    Task<IReadOnlyList<ErpPayrollProfile>> PayrollProfilesAsync(string company, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ErpUser>> UsersAsync(CancellationToken cancellationToken);
 
@@ -204,6 +216,26 @@ public sealed class MariaDbErpNextSource(string connectionString) : IErpNextSour
             """, company,
             r => new ErpEmployee(r.GetString(0), Text(r, 1) ?? r.GetString(4), Text(r, 2), Text(r, 3), r.GetString(4), Text(r, 5), DateOnly.FromDateTime(r.GetDateTime(6)),
                 r.GetString(7), r.IsDBNull(8) ? null : DateOnly.FromDateTime(r.GetDateTime(8)), Text(r, 9)), cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<IReadOnlyList<ErpCostCenter>> CostCentersAsync(string company, CancellationToken cancellationToken) =>
+        QueryAsync("""
+            SELECT c.name, c.cost_center_name, c.cost_center_number, c.name = co.cost_center
+            FROM `tabCost Center` c JOIN tabCompany co ON co.name = c.company
+            WHERE c.company = @p AND c.is_group = 0 AND c.disabled = 0 ORDER BY c.name
+            """, company, r => new ErpCostCenter(r.GetString(0), Text(r, 1) ?? r.GetString(0), Text(r, 2), !r.IsDBNull(3) && r.GetInt64(3) == 1), cancellationToken);
+
+    public async Task<IReadOnlyList<ErpPayrollProfile>> PayrollProfilesAsync(string company, CancellationToken cancellationToken)
+    {
+        // pension_id (and on older sites payroll_cost_center) are not on every site's Employee.
+        var columns = (await QueryAsync(
+            "SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tabEmployee'",
+            null, r => r.GetString(0), cancellationToken).ConfigureAwait(false)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        string Column(string name) => columns.Contains(name) ? name : "NULL";
+        return await QueryAsync($"""
+            SELECT name, {Column("salary_mode")}, {Column("bank_name")}, {Column("bank_ac_no")}, {Column("payroll_cost_center")}, {Column("pension_id")}
+            FROM tabEmployee WHERE company = @p ORDER BY name
+            """, company, r => new ErpPayrollProfile(r.GetString(0), Text(r, 1), Text(r, 2), Text(r, 3), Text(r, 4), Text(r, 5)), cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<ErpUser>> UsersAsync(CancellationToken cancellationToken)

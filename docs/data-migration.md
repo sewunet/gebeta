@@ -31,7 +31,7 @@ dedicated opening-balance import.
 >     --user-roles roles.csv     the Gebeta roles each user gets; written for review when missing
 >     --keycloak-users kc.json   Keycloak partial-import file for the users who have not signed in
 >     --modules core,hr,payroll  the modules this installation has (default: all); other steps are skipped
->                              users, parties, items, warehouses, employees, structures, assignments, history, payroll,
+>                              users, parties, items, warehouses, costcenters, employees, profiles, structures, assignments, history, payroll,
 >                              leave, invoices, orders, stock, opening
 > ```
 >
@@ -71,6 +71,22 @@ dedicated opening-balance import.
 >   keeps them: first name, father's name (`middle_name`), grandfather's name (`last_name`). When
 >   those are blank, they come from the second and third words of the full name. The TIN comes from
 >   the `tin_number` custom field when the site has it. A leaving date already set comes along.
+> - **Cost centres** (step `costcenters`) are the company's enabled cost centres that take
+>   postings:
+>   - The company's default cost centre is mapped to Gebeta's Main.
+>   - The others keep their number as the code. When several share a number, the code is the number
+>     and the name (`1100-01-OPERATION`); without a number, the code comes from the name. An
+>     Amharic name gets `CC-1`, `CC-2`, and so on.
+>   - Groups are not migrated, because Gebeta keeps one level.
+> - **Payroll details** (step `profiles`) come from the employee: `salary_mode`, `bank_name`,
+>   `bank_ac_no`, `payroll_cost_center` and `pension_id`.
+>   - Bank becomes a bank transfer. Spaces, dashes, dots and slashes are removed from the account
+>     number, which must then be 6 to 30 digits. If it is not, or the bank is missing, the bank details
+>     are left out with a warning naming the employee, never the account. The payroll checks then
+>     flag the employee until someone enters the details.
+>   - Cash stays cash. Cheque becomes cash, with a warning.
+>   - A payroll cost centre of another company, or a group, is left out with a warning.
+>   - A rerun writes nothing that is already the same.
 > - **Names in formulas** are resolved the way ERPNext resolves them (hrms
 >   `salary_slip.get_data_for_eval`):
 >   - the structure's own components come first;

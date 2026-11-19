@@ -73,6 +73,10 @@ public class MigrationTests(GebetaApiFactory factory)
                 Fields.GetValueOrDefault(doctype, []).ToDictionary(r => r.Key, r => (IReadOnlyDictionary<string, string?>)r.Value));
 
         public Task<IReadOnlyList<ErpEmployee>> EmployeesAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpEmployee>>(Employees);
+        public List<ErpCostCenter> CostCenters { get; } = [];
+        public List<ErpPayrollProfile> Profiles { get; } = [];
+        public Task<IReadOnlyList<ErpCostCenter>> CostCentersAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpCostCenter>>(CostCenters);
+        public Task<IReadOnlyList<ErpPayrollProfile>> PayrollProfilesAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpPayrollProfile>>(Profiles);
         public Task<IReadOnlyList<ErpSalaryStructure>> SalaryStructuresAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpSalaryStructure>>(Structures);
         public Task<IReadOnlyList<ErpAssignment>> AssignmentsAsync(string c, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ErpAssignment>>(Assignments);
         public List<ErpSalarySlip> History { get; } = []; // slips before the latest payroll
@@ -692,4 +696,59 @@ public class MigrationTests(GebetaApiFactory factory)
     [InlineData("A very long warehouse name indeed", 20, "A-VERY-LONG-WAREHOUS")]
     public void Codes_are_normalised_the_same_way_every_run(string name, int max, string expected) =>
         Assert.Equal(expected, Codes.Normalise(name, max));
+
+    [Fact]
+    public async Task Cost_centres_and_payroll_details_come_over_and_unusable_bank_details_wait_for_a_person()
+    {
+        const string name = "Zeway Sugar Factory"; // name and first letters no other test uses (they share one database)
+        var erp = new FakeErpNext(name, TestData.Tin());
+        erp.CostCenters.AddRange([
+            new("Main - FIN", "Main", null, IsCompanyDefault: true),
+            new("Factory - FIN", "Factory", "200", false),
+            new("Cane Estate - FIN", "Cane Estate", null, false),
+            new("ፋብሪካ - FIN", "ፋብሪካ", null, false), // an Amharic name: Gebeta codes are ASCII
+            new("300 - Mill A - FIN", "Mill A", "300", false),     // a number two cost centres share: number and name
+            new("300 - Mill B - FIN", "Mill B", "300", false),
+        ]);
+        string[] first = ["Abebe", "Bekele", "Chala", "Dawit", "Elias"];
+        ErpEmployee Employee(int n, string status = "Active") => new($"FIN-00{n}", first[n - 1], "Test", null, $"{first[n - 1]} Test", "Male", new DateOnly(2024, 1, 1), status, null, null);
+        erp.Employees.AddRange([Employee(1), Employee(2), Employee(3), Employee(4), Employee(5, "Left")]);
+        erp.Profiles.AddRange([
+            new("FIN-001", "Bank", "CBE", "1000 1234-5678", "Factory - FIN", "P-1"),
+            new("FIN-002", "Cheque", null, null, null, null),
+            new("FIN-003", "Bank", "CBE", "ACC-12", "Cane Estate - FIN", null),   // not an account number
+            new("FIN-004", null, null, null, "Elsewhere - XYZ", null),           // another company's cost centre
+            new("FIN-005", "Bank", "CBE", "1000999", null, null),                // left: not migrated
+        ]);
+
+        var reports = await Run(erp, new MigrationOptions(name, Steps: ["costcenters", "employees", "profiles"]));
+        Assert.All(reports, r => Assert.True(r.Ok, string.Join("; ", r.Failures)));
+        using var admin = factory.ClientFor(GebetaApiFactory.AdminUser);
+        var company = (await admin.GetFromJsonAsync<List<CompanyDto>>(U("/api/core/companies"), Ct))!.Single(c => c.Name == name);
+
+        var centers = (await admin.GetFromJsonAsync<List<CostCenterDto>>(U($"/api/core/cost-centers?companyId={company.Id}"), Ct))!;
+        Assert.Equal(["200", "300-MILL-A", "300-MILL-B", "CANE-ESTATE", "CC-1", "MAIN"], centers.Select(c => c.Code).Order(StringComparer.Ordinal).ToArray());
+        Assert.Equal((1, 5), (reports.Single(r => r.Name == "costcenters").Adopted, reports.Single(r => r.Name == "costcenters").Created)); // Main adopted
+
+        var employees = (await admin.GetFromJsonAsync<List<EmployeeDto>>(U($"/api/core/employees?companyId={company.Id}"), Ct))!;
+        async Task<PayrollProfileDto> Profile(int n) => (await admin.GetFromJsonAsync<PayrollProfileDto>(
+            U($"/api/payroll/employees/{employees.Single(e => e.FirstName == first[n - 1]).Id}/profile"), Ct))!;
+        var factoryCentre = centers.Single(c => c.Code == "200").Id;
+        Assert.Equal(new PayrollProfileDto((await Profile(1)).EmployeeId, "BankTransfer", "CBE", "100012345678", "P-1", factoryCentre), await Profile(1));
+        Assert.Equal("Cash", (await Profile(2)).PaymentMethod);
+        var three = await Profile(3);
+        Assert.Equal(("BankTransfer", (string?)null, centers.Single(c => c.Code == "CANE-ESTATE").Id), (three.PaymentMethod, three.BankAccountNumber, three.CostCenterId!.Value));
+        Assert.Null((await Profile(4)).CostCenterId);
+
+        var profiles = reports.Single(r => r.Name == "profiles");
+        Assert.Contains(profiles.Warnings, w => w.StartsWith("FIN-003: paid by bank", StringComparison.Ordinal));
+        Assert.Contains(profiles.Warnings, w => w.StartsWith("FIN-004: payroll cost centre", StringComparison.Ordinal));
+        Assert.Contains(profiles.Warnings, w => w.StartsWith("1 employees are paid by cheque", StringComparison.Ordinal));
+        Assert.DoesNotContain(profiles.Warnings, w => w.Contains("ACC-12", StringComparison.Ordinal) || w.Contains("1000", StringComparison.Ordinal)); // never the account
+        Assert.Equal(3, profiles.Created);
+
+        var again = await Run(erp, new MigrationOptions(name, Steps: ["costcenters", "employees", "profiles"]));
+        Assert.All(again, r => Assert.Equal(0, r.Created)); // nothing doubles, nothing is rewritten
+        Assert.Equal(3, again.Single(r => r.Name == "profiles").AlreadyMigrated);
+    }
 }
